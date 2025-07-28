@@ -6,8 +6,6 @@ import { useProjectNotes, useCreateNote, useUpdateNote, useDeleteNote } from '..
 import { useProjectLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks'
 import { useAppStore } from '../store'
 import { CreateNoteData, CreateLinkData } from '../types/database'
-import supabase from '../supabase'
-import UserProfile from '../components/UserProfile'
 
 const ProjectPage = () => {
   const { projectId } = useParams<{ projectId: string }>()
@@ -16,7 +14,6 @@ const ProjectPage = () => {
   const [newLinkUrl, setNewLinkUrl] = useState('')
   const [noteContent, setNoteContent] = useState('')
   const [noteTitle, setNoteTitle] = useState('')
-  const [user, setUser] = useState<any>(null)
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   
   // Chakra breakpoint: [mobile, tablet, desktop]
@@ -41,14 +38,6 @@ const ProjectPage = () => {
   // Current note from React Query data
   const currentNote = notes?.[currentNoteIndex] || null
   
-  // Get current user
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
-  }, [])
 
   // Update note content and title when current note changes
   useEffect(() => {

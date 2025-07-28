@@ -1,0 +1,22 @@
+{
+  "name": "EX_P02",
+  "short_name": "EX_P02",
+  "description": "Technical project management and note-taking application",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#FF6B35",
+  "background_color": "#F5F5F5",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait-primary"
+}

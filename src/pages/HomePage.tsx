@@ -1,44 +1,88 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import supabase from "../supabase";
 import { useSession } from "../context/SessionContext";
 
 const HomePage = () => {
   const { session } = useSession();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
+
   return (
-    <main>
-      <section className="main-container">
-        <h1 className="header-text">React Supabase Auth Template</h1>
-        <p>Current User : {session?.user.email || "None"}</p>
-        {session ? (
-          <button onClick={() => supabase.auth.signOut()}>Sign Out</button>
-        ) : (
-          <Link to="/auth/sign-in">Sign In</Link>
-        )}
-        <Link to="/protected">Protected Page 🛡️</Link>
-        <div id="divider"></div>
-        <Link
-          to="https://github.com/mmvergara/react-supabase-auth-template"
-          target="_blank"
-          rel="noreferrer noopener"
-          id="github-repo-link"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            x="0px"
-            y="0px"
-            width="30"
-            height="50"
-            viewBox="0 0 64 64"
-          >
-            <path
-              fill="#fff"
-              d="M32 6C17.641 6 6 17.641 6 32c0 12.277 8.512 22.56 19.955 25.286-.592-.141-1.179-.299-1.755-.479V50.85c0 0-.975.325-2.275.325-3.637 0-5.148-3.245-5.525-4.875-.229-.993-.827-1.934-1.469-2.509-.767-.684-1.126-.686-1.131-.92-.01-.491.658-.471.975-.471 1.625 0 2.857 1.729 3.429 2.623 1.417 2.207 2.938 2.577 3.721 2.577.975 0 1.817-.146 2.397-.426.268-1.888 1.108-3.57 2.478-4.774-6.097-1.219-10.4-4.716-10.4-10.4 0-2.928 1.175-5.619 3.133-7.792C19.333 23.641 19 22.494 19 20.625c0-1.235.086-2.751.65-4.225 0 0 3.708.026 7.205 3.338C28.469 19.268 30.196 19 32 19s3.531.268 5.145.738c3.497-3.312 7.205-3.338 7.205-3.338.567 1.474.65 2.99.65 4.225 0 2.015-.268 3.19-.432 3.697C46.466 26.475 47.6 29.124 47.6 32c0 5.684-4.303 9.181-10.4 10.4 1.628 1.43 2.6 3.513 2.6 5.85v8.557c-.576.181-1.162.338-1.755.479C49.488 54.56 58 44.277 58 32 58 17.641 46.359 6 32 6zM33.813 57.93C33.214 57.972 32.61 58 32 58 32.61 58 33.213 57.971 33.813 57.93zM37.786 57.346c-1.164.265-2.357.451-3.575.554C35.429 57.797 36.622 57.61 37.786 57.346zM32 58c-.61 0-1.214-.028-1.813-.07C30.787 57.971 31.39 58 32 58zM29.788 57.9c-1.217-.103-2.411-.289-3.574-.554C27.378 57.61 28.571 57.797 29.788 57.9z"
-            ></path>
-          </svg>
-          Star us on Github 🌟
-        </Link>
-      </section>
-    </main>
+    <div className="min-h-screen bg-light-grey flex items-center justify-center p-6">
+      <div className="max-w-md w-full space-y-6 bg-white p-8 border border-medium-grey">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-black font-mono">EX_P02</h1>
+          <p className="text-sm text-gray-600 font-mono">
+            Personal Knowledge Management
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {session ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600 font-mono text-center">
+                Welcome back, {session.user.email}
+              </p>
+              <button 
+                onClick={() => supabase.auth.signOut()}
+                className="btn-secondary w-full"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Link 
+                to="/auth/sign-in"
+                className="btn-primary block text-center w-full"
+              >
+                Sign In
+              </Link>
+              <Link 
+                to="/auth/sign-up"
+                className="btn-secondary block text-center w-full"
+              >
+                Sign Up
+              </Link>
+              
+              <div className="text-center">
+                <span className="text-sm text-gray-500 font-mono">or</span>
+              </div>
+              
+              <button
+                onClick={async () => {
+                  await supabase.auth.signInWithOAuth({
+                    provider: 'github',
+                    options: {
+                      redirectTo: `${window.location.origin}/dashboard`
+                    }
+                  });
+                }}
+                className="btn-secondary w-full flex items-center justify-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                </svg>
+                <span>Continue with GitHub</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-medium-grey pt-4">
+          <p className="text-xs text-gray-500 font-mono text-center">
+            A technical brutalist approach to note-taking and link management
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 

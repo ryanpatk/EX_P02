@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBreakpointValue } from '@chakra-ui/react'
-import { useProject } from '../hooks/useProjects'
+import { useProject, useUpdateProject, useDeleteProject } from '../hooks/useProjects'
 import { useProjectNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useNotes'
 import { useProjectLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks'
+import { useTags } from '../hooks/useTags'
 import { useAppStore } from '../store'
-import { CreateNoteData, CreateLinkData } from '../types/database'
+import { CreateNoteData, CreateLinkData, LinkWithTag } from '../types/database'
+import LinkEditModal from '../components/LinkEditModal'
 
 const ProjectPage = () => {
   const { projectId } = useParams<{ projectId: string }>()
@@ -14,11 +16,14 @@ const ProjectPage = () => {
   const [newLinkUrl, setNewLinkUrl] = useState('')
   const [noteContent, setNoteContent] = useState('')
   const [noteTitle, setNoteTitle] = useState('')
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editingLink, setEditingLink] = useState<LinkWithTag | null>(null)
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('')
   
   // Chakra breakpoint: [mobile, tablet, desktop]
   const isDesktop = useBreakpointValue([false, false, true])
-  const isMobile = useBreakpointValue([true, true, false])
   
   const { leftPaneExpanded, rightPaneExpanded, currentNoteIndex, setLeftPaneExpanded, setRightPaneExpanded, setCurrentNoteIndex } = useAppStore()
   
@@ -26,6 +31,7 @@ const ProjectPage = () => {
   const { data: project, isLoading: projectLoading } = useProject(projectId!)
   const { data: notes, isLoading: notesLoading } = useProjectNotes(projectId!)
   const { data: links, isLoading: linksLoading } = useProjectLinks(projectId!)
+  const { data: tags } = useTags()
   
   // Mutation hooks
   const createNote = useCreateNote()
@@ -34,10 +40,19 @@ const ProjectPage = () => {
   const createLink = useCreateLink()
   // const updateLink = useUpdateLink() // TODO: implement link editing
   const deleteLink = useDeleteLink()
+  const updateProject = useUpdateProject()
+  const deleteProject = useDeleteProject()
   
   // Current note from React Query data
   const currentNote = notes?.[currentNoteIndex] || null
   
+  // Initialize edit state when project loads
+  useEffect(() => {
+    if (project) {
+      setEditName(project.name)
+      setEditDescription(project.description || '')
+    }
+  }, [project])
 
   // Update note content and title when current note changes
   useEffect(() => {
@@ -77,6 +92,46 @@ const ProjectPage = () => {
 
     return () => clearTimeout(timeoutId)
   }, [noteTitle, currentNote, updateNote])
+  
+  const handleSaveProject = async () => {
+    if (!projectId || !editName.trim()) return
+    
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        updates: {
+          name: editName.trim(),
+          description: editDescription.trim() || undefined
+        }
+      })
+      setIsEditing(false)
+    } catch (error) {
+      console.error('Failed to update project:', error)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    if (project) {
+      setEditName(project.name)
+      setEditDescription(project.description || '')
+    }
+    setIsEditing(false)
+  }
+
+  const handleDeleteProject = async () => {
+    if (!projectId) return
+    
+    const confirmMessage = `Delete "${project?.name}"?\n\nThis will permanently delete the project and all its notes and links. This action cannot be undone.`
+    
+    if (!confirm(confirmMessage)) return
+    
+    try {
+      await deleteProject.mutateAsync(projectId)
+      navigate('/dashboard')
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+    }
+  }
   
   const handleCreateNote = async () => {
     if (!projectId) return
@@ -133,6 +188,38 @@ const ProjectPage = () => {
   const handleOpenLink = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
+
+  const handleEditLink = (link: LinkWithTag) => {
+    console.log('Setting editing link:', link)
+    setEditingLink(link)
+  }
+
+  const handleCloseEditModal = () => {
+    setEditingLink(null)
+  }
+
+  const handleDeleteLinkFromModal = async () => {
+    if (!editingLink) return
+    
+    if (!confirm('Are you sure you want to delete this link?')) return
+    
+    try {
+      await deleteLink.mutateAsync(editingLink.id)
+      setEditingLink(null)
+    } catch (error) {
+      console.error('Failed to delete link:', error)
+    }
+  }
+
+  // Filter links by selected tag
+  const filteredLinks = selectedTagFilter
+    ? links?.filter(link => link.tag_id === selectedTagFilter)
+    : links
+
+  // Get unique tags used in this project
+  const projectTags = tags?.filter(tag => 
+    links?.some(link => link.tag_id === tag.id)
+  ) || []
   
   if (projectLoading || notesLoading || linksLoading) {
     return (
@@ -151,7 +238,7 @@ const ProjectPage = () => {
             onClick={() => navigate('/dashboard')}
             className="btn-primary"
           >
-            Back to Dashboard
+            Back
           </button>
         </div>
       </div>
@@ -227,16 +314,9 @@ const ProjectPage = () => {
                 onClick={() => navigate('/dashboard')}
                 className="text-sm text-gray-600 hover:text-black transition-colors font-medium"
               >
-                ← Back to Dashboard
+                ← Back
               </button>
               
-              <button
-                onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black md:hidden"
-                title={isHeaderVisible ? 'Hide header' : 'Show header'}
-              >
-                {isHeaderVisible ? '▲' : '▼'}
-              </button>
             </div>
             
             {/* Project Info */}
@@ -269,46 +349,111 @@ const ProjectPage = () => {
           </div>
 
           {/* Desktop Layout */}
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => navigate('/dashboard')}
-                className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
-              >
-                ← Back to Dashboard
-              </button>
+          {!isEditing ? (
+            <div className="flex items-center justify-between px-4 py-2">
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
+                >
+                  ← Back
+                </button>
+                
+                <span className="text-gray-400">•</span>
+                
+                <h1 className="text-base font-black text-black tracking-tight uppercase">{project.name}</h1>
+                
+                {project.description && (
+                  <>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-xs text-gray-600 font-medium">{project.description}</span>
+                  </>
+                )}
+              </div>
               
-              <span className="text-gray-400">•</span>
-              
-              <h1 className="text-base font-black text-black tracking-tight uppercase">{project.name}</h1>
-              
-              {project.description && (
-                <>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleNotesToggle}
+                  className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                    shouldShowLeftPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
+                  }`}
+                >
+                  Notes
+                </button>
+                <button
+                  onClick={handleLinksToggle}
+                  className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                    shouldShowRightPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
+                  }`}
+                >
+                  Links
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
+                  >
+                    ← Back
+                  </button>
                   <span className="text-gray-400">•</span>
-                  <span className="text-xs text-gray-600 font-medium">{project.description}</span>
-                </>
-              )}
+                  <span className="text-xs font-bold text-black uppercase tracking-wide">Edit Project</span>
+                </div>
+                
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={handleDeleteProject}
+                    disabled={deleteProject.isPending}
+                    className="px-2 py-1 text-xs font-bold transition-colors border border-red-500 bg-white text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {deleteProject.isPending ? '...' : 'Delete'}
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveProject}
+                    disabled={updateProject.isPending || !editName.trim()}
+                    className="px-2 py-1 text-xs font-bold transition-colors border border-black bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {updateProject.isPending ? '...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Project name"
+                  className="input-field text-base font-black uppercase tracking-tight flex-shrink-0"
+                  style={{ width: '200px' }}
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  className="input-field text-xs font-medium flex-1"
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={handleNotesToggle}
-                className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                  shouldShowLeftPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                }`}
-              >
-                Notes
-              </button>
-              <button
-                onClick={handleLinksToggle}
-                className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                  shouldShowRightPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                }`}
-              >
-                Links
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       
       {/* Main Content */}
@@ -317,31 +462,9 @@ const ProjectPage = () => {
         {shouldShowLeftPane && (
           <div className={`${isDesktop && shouldShowRightPane ? 'w-1/2' : 'w-full'} bg-light-grey flex flex-col h-full`}>
             {/* Notes Header */}
-            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[120px] flex flex-col flex-shrink-0">
-              <div className="bg-white border border-medium-grey p-4 flex items-center justify-between h-8">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-black tracking-tight uppercase">Notes</h2>
-                  {isMobile && (
-                    <button
-                      onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                      className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black"
-                      title={isHeaderVisible ? 'Hide header' : 'Show header'}
-                    >
-                      {isHeaderVisible ? '▲' : '▼'}
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={handleCreateNote}
-                  disabled={createNote.isPending}
-                  className="btn-primary text-base font-bold disabled:opacity-50 h-8"
-                >
-                  {createNote.isPending ? '...' : '+ New Note'}
-                </button>
-              </div>
-              
+            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[80px] flex flex-col flex-shrink-0">
               {/* Note Navigation - Always reserve space */}
-              <div className="bg-white border border-medium-grey border-t-0 p-4 flex items-center space-x-3 min-h-[40px]">
+              <div className="bg-light-grey border border-medium-grey p-4 flex items-center space-x-3 min-h-[40px]">
                 {notes && notes.length > 0 ? (
                   <>
                     <span className="text-base text-gray-600 font-bold uppercase tracking-wide">
@@ -358,6 +481,13 @@ const ProjectPage = () => {
                         />
                       ))}
                     </div>
+                    <button
+                      onClick={handleCreateNote}
+                      disabled={createNote.isPending}
+                      className="btn-primary text-base font-bold disabled:opacity-50 h-8"
+                    >
+                      {createNote.isPending ? '...' : '+ New Note'}
+                    </button>
                     {currentNote && (
                       <button
                         onClick={() => handleDeleteNote(currentNote.id)}
@@ -368,9 +498,18 @@ const ProjectPage = () => {
                     )}
                   </>
                 ) : (
-                  <span className="text-base text-gray-400 font-bold uppercase tracking-wide">
-                    No notes yet
-                  </span>
+                  <>
+                    <span className="text-base text-gray-400 font-bold uppercase tracking-wide">
+                      No notes yet
+                    </span>
+                    <button
+                      onClick={handleCreateNote}
+                      disabled={createNote.isPending}
+                      className="btn-primary text-base font-bold disabled:opacity-50 h-8 ml-auto"
+                    >
+                      {createNote.isPending ? '...' : '+ New Note'}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -415,25 +554,9 @@ const ProjectPage = () => {
         {shouldShowRightPane && (
           <div className={`${isDesktop && shouldShowLeftPane ? 'w-1/2' : 'w-full'} bg-light-grey flex flex-col`}>
             {/* Links Header */}
-            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[120px] flex flex-col flex-shrink-0">
-              <div className="bg-white border border-medium-grey p-4 flex items-center justify-between h-8">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-black tracking-tight uppercase">Links</h2>
-                  {isMobile && (
-                    <button
-                      onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                      className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black"
-                      title={isHeaderVisible ? 'Hide header' : 'Show header'}
-                    >
-                      {isHeaderVisible ? '▲' : '▼'}
-                    </button>
-                  )}
-                </div>
-                <div className="w-[88px] h-8"></div> {/* Spacer to align with Notes header */}
-              </div>
-              
+            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[80px] flex flex-col flex-shrink-0">
               {/* Add Link - Always reserve space */}
-              <div className="bg-white border border-medium-grey border-t-0 p-4 flex space-x-2 min-h-[40px] items-start">
+              <div className="bg-light-grey border border-medium-grey p-4 flex space-x-2 min-h-[40px] items-start">
                 <input
                   type="url"
                   placeholder="Paste URL..."
@@ -450,43 +573,115 @@ const ProjectPage = () => {
                   {createLink.isPending ? '...' : '+'}
                 </button>
               </div>
+              
+              {/* Tag Filter */}
+              {projectTags.length > 0 && (
+                <div className="bg-light-grey border border-medium-grey border-t-0 p-3">
+                  <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Filter:
+                    </span>
+                    <button
+                      onClick={() => setSelectedTagFilter('')}
+                      className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                        !selectedTagFilter ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {projectTags.map(tag => (
+                      <button
+                        key={tag.id}
+                        onClick={() => setSelectedTagFilter(tag.id)}
+                        className={`px-2 py-1 text-xs font-bold transition-colors border ${
+                          selectedTagFilter === tag.id 
+                            ? 'text-white border-black' 
+                            : 'text-black border-medium-grey hover:bg-gray-50'
+                        }`}
+                        style={{ 
+                          backgroundColor: selectedTagFilter === tag.id ? tag.color : 'white',
+                          borderColor: selectedTagFilter === tag.id ? tag.color : undefined
+                        }}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
-            {/* Links Grid */}
+            {/* Links Grid or Edit Modal */}
             <div className="flex-1 overflow-y-auto">
-              {links && links.length > 0 ? (
+              {editingLink ? (
+                <LinkEditModal
+                  link={editingLink}
+                  isOpen={!!editingLink}
+                  onClose={handleCloseEditModal}
+                  onDelete={handleDeleteLinkFromModal}
+                />
+              ) : filteredLinks && filteredLinks.length > 0 ? (
                 <div className="h-full overflow-y-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
-                    {links.map((link) => (
-                        <div key={link.id} className="card p-4 cursor-pointer">
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              {link.favicon_url && (
-                                <img 
-                                  src={link.favicon_url} 
-                                  alt="" 
-                                  className="w-4 h-4 flex-shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none'
-                                  }}
-                                />
-                              )}
-                              <h3 className="font-bold text-base truncate">
-                                {link.title || new URL(link.url).hostname}
-                              </h3>
+                    {filteredLinks.map((link) => (
+                        <div key={link.id} className="card p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                {link.favicon_url && (
+                                  <img 
+                                    src={link.favicon_url} 
+                                    alt="" 
+                                    className="w-4 h-4 flex-shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                )}
+                                <h3 className="font-bold text-base truncate">
+                                  {link.title || new URL(link.url).hostname}
+                                </h3>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  console.log('Edit button clicked for link:', link.id)
+                                  handleEditLink(link)
+                                }}
+                                className="px-2 py-1 text-xs font-bold border border-medium-grey bg-white hover:bg-gray-50 transition-colors flex-shrink-0 ml-2 relative z-10 cursor-pointer"
+                                title="Edit link"
+                                type="button"
+                              >
+                                EDIT
+                              </button>
                             </div>
+                            
+                            {link.tag && (
+                              <div className="flex items-center">
+                                <span
+                                  className="inline-block px-2 py-1 text-xs font-bold text-white border border-black"
+                                  style={{ backgroundColor: link.tag.color }}
+                                >
+                                  {link.tag.name}
+                                </span>
+                              </div>
+                            )}
+                            
                             {link.description && (
                               <p className="text-sm text-gray-600 font-medium line-clamp-2 leading-relaxed">
                                 {link.description}
                               </p>
                             )}
+                            
                             <p className="text-sm text-gray-500 font-medium truncate border-t border-light-grey pt-2">
                               {link.url}
                             </p>
+                            
                             <div className="flex justify-between items-center pt-2 border-t border-light-grey">
                               <button
                                 onClick={() => handleDeleteLink(link.id)}
-                                className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 font-bold transition-colors"
+                                className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 transition-colors"
                               >
                                 Delete
                               </button>
@@ -505,10 +700,27 @@ const ProjectPage = () => {
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center space-y-4 p-8">
-                    <p className="text-lg text-gray-600 font-bold">No links yet</p>
-                    <p className="text-base text-gray-500 font-medium">
-                      Add your first link above
-                    </p>
+                    {selectedTagFilter ? (
+                      <>
+                        <p className="text-lg text-gray-600 font-bold">No links with this tag</p>
+                        <p className="text-base text-gray-500 font-medium">
+                          Try selecting a different tag or clear the filter
+                        </p>
+                        <button
+                          onClick={() => setSelectedTagFilter('')}
+                          className="btn-secondary font-bold"
+                        >
+                          Clear Filter
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg text-gray-600 font-bold">No links yet</p>
+                        <p className="text-base text-gray-500 font-medium">
+                          Add your first link above
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -516,6 +728,7 @@ const ProjectPage = () => {
           </div>
         )}
       </div>
+
     </div>
   )
 }

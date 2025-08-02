@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { useAppStore } from '../store'
-import { Link, CreateLinkData, UpdateLinkData } from '../types/database'
+import { Link, LinkWithTag, CreateLinkData, UpdateLinkData } from '../types/database'
 
 // Query keys
 export const linkKeys = {
@@ -15,10 +15,13 @@ export const linkKeys = {
 
 // Links API functions
 export const linksApi = {
-  getByProject: async (projectId: string): Promise<Link[]> => {
+  getByProject: async (projectId: string): Promise<LinkWithTag[]> => {
     const { data, error } = await supabase
       .from('links')
-      .select('*')
+      .select(`
+        *,
+        tag:tags(*)
+      `)
       .eq('project_id', projectId)
       .order('order_index', { ascending: true })
     
@@ -26,15 +29,34 @@ export const linksApi = {
     return data || []
   },
 
-  getById: async (id: string): Promise<Link | null> => {
+  getById: async (id: string): Promise<LinkWithTag | null> => {
     const { data, error } = await supabase
       .from('links')
-      .select('*')
+      .select(`
+        *,
+        tag:tags(*)
+      `)
       .eq('id', id)
       .single()
     
     if (error) throw error
     return data
+  },
+
+  // Get links by tag across all projects
+  getByTag: async (tagId: string): Promise<LinkWithTag[]> => {
+    const { data, error } = await supabase
+      .from('links')
+      .select(`
+        *,
+        tag:tags(*),
+        project:projects(name)
+      `)
+      .eq('tag_id', tagId)
+      .order('order_index', { ascending: true })
+    
+    if (error) throw error
+    return data || []
   },
 
   create: async (linkData: CreateLinkData): Promise<Link> => {
@@ -168,10 +190,17 @@ export const useUpdateLink = () => {
   const updateLink = useAppStore(state => state.updateLink)
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: UpdateLinkData }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: UpdateLinkData; oldProjectId?: string }) =>
       linksApi.update(id, updates),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Invalidate the new project's links
       queryClient.invalidateQueries({ queryKey: linkKeys.byProject(data.project_id) })
+      
+      // If project changed, also invalidate the old project's links
+      if (variables.oldProjectId && variables.oldProjectId !== data.project_id) {
+        queryClient.invalidateQueries({ queryKey: linkKeys.byProject(variables.oldProjectId) })
+      }
+      
       queryClient.invalidateQueries({ queryKey: linkKeys.detail(data.id) })
       updateLink(data.id, data)
     },
@@ -200,5 +229,13 @@ export const useReorderLinks = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: linkKeys.lists() })
     },
+  })
+}
+
+export const useLinksByTag = (tagId: string) => {
+  return useQuery({
+    queryKey: [...linkKeys.lists(), { tagId }],
+    queryFn: () => linksApi.getByTag(tagId),
+    enabled: !!tagId,
   })
 }

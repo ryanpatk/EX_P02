@@ -1,7 +1,7 @@
 /* EX_P02 Design System - Bold Technical Portfolio Aesthetic */
 
 :root {
-  --color-white: #FFFFFF;
+  --color-white: #FEFEFE;
   --color-light-grey: #F8F8F8;
   --color-medium-grey: #E5E5E5;
   --color-dark-grey: #1A1A1A;
@@ -85,7 +85,7 @@ body {
 /* Base component styles with brutalist aesthetic */
 .btn-primary {
   background-color: var(--color-orange);
-  color: white;
+  color: var(--color-white);
   border: 1px solid var(--color-black);
   font-family: inherit;
   font-weight: 500;
@@ -109,7 +109,7 @@ body {
 }
 
 .btn-secondary {
-  background-color: white;
+  background-color: var(--color-white);
   color: var(--color-black);
   border: 1px solid var(--color-medium-grey);
   font-family: inherit;
@@ -129,7 +129,7 @@ body {
 }
 
 .input-field {
-  background-color: white;
+  background-color: var(--color-white);
   border: 1px solid var(--color-medium-grey);
   font-family: inherit;
   padding: 6px 12px;
@@ -146,7 +146,7 @@ body {
 
 /* Cards - Portfolio Style */
 .card {
-  background-color: white;
+  background-color: var(--color-white);
   border: 2px solid var(--color-medium-grey);
   padding: 20px;
   transition: all 200ms ease;
@@ -277,7 +277,7 @@ body {
 .font-mono { font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 'Courier New', monospace; }
 .text-center { text-align: center; }
 .text-black { color: var(--color-black); }
-.text-white { color: white; }
+.text-white { color: var(--color-white); }
 .text-gray-500 { color: #6b7280; }
 .text-gray-600 { color: #4b5563; }
 .text-red-500 { color: #ef4444; }
@@ -363,7 +363,7 @@ body {
 .hover\:text-orange-500:hover { color: var(--color-orange); }
 .hover\:text-orange:hover { color: var(--color-orange); }
 .hover\:text-black:hover { color: var(--color-black); }
-.hover\:text-white:hover { color: white; }
+.hover\:text-white:hover { color: var(--color-white); }
 .hover\:border-black:hover { border-color: var(--color-black); }
 .hover\:shadow-sm:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
 .disabled\:opacity-50:disabled { opacity: 0.5; }
@@ -420,7 +420,7 @@ body {
   justify-content: center;
   font-size: 11px;
   font-weight: var(--font-weight-bold);
-  color: white;
+  color: var(--color-white);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   z-index: 1000;

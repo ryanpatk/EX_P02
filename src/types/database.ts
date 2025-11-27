@@ -56,6 +56,17 @@ export interface LinkWithTag extends Link {
   tag?: Tag
 }
 
+// Unified card types for the conglomerate view
+export interface NoteCard extends Note {
+  type: 'note'
+}
+
+export interface LinkCard extends LinkWithTag {
+  type: 'link'
+}
+
+export type ProjectCard = NoteCard | LinkCard
+
 // Form types for creating/updating entities
 export interface CreateProjectData {
   name: string

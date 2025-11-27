@@ -371,78 +371,82 @@ const ProjectPage = () => {
           !isDesktop ? 'w-full' : (editingNote || editingLink) ? 'w-1/2' : 'w-full'
         }`}>
           {/* Controls */}
-          <div className="p-5 bg-light-grey border-b border-medium-grey flex-shrink-0">
-            {/* Tag Filter */}
-            {projectTags.length > 0 && (
-              <div className="bg-light-grey border border-medium-grey p-3 mb-3">
-                <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
-                    Filter:
-                  </span>
-                  <button
-                    onClick={() => setSelectedTagFilter('')}
-                    className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                      !selectedTagFilter ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {projectTags.map(tag => (
+          <div className="flex-shrink-0 bg-light-grey border-b border-medium-grey overflow-y-auto">
+            <div className="max-w-6xl mx-auto p-6 space-y-4">
+              {/* Tag Filter */}
+              {projectTags.length > 0 && (
+                <div className="bg-light-grey border border-medium-grey p-3">
+                  <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Filter:
+                    </span>
                     <button
-                      key={tag.id}
-                      onClick={() => setSelectedTagFilter(tag.id)}
+                      onClick={() => setSelectedTagFilter('')}
                       className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                        selectedTagFilter === tag.id 
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-white text-black hover:bg-gray-50'
+                        !selectedTagFilter ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
                       }`}
                     >
-                      {tag.name}
+                      All
                     </button>
-                  ))}
+                    {projectTags.map(tag => (
+                      <button
+                        key={tag.id}
+                        onClick={() => setSelectedTagFilter(tag.id)}
+                        className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                          selectedTagFilter === tag.id
+                            ? 'bg-black text-white border-black'
+                            : 'bg-white text-black hover:bg-gray-50'
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              {/* Add New Item */}
+              <div className="bg-light-grey border border-medium-grey p-4 flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Add new item (URL for link, text for note)..."
+                  value={newItemInput}
+                  onChange={(e) => setNewItemInput(e.target.value)}
+                  className="input-field flex-1 font-medium h-8"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateItem()}
+                />
+                <button
+                  onClick={handleCreateItem}
+                  disabled={(createLink.isPending || createNote.isPending) || !newItemInput.trim()}
+                  className="btn-primary font-bold disabled:opacity-50 h-8"
+                >
+                  {(createLink.isPending || createNote.isPending) ? '...' : '+'}
+                </button>
               </div>
-            )}
-            
-            {/* Add New Item */}
-            <div className="bg-light-grey border border-medium-grey p-4 flex space-x-2">
-              <input
-                type="text"
-                placeholder="Add new item (URL for link, text for note)..."
-                value={newItemInput}
-                onChange={(e) => setNewItemInput(e.target.value)}
-                className="input-field flex-1 font-medium h-8"
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateItem()}
-              />
-              <button
-                onClick={handleCreateItem}
-                disabled={(createLink.isPending || createNote.isPending) || !newItemInput.trim()}
-                className="btn-primary font-bold disabled:opacity-50 h-8"
-              >
-                {(createLink.isPending || createNote.isPending) ? '...' : '+'}
-              </button>
             </div>
           </div>
-          
+
           {/* Cards Grid */}
           <div className="flex-1 overflow-y-auto">
             {filteredCards && filteredCards.length > 0 ? (
               <div className="h-full overflow-y-auto">
-                <div className={`grid gap-px p-5 ${
-                  !isDesktop ? 'grid-cols-1' : 
-                  (editingNote || editingLink) ? 'grid-cols-1 xl:grid-cols-2' : 
-                  'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                }`}>
-                  {filteredCards.map((card) => (
-                    <ProjectCardComponent
-                      key={`${card.type}-${card.id}`}
-                      card={card}
-                      onClick={handleCardClick}
-                      onDeleteNote={handleDeleteNote}
-                      onDeleteLink={handleDeleteLink}
-                      onOpenLink={handleOpenLink}
-                    />
-                  ))}
+                <div className="max-w-6xl mx-auto p-6">
+                  <div className={`grid gap-4 ${
+                    !isDesktop ? 'grid-cols-1' :
+                    (editingNote || editingLink) ? 'grid-cols-1 xl:grid-cols-2' :
+                    'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                  }`}>
+                    {filteredCards.map((card) => (
+                      <ProjectCardComponent
+                        key={`${card.type}-${card.id}`}
+                        card={card}
+                        onClick={handleCardClick}
+                        onDeleteNote={handleDeleteNote}
+                        onDeleteLink={handleDeleteLink}
+                        onOpenLink={handleOpenLink}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (

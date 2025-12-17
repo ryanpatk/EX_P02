@@ -1,150 +1,212 @@
-import { ProjectCard, LinkWithTag, Note } from '../types/database'
+import { ProjectWithCounts } from '../types/database';
 
 interface ProjectCardProps {
-  card: ProjectCard
-  onClick?: (card: ProjectCard) => void
-  onDeleteNote?: (noteId: string) => void
-  onDeleteLink?: (linkId: string) => void
-  onOpenLink?: (url: string) => void
+  project: ProjectWithCounts;
+  isEditing?: boolean;
+  editingName?: string;
+  onToggleProject: (projectId: string) => void;
+  onToggleStar: (projectId: string, isStarred: boolean) => void;
+  onStartEditing?: (project: ProjectWithCounts) => void;
+  onEditingNameChange?: (value: string) => void;
+  onUpdateProjectName?: (newName: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  projectNameInputRef?: React.RefObject<HTMLInputElement | null>;
+  variant?: 'list' | 'header';
+  className?: string;
+  selectedProjects?: ProjectWithCounts[];
+  singleSelectedProject?: ProjectWithCounts | null;
+  style?: React.CSSProperties;
 }
 
-const ProjectCardComponent = ({ 
-  card, 
-  onClick,
-  onDeleteNote, 
-  onDeleteLink, 
-  onOpenLink 
+const ProjectCard = ({
+  project,
+  isEditing = false,
+  editingName = '',
+  onToggleProject,
+  onToggleStar,
+  onStartEditing,
+  onEditingNameChange,
+  onUpdateProjectName,
+  onKeyDown,
+  projectNameInputRef,
+  variant = 'list',
+  className = '',
+  selectedProjects,
+  singleSelectedProject,
+  style,
 }: ProjectCardProps) => {
-  if (card.type === 'note') {
-    const note = card as Note & { type: 'note' }
-    const previewContent = note.encrypted_content.slice(0, 150)
-    const hasMoreContent = note.encrypted_content.length > 150
+  const isHeaderVariant = variant === 'header';
+  const showStarAlways = isHeaderVariant || project.is_starred;
+  const canEdit = onStartEditing !== undefined;
 
-    return (
-      <div 
-        className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => onClick?.(card)}
-      >
-        <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              <div className="w-4 h-4 flex-shrink-0 bg-white border border-black flex items-center justify-center">
-                <svg 
-                  width="12" 
-                  height="12" 
-                  viewBox="0 0 12 12" 
-                  fill="none" 
-                  className="text-black"
-                >
-                  <rect x="2" y="3" width="8" height="1" fill="currentColor"/>
-                  <rect x="2" y="5" width="6" height="1" fill="currentColor"/>
-                  <rect x="2" y="7" width="7" height="1" fill="currentColor"/>
-                  <rect x="2" y="9" width="5" height="1" fill="currentColor"/>
-                </svg>
-              </div>
-              <h3 className="font-bold text-base truncate">
-                {note.title || 'Untitled Note'}
-              </h3>
-            </div>
-          </div>
-          
-          {previewContent && (
-            <p className="text-sm text-gray-600 font-medium line-clamp-3 leading-relaxed font-mono">
-              {previewContent}{hasMoreContent ? '...' : ''}
+  // For list variant, use w-full only if className doesn't override it (for horizontal layout)
+  const widthClass =
+    isHeaderVariant || className.includes('flex-shrink-0') ? '' : 'w-full';
+
+  const baseClasses = isHeaderVariant
+    ? 'text-left px-4 border border-medium-grey flex items-center justify-between group cursor-pointer bg-orange border-l-4 text-white rounded-none flex-shrink-0 transition-all duration-300'
+    : `${widthClass} text-left px-4 border-b border-project-card transition-all duration-300 flex items-center justify-between group cursor-pointer bg-project-card hover:border-l-2 hover:border-project-card hover:shadow-sm`;
+
+  const starButtonClasses = isHeaderVariant
+    ? 'ml-2 opacity-100 transition-opacity flex-shrink-0 text-white'
+    : showStarAlways
+    ? 'ml-2 opacity-100 transition-opacity flex-shrink-0 text-orange'
+    : 'ml-2 flex-shrink-0 transition-colors text-gray-300 opacity-0 group-hover:opacity-100 hover:text-orange';
+
+  const textColorClasses = isHeaderVariant ? 'text-white' : 'text-black';
+
+  const handleNameClick = (e: React.MouseEvent) => {
+    // Only start editing if:
+    // 1. We can edit (onStartEditing is provided)
+    // 2. We're not already editing
+    // 3. This project is selected (in header variant) OR there's exactly one selected project and it's this one
+    // Otherwise, let the click bubble up to toggle the project
+    if (
+      canEdit &&
+      !isEditing &&
+      (isHeaderVariant ||
+        (selectedProjects?.length === 1 &&
+          singleSelectedProject?.id === project.id))
+    ) {
+      e.stopPropagation();
+      onStartEditing(project);
+    }
+    // If conditions aren't met, don't stop propagation - let toggle work
+  };
+
+  const handleCardClick = () => {
+    // Only toggle project if NOT in header variant (selected state)
+    // In header variant, deselection is handled by the X button only
+    if (!isHeaderVariant) {
+      onToggleProject(project.id);
+    }
+  };
+
+  const buttonStyle = isHeaderVariant
+    ? { height: '61px', width: '18.75rem', ...style }
+    : className.includes('flex-shrink-0')
+    ? { height: '61px', width: '18.75rem', ...style }
+    : { height: '61px', ...style };
+
+  return (
+    <button
+      onClick={handleCardClick}
+      className={`${baseClasses} ${className}`}
+      style={buttonStyle}
+    >
+      <div className="flex-1 min-w-0" onClick={handleNameClick}>
+        {isEditing && canEdit ? (
+          <input
+            ref={projectNameInputRef || undefined}
+            type="text"
+            value={editingName}
+            onChange={(e) => onEditingNameChange?.(e.target.value)}
+            onBlur={() => onUpdateProjectName?.(editingName)}
+            onKeyDown={onKeyDown}
+            className={`text-sm font-medium bg-transparent border-none outline-none w-full ${
+              isHeaderVariant
+                ? 'text-white placeholder-white placeholder-opacity-70'
+                : 'text-black placeholder-black placeholder-opacity-70'
+            }`}
+            placeholder={project.name}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <>
+            <p
+              className={`font-medium text-sm truncate ${textColorClasses} ${
+                (isHeaderVariant ||
+                  (canEdit &&
+                    selectedProjects?.some((p) => p.id === project.id))) &&
+                !isEditing
+                  ? 'cursor-text'
+                  : ''
+              }`}
+            >
+              {project.name}
             </p>
-          )}
-          
-          <p className="text-sm text-gray-500 font-medium truncate border-t border-light-grey pt-2">
-            Updated {new Date(note.updated_at).toLocaleDateString()}
-          </p>
-          
-          <div className="flex justify-end items-center pt-2 border-t border-light-grey">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDeleteNote?.(note.id)
-              }}
-              className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 transition-colors"
+            <p
+              className={`text-xs ${
+                isHeaderVariant
+                  ? 'text-white text-opacity-80'
+                  : textColorClasses
+              }`}
             >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (card.type === 'link') {
-    const link = card as LinkWithTag & { type: 'link' }
-    
-    return (
-      <div 
-        className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => onClick?.(card)}
-      >
-        <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              {link.favicon_url && (
-                <img 
-                  src={link.favicon_url} 
-                  alt="" 
-                  className="w-4 h-4 flex-shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              )}
-              <h3 className="font-bold text-base truncate">
-                {link.title || new URL(link.url).hostname}
-              </h3>
-            </div>
-          </div>
-          
-          {link.tag && (
-            <div className="flex items-center">
-              <span className="inline-block px-2 py-1 text-xs font-bold text-white bg-black border border-black">
-                {link.tag.name}
-              </span>
-            </div>
-          )}
-          
-          {link.description && (
-            <p className="text-sm text-gray-600 font-medium line-clamp-2 leading-relaxed">
-              {link.description}
+              {project.links?.[0]?.count || 0} links
             </p>
-          )}
-          
-          <p className="text-sm text-gray-500 font-medium truncate border-t border-light-grey pt-2">
-            {link.url}
-          </p>
-          
-          <div className="flex justify-between items-center pt-2 border-t border-light-grey">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDeleteLink?.(link.id)
-              }}
-              className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 transition-colors"
-            >
-              Delete
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onOpenLink?.(link.url)
-              }}
-              className="text-sm btn-primary py-1 px-3 font-bold"
-            >
-              Open
-            </button>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    )
-  }
+      {isHeaderVariant ? (
+        // X button for deselection in header (selected state)
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleProject(project.id);
+          }}
+          className="ml-2 opacity-100 transition-opacity flex-shrink-0 text-white hover:opacity-80 cursor-pointer"
+          title="Deselect project"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleProject(project.id);
+            }
+          }}
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </div>
+      ) : (
+        // Pin button for list variant
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleStar(project.id, project.is_starred);
+          }}
+          className={starButtonClasses}
+          title={project.is_starred ? 'Unpin project' : 'Pin project'}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleStar(project.id, project.is_starred);
+            }
+          }}
+        >
+          <svg
+            className="w-4 h-4"
+            fill={project.is_starred ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+            />
+          </svg>
+        </div>
+      )}
+    </button>
+  );
+};
 
-  return null
-}
-
-export default ProjectCardComponent
+export { ProjectCard };
+export default ProjectCard;

@@ -13,15 +13,15 @@ export const tagKeys = {
 
 // Predefined tag colors in brutalist style
 export const TAG_COLORS = [
-  '#FF6B35', // Orange (primary)
+  '#FF3B3C', // Orange (primary)
   '#1E3A8A', // Blue (primary)
   '#FF0040', // Error red
   '#00FF41', // Success green
   '#FFFF00', // Warning yellow
   '#00FFFF', // Info cyan
-  '#FF8A5C', // Orange muted
+  '#FF6B6C', // Orange muted
   '#60A5FA', // Blue muted
-  '#E5E5E5', // Medium grey
+  '#E5D5C0', // Medium grey
   '#1A1A1A', // Dark grey
 ]
 
@@ -32,7 +32,7 @@ export const tagsApi = {
       .from('tags')
       .select('*')
       .order('name', { ascending: true })
-    
+
     if (error) throw error
     return data || []
   },
@@ -43,7 +43,7 @@ export const tagsApi = {
       .select('*')
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     return data
   },

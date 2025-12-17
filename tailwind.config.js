@@ -1,67 +1,75 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        mono: ['JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 'Courier New', 'monospace'],
+        mono: [
+          'JetBrains Mono',
+          'SF Mono',
+          'Monaco',
+          'Cascadia Code',
+          'Roboto Mono',
+          'Consolas',
+          'Courier New',
+          'monospace',
+        ],
       },
       colors: {
         // Core colors
-        'white': '#FFFFFF',
-        'light-grey': '#F5F5F5',
-        'medium-grey': '#E0E0E0',
+        white: '#FFFFFF',
+        'light-grey': '#F9EBD5',
+        'medium-grey': '#E5D5C0',
         'dark-grey': '#333333',
-        'black': '#000000',
-        
+        black: '#000000',
+
         // Accent colors
-        'orange': {
-          DEFAULT: '#FF6B35',
-          500: '#FF6B35',
-          600: '#FF8A5C',
+        orange: {
+          DEFAULT: '#FF3B3C',
+          500: '#FF3B3C',
+          600: '#FF6B6C',
         },
-        'pink': {
+        pink: {
           DEFAULT: '#FF69B4',
           500: '#FF69B4',
           600: '#FFB3DA',
         },
-        'orange-muted': '#FF8A5C',
+        'orange-muted': '#FF6B6C',
         'pink-muted': '#FFB3DA',
-        
+        'light-orange': '#FFFBF8',
+
         // Semantic colors
-        'success': '#00FF41',
-        'warning': '#FFFF00',
-        'error': '#FF0040',
-        'info': '#00FFFF',
+        success: '#00FF41',
+        warning: '#FFFF00',
+        error: '#FF0040',
+        info: '#00FFFF',
       },
       fontSize: {
-        'xs': '0.75rem',     // 12px
-        'sm': '0.875rem',    // 14px
-        'base': '1rem',      // 16px
-        'lg': '1.125rem',    // 18px
-        'xl': '1.25rem',     // 20px
-        '2xl': '1.5rem',     // 24px
-        '3xl': '2rem',       // 32px
+        xs: '0.75rem', // 12px
+        sm: '0.875rem', // 14px
+        base: '1rem', // 16px
+        lg: '1.125rem', // 18px
+        xl: '1.25rem', // 20px
+        '2xl': '1.5rem', // 24px
+        '3xl': '2rem', // 32px
       },
       spacing: {
-        '1': '8px',
-        '2': '16px',
-        '3': '24px',
-        '4': '32px',
-        '6': '48px',
-        '8': '64px',
+        1: '8px',
+        2: '16px',
+        3: '24px',
+        4: '32px',
+        6: '48px',
+        8: '64px',
       },
       borderRadius: {
-        'none': '0',
-        'sm': '2px',
-        'md': '4px',
+        none: '0',
+        sm: '2px',
+        md: '4px',
+      },
+      borderColor: {
+        orange: '#E5D5C0', // Medium grey for borders
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
-}
+  plugins: [require('@tailwindcss/typography')],
+};

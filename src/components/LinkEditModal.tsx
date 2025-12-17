@@ -48,10 +48,10 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
     const oldProjectId = link.project_id !== selectedProjectId ? link.project_id : undefined
 
     try {
-      await updateLink.mutateAsync({ 
-        id: link.id, 
+      await updateLink.mutateAsync({
+        id: link.id,
         updates,
-        oldProjectId 
+        oldProjectId
       })
       onClose()
     } catch (error) {
@@ -76,7 +76,7 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
   }
 
   const currentProject = projects?.find(p => p.id === selectedProjectId)
-  const hasChanges = 
+  const hasChanges =
     editUrl !== link.url ||
     editTitle !== (link.title || '') ||
     editDescription !== (link.description || '') ||
@@ -90,13 +90,13 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
   return (
     <div className="h-full flex flex-col bg-white border-2 border-medium-grey mx-5">
       {/* Header */}
-      <div className="border-b-2 border-black p-4 bg-light-grey">
+      <div className="border-b-2 border-medium-grey p-4 bg-light-grey">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {link.favicon_url && (
-              <img 
-                src={link.favicon_url} 
-                alt="" 
+              <img
+                src={link.favicon_url}
+                alt=""
                 className="w-5 h-5 flex-shrink-0"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
@@ -196,9 +196,9 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
                     autoFocus
                   />
                   <div className="flex items-center space-x-1">
-                    <div 
-                      className="w-6 h-6 border-2 border-black flex-shrink-0"
-                      style={{ 
+                    <div
+                      className="w-6 h-6 border-2 border-medium-grey flex-shrink-0"
+                      style={{
                         backgroundColor: newTagColor,
                         minWidth: '24px',
                         minHeight: '24px'
@@ -267,14 +267,14 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
       </div>
 
       {/* Footer */}
-      <div className="border-t-2 border-black p-4 bg-light-grey flex items-center justify-between">
+      <div className="border-t-2 border-medium-grey p-4 bg-light-grey flex items-center justify-between">
         <button
           onClick={onDelete}
           className="btn-secondary text-red-500 border-red-500 hover:bg-red-50 font-bold"
         >
           Delete Link
         </button>
-        
+
         <div className="flex items-center space-x-2">
           <button
             onClick={onClose}

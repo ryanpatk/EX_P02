@@ -13,19 +13,7 @@ export interface Project {
 }
 
 export interface ProjectWithCounts extends Project {
-  notes: { count: number }[]
   links: { count: number }[]
-}
-
-export interface Note {
-  id: string
-  project_id: string
-  user_id: string
-  title?: string
-  encrypted_content: string
-  created_at: string
-  updated_at: string
-  order_index: number
 }
 
 export interface Tag {
@@ -54,18 +42,12 @@ export interface Link {
 
 export interface LinkWithTag extends Link {
   tag?: Tag
+  project?: {
+    id: string
+    name: string
+  }
 }
 
-// Unified card types for the conglomerate view
-export interface NoteCard extends Note {
-  type: 'note'
-}
-
-export interface LinkCard extends LinkWithTag {
-  type: 'link'
-}
-
-export type ProjectCard = NoteCard | LinkCard
 
 // Form types for creating/updating entities
 export interface CreateProjectData {
@@ -78,19 +60,6 @@ export interface UpdateProjectData {
   name?: string
   description?: string
   is_starred?: boolean
-}
-
-export interface CreateNoteData {
-  project_id: string
-  title?: string
-  encrypted_content?: string
-  order_index?: number
-}
-
-export interface UpdateNoteData {
-  title?: string
-  encrypted_content?: string
-  order_index?: number
 }
 
 export interface CreateTagData {
@@ -138,15 +107,6 @@ export interface Database {
           last_modified?: string
         }
         Update: Partial<Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_modified'>>
-      }
-      notes: {
-        Row: Note
-        Insert: Omit<Note, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: Partial<Omit<Note, 'id' | 'project_id' | 'user_id' | 'created_at' | 'updated_at'>>
       }
       tags: {
         Row: Tag

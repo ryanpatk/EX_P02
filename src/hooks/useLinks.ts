@@ -20,11 +20,45 @@ export const linksApi = {
       .from('links')
       .select(`
         *,
-        tag:tags(*)
+        tag:tags(*),
+        project:projects(id, name)
       `)
       .eq('project_id', projectId)
       .order('order_index', { ascending: true })
-    
+
+    if (error) throw error
+    return data || []
+  },
+
+  getAll: async (): Promise<LinkWithTag[]> => {
+    const { data, error } = await supabase
+      .from('links')
+      .select(`
+        *,
+        tag:tags(*),
+        project:projects(id, name)
+      `)
+      .order('order_index', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  },
+
+  getByProjects: async (projectIds: string[]): Promise<LinkWithTag[]> => {
+    if (projectIds.length === 0) {
+      return linksApi.getAll()
+    }
+
+    const { data, error } = await supabase
+      .from('links')
+      .select(`
+        *,
+        tag:tags(*),
+        project:projects(id, name)
+      `)
+      .in('project_id', projectIds)
+      .order('order_index', { ascending: true })
+
     if (error) throw error
     return data || []
   },
@@ -34,11 +68,12 @@ export const linksApi = {
       .from('links')
       .select(`
         *,
-        tag:tags(*)
+        tag:tags(*),
+        project:projects(id, name)
       `)
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -54,7 +89,7 @@ export const linksApi = {
       `)
       .eq('tag_id', tagId)
       .order('order_index', { ascending: true })
-    
+
     if (error) throw error
     return data || []
   },
@@ -118,7 +153,7 @@ export const linksApi = {
 
     const results = await Promise.allSettled(updates)
     const errors = results.filter(r => r.status === 'rejected')
-    
+
     if (errors.length > 0) {
       throw new Error('Failed to reorder some links')
     }
@@ -130,7 +165,7 @@ export const linksApi = {
       // For now, just extract domain for title and favicon
       const urlObj = new URL(url)
       const domain = urlObj.hostname.replace('www.', '')
-      
+
       return {
         title: domain,
         favicon_url: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
@@ -149,6 +184,13 @@ export const useProjectLinks = (projectId: string) => {
     queryKey: linkKeys.byProject(projectId),
     queryFn: () => linksApi.getByProject(projectId),
     enabled: !!projectId,
+  })
+}
+
+export const useProjectsLinks = (projectIds: string[]) => {
+  return useQuery({
+    queryKey: [...linkKeys.lists(), { projectIds }],
+    queryFn: () => linksApi.getByProjects(projectIds),
   })
 }
 
@@ -178,9 +220,96 @@ export const useCreateLink = () => {
       }
       return linksApi.create(linkData)
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: linkKeys.byProject(data.project_id) })
+    onMutate: async (linkData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: linkKeys.lists() })
+
+      // Create optimistic link
+      const optimisticLink: LinkWithTag = {
+        id: `temp-${Date.now()}`,
+        project_id: linkData.project_id,
+        user_id: '', // Will be set by server
+        url: linkData.url,
+        title: linkData.title,
+        description: linkData.description,
+        favicon_url: linkData.favicon_url,
+        preview_image_url: linkData.preview_image_url,
+        tag_id: linkData.tag_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        order_index: linkData.order_index || 0,
+        tag: undefined,
+        project: undefined,
+      }
+
+      // Optimistically update all relevant queries
+      // This includes both byProject queries and byProjects queries
+      queryClient.setQueriesData<LinkWithTag[]>(
+        { queryKey: linkKeys.lists() },
+        (old = []) => {
+          if (!old) return [optimisticLink]
+          // Check if link already exists (avoid duplicates)
+          if (old.some(link => link.id === optimisticLink.id ||
+            (link.url === optimisticLink.url && link.project_id === optimisticLink.project_id))) {
+            return old
+          }
+          // Only add if this link belongs to the projects in this query
+          // For byProjects queries, check if the project_id is in the projectIds array
+          // For byProject queries, check if project_id matches
+          // For all queries, always add
+          return [...old, optimisticLink]
+        }
+      )
+
+      return { optimisticLink, projectId: linkData.project_id }
+    },
+    onSuccess: (data, _variables, context) => {
+      // Replace optimistic link with real data
+      const linkWithTag: LinkWithTag = {
+        ...data,
+        tag: undefined,
+        project: undefined,
+      }
+
+      // Update all queries, replacing the optimistic link with the real one
+      queryClient.setQueriesData<LinkWithTag[]>(
+        { queryKey: linkKeys.lists() },
+        (old = []) => {
+          if (!old) return [linkWithTag]
+          // Try to find and replace the optimistic link
+          const optimisticIndex = old.findIndex(link => link.id === context?.optimisticLink.id)
+          if (optimisticIndex >= 0) {
+            const newData = [...old]
+            newData[optimisticIndex] = linkWithTag
+            return newData
+          }
+          // If optimistic link not found, check if real link already exists
+          const existingIndex = old.findIndex(link => link.id === linkWithTag.id)
+          if (existingIndex >= 0) {
+            const newData = [...old]
+            newData[existingIndex] = linkWithTag
+            return newData
+          }
+          // Otherwise, add it
+          return [...old, linkWithTag]
+        }
+      )
+
       addLink(data)
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback optimistic update on error
+      if (context?.optimisticLink) {
+        queryClient.setQueriesData<LinkWithTag[]>(
+          { queryKey: linkKeys.lists() },
+          (old = []) => {
+            return old.filter(link => link.id !== context.optimisticLink.id)
+          }
+        )
+      }
+
+      // Invalidate to refetch
+      queryClient.invalidateQueries({ queryKey: linkKeys.lists() })
     },
   })
 }
@@ -193,14 +322,19 @@ export const useUpdateLink = () => {
     mutationFn: ({ id, updates }: { id: string; updates: UpdateLinkData; oldProjectId?: string }) =>
       linksApi.update(id, updates),
     onSuccess: (data, variables) => {
+      // Invalidate all link lists to refresh the UI
+      queryClient.invalidateQueries({ queryKey: linkKeys.lists() })
+
       // Invalidate the new project's links
-      queryClient.invalidateQueries({ queryKey: linkKeys.byProject(data.project_id) })
-      
+      if (data.project_id) {
+        queryClient.invalidateQueries({ queryKey: linkKeys.byProject(data.project_id) })
+      }
+
       // If project changed, also invalidate the old project's links
       if (variables.oldProjectId && variables.oldProjectId !== data.project_id) {
         queryClient.invalidateQueries({ queryKey: linkKeys.byProject(variables.oldProjectId) })
       }
-      
+
       queryClient.invalidateQueries({ queryKey: linkKeys.detail(data.id) })
       updateLink(data.id, data)
     },

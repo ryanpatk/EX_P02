@@ -1,497 +1,453 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useBreakpointValue } from '@chakra-ui/react'
-import { useProject } from '../hooks/useProjects'
-import { useProjectNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useNotes'
-import { useProjectLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks'
-import { useAppStore } from '../store'
-import { CreateNoteData, CreateLinkData } from '../types/database'
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useBreakpointValue } from '@chakra-ui/react';
+import {
+  useProject,
+  useUpdateProject,
+  useDeleteProject,
+} from '../hooks/useProjects';
+import {
+  useProjectLinks,
+  useCreateLink,
+  useDeleteLink,
+} from '../hooks/useLinks';
+import { useTags } from '../hooks/useTags';
+import { CreateLinkData, LinkWithTag } from '../types/database';
+import LinkEditModal from '../components/LinkEditModal';
 
 const ProjectPage = () => {
-  const { projectId } = useParams<{ projectId: string }>()
-  const navigate = useNavigate()
-  
-  const [newLinkUrl, setNewLinkUrl] = useState('')
-  const [noteContent, setNoteContent] = useState('')
-  const [noteTitle, setNoteTitle] = useState('')
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
-  
-  // Chakra breakpoint: [mobile, tablet, desktop]
-  const isDesktop = useBreakpointValue([false, false, true])
-  const isMobile = useBreakpointValue([true, true, false])
-  
-  const { leftPaneExpanded, rightPaneExpanded, currentNoteIndex, setLeftPaneExpanded, setRightPaneExpanded, setCurrentNoteIndex } = useAppStore()
-  
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+
+  const [newItemInput, setNewItemInput] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editingLink, setEditingLink] = useState<LinkWithTag | null>(null);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('');
+
+  // Responsive detection
+  const isDesktop = useBreakpointValue([false, false, true]); // [mobile, tablet, desktop]
+
   // Data hooks
-  const { data: project, isLoading: projectLoading } = useProject(projectId!)
-  const { data: notes, isLoading: notesLoading } = useProjectNotes(projectId!)
-  const { data: links, isLoading: linksLoading } = useProjectLinks(projectId!)
-  
+  const { data: project, isLoading: projectLoading } = useProject(projectId!);
+  const { data: links, isLoading: linksLoading } = useProjectLinks(projectId!);
+  const { data: tags } = useTags();
+
   // Mutation hooks
-  const createNote = useCreateNote()
-  const updateNote = useUpdateNote()
-  const deleteNote = useDeleteNote()
-  const createLink = useCreateLink()
-  // const updateLink = useUpdateLink() // TODO: implement link editing
-  const deleteLink = useDeleteLink()
-  
-  // Current note from React Query data
-  const currentNote = notes?.[currentNoteIndex] || null
-  
+  const createLink = useCreateLink();
+  const deleteLink = useDeleteLink();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
 
-  // Update note content and title when current note changes
+  // Initialize edit state when project loads
   useEffect(() => {
-    if (currentNote) {
-      setNoteContent(currentNote.encrypted_content || '')
-      setNoteTitle(currentNote.title || '')
-    } else {
-      setNoteContent('')
-      setNoteTitle('')
+    if (project) {
+      setEditName(project.name);
+      setEditDescription(project.description || '');
     }
-  }, [currentNote])
-  
-  // Auto-save note content with debounce
-  useEffect(() => {
-    if (!currentNote || noteContent === currentNote.encrypted_content) return
-    
-    const timeoutId = setTimeout(() => {
-      updateNote.mutate({
-        id: currentNote.id,
-        updates: { encrypted_content: noteContent }
-      })
-    }, 1000)
+  }, [project]);
 
-    return () => clearTimeout(timeoutId)
-  }, [noteContent, currentNote, updateNote])
+  const handleSaveProject = async () => {
+    if (!projectId || !editName.trim()) return;
 
-  // Auto-save note title with debounce
-  useEffect(() => {
-    if (!currentNote || noteTitle === currentNote.title) return
-    
-    const timeoutId = setTimeout(() => {
-      updateNote.mutate({
-        id: currentNote.id,
-        updates: { title: noteTitle }
-      })
-    }, 500) // Shorter delay for title since it's smaller
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        updates: {
+          name: editName.trim(),
+          description: editDescription.trim() || undefined,
+        },
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update project:', error);
+    }
+  };
 
-    return () => clearTimeout(timeoutId)
-  }, [noteTitle, currentNote, updateNote])
-  
-  const handleCreateNote = async () => {
-    if (!projectId) return
-    
-    const noteData: CreateNoteData = {
-      project_id: projectId,
-      title: `Note ${(notes?.length || 0) + 1}`,
-      encrypted_content: '',
+  const handleCancelEdit = () => {
+    if (project) {
+      setEditName(project.name);
+      setEditDescription(project.description || '');
     }
-    
+    setIsEditing(false);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!projectId) return;
+
+    const confirmMessage = `Delete "${project?.name}"?\n\nThis will permanently delete the project and all its links. This action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) return;
+
     try {
-      await createNote.mutateAsync(noteData)
+      await deleteProject.mutateAsync(projectId);
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Failed to create note:', error)
+      console.error('Failed to delete project:', error);
     }
-  }
-  
-  const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to delete this note?')) return
-    
+  };
+
+  const handleCardClick = (link: LinkWithTag) => {
+    setEditingLink(link);
+  };
+
+  // URL detection utility
+  const isValidUrl = (text: string): boolean => {
     try {
-      await deleteNote.mutateAsync(noteId)
-    } catch (error) {
-      console.error('Failed to delete note:', error)
+      // Check if it starts with common URL schemes
+      if (text.match(/^https?:\/\//i)) {
+        new URL(text);
+        return true;
+      }
+      // Check if it looks like a domain (contains a dot and no spaces)
+      if (
+        text.match(/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/) &&
+        !text.includes(' ')
+      ) {
+        new URL(`https://${text}`);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
-  }
-  
-  const handleCreateLink = async () => {
-    if (!newLinkUrl.trim() || !projectId) return
-    
-    const linkData: CreateLinkData = {
-      project_id: projectId,
-      url: newLinkUrl.trim(),
+  };
+
+  const handleCreateItem = async () => {
+    const input = newItemInput.trim();
+    if (!input || !projectId) return;
+
+    if (isValidUrl(input)) {
+      // Create a link
+      const url = input.startsWith('http') ? input : `https://${input}`;
+      const linkData: CreateLinkData = {
+        project_id: projectId,
+        url: url,
+      };
+
+      try {
+        await createLink.mutateAsync(linkData);
+        setNewItemInput('');
+      } catch (error) {
+        console.error('Failed to create link:', error);
+      }
     }
-    
-    try {
-      await createLink.mutateAsync(linkData)
-      setNewLinkUrl('')
-    } catch (error) {
-      console.error('Failed to create link:', error)
-    }
-  }
-  
+  };
+
   const handleDeleteLink = async (linkId: string) => {
-    if (!confirm('Are you sure you want to delete this link?')) return
-    
+    if (!confirm('Are you sure you want to delete this link?')) return;
+
     try {
-      await deleteLink.mutateAsync(linkId)
+      await deleteLink.mutateAsync(linkId);
     } catch (error) {
-      console.error('Failed to delete link:', error)
+      console.error('Failed to delete link:', error);
     }
-  }
-  
+  };
+
   const handleOpenLink = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-  
-  if (projectLoading || notesLoading || linksLoading) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingLink(null);
+  };
+
+  const handleDeleteLinkFromModal = async () => {
+    if (!editingLink) return;
+
+    if (!confirm('Are you sure you want to delete this link?')) return;
+
+    try {
+      await deleteLink.mutateAsync(editingLink.id);
+      setEditingLink(null);
+    } catch (error) {
+      console.error('Failed to delete link:', error);
+    }
+  };
+
+  // Create links cards
+  const projectCards: LinkWithTag[] = links || [];
+
+  // Sort cards by updated_at (most recent first)
+  projectCards.sort(
+    (a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+  );
+
+  // Filter cards by selected tag
+  const filteredCards = selectedTagFilter
+    ? projectCards.filter((link) => link.tag_id === selectedTagFilter)
+    : projectCards;
+
+  // Get unique tags used in this project
+  const projectTags =
+    tags?.filter((tag) => links?.some((link) => link.tag_id === tag.id)) || [];
+
+  if (projectLoading || linksLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400"></div>
       </div>
-    )
+    );
   }
-  
+
   if (!project) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-xl text-gray-600 font-mono">Project not found</p>
-          <button 
+          <button
             onClick={() => navigate('/dashboard')}
             className="btn-primary"
           >
-            Back to Dashboard
+            Back
           </button>
         </div>
       </div>
-    )
+    );
   }
-  
-  // Desktop: show both by default, optionally one, never neither
-  // Mobile: show only one at a time, never both, never neither
-  let shouldShowLeftPane: boolean
-  let shouldShowRightPane: boolean
-  
-  if (isDesktop) {
-    // Desktop logic: both by default, or individual toggles, but never neither
-    if (!leftPaneExpanded && !rightPaneExpanded) {
-      // If both are off, show both (default state)
-      shouldShowLeftPane = true
-      shouldShowRightPane = true
-    } else {
-      // Individual toggles work as expected
-      shouldShowLeftPane = leftPaneExpanded
-      shouldShowRightPane = rightPaneExpanded
-    }
-  } else {
-    // Mobile logic: only one at a time, never both, never neither
-    if (!leftPaneExpanded && !rightPaneExpanded) {
-      // Default to notes on mobile
-      shouldShowLeftPane = true
-      shouldShowRightPane = false
-    } else if (leftPaneExpanded && rightPaneExpanded) {
-      // If both somehow get enabled, prefer notes
-      shouldShowLeftPane = true
-      shouldShowRightPane = false
-    } else {
-      // Normal toggle behavior - only one can be true
-      shouldShowLeftPane = leftPaneExpanded
-      shouldShowRightPane = rightPaneExpanded
-    }
-  }
-  
-  // Custom toggle handlers that respect mobile/desktop constraints
-  const handleNotesToggle = () => {
-    if (isDesktop) {
-      // Desktop: simple toggle
-      setLeftPaneExpanded(!leftPaneExpanded)
-    } else {
-      // Mobile: always switch to notes (turn on notes, turn off links)
-      setLeftPaneExpanded(true)
-      setRightPaneExpanded(false)
-    }
-  }
-  
-  const handleLinksToggle = () => {
-    if (isDesktop) {
-      // Desktop: simple toggle
-      setRightPaneExpanded(!rightPaneExpanded)
-    } else {
-      // Mobile: always switch to links (turn on links, turn off notes)
-      setRightPaneExpanded(true)
-      setLeftPaneExpanded(false)
-    }
-  }
-  
-  return (
-    <div className="h-screen bg-light-grey relative overflow-hidden">
-      
-      {/* Header */}
-      <div className="border-b border-medium-grey bg-light-grey transition-all duration-300">
-          {/* Mobile Layout */}
-          <div className="hidden">
-            {/* Top Row - Navigation */}
-            <div className="flex items-center justify-between p-4 pb-2">
-              <button 
-                onClick={() => navigate('/dashboard')}
-                className="text-sm text-gray-600 hover:text-black transition-colors font-medium"
-              >
-                ← Back to Dashboard
-              </button>
-              
-              <button
-                onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black md:hidden"
-                title={isHeaderVisible ? 'Hide header' : 'Show header'}
-              >
-                {isHeaderVisible ? '▲' : '▼'}
-              </button>
-            </div>
-            
-            {/* Project Info */}
-            <div className="px-4 pb-3">
-              <h1 className="text-xl font-black text-black tracking-tight leading-tight uppercase mb-1">{project.name}</h1>
-              {project.description && (
-                <p className="text-sm text-gray-600 font-medium mb-3">{project.description}</p>
-              )}
-              
-              {/* Toggle Buttons */}
-              <div className="flex justify-center space-x-2">
-                <button
-                  onClick={handleNotesToggle}
-                  className={`py-1 px-4 text-xs font-bold transition-colors border border-medium-grey ${
-                    shouldShowLeftPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                  }`}
-                >
-                  Notes
-                </button>
-                <button
-                  onClick={handleLinksToggle}
-                  className={`py-1 px-4 text-xs font-bold transition-colors border border-medium-grey ${
-                    shouldShowRightPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                  }`}
-                >
-                  Links
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* Desktop Layout */}
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center space-x-3">
-              <button 
+  return (
+    <div className="h-screen bg-light-grey flex flex-col">
+      {/* Header - Outside container */}
+      <div className="px-4 py-3 border-b border-medium-grey bg-light-grey transition-all duration-300 flex-shrink-0">
+        {!isEditing ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <button
                 onClick={() => navigate('/dashboard')}
                 className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
               >
-                ← Back to Dashboard
+                ← Back
               </button>
-              
+
               <span className="text-gray-400">•</span>
-              
-              <h1 className="text-base font-black text-black tracking-tight uppercase">{project.name}</h1>
-              
+
+              <h1 className="text-sm font-black text-black tracking-tight uppercase truncate">
+                {project.name}
+              </h1>
+
               {project.description && (
                 <>
                   <span className="text-gray-400">•</span>
-                  <span className="text-xs text-gray-600 font-medium">{project.description}</span>
+                  <span className="text-xs text-gray-600 font-medium truncate">
+                    {project.description}
+                  </span>
                 </>
               )}
             </div>
-            
-            <div className="flex items-center space-x-1">
+
+            <div className="flex items-center space-x-1 flex-shrink-0">
               <button
-                onClick={handleNotesToggle}
-                className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                  shouldShowLeftPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                }`}
+                onClick={() => setIsEditing(true)}
+                className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
               >
-                Notes
-              </button>
-              <button
-                onClick={handleLinksToggle}
-                className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                  shouldShowRightPane ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'
-                }`}
-              >
-                Links
+                Edit
               </button>
             </div>
           </div>
-        </div>
-      
-      {/* Main Content */}
-      <div className="flex gap-px overflow-hidden" style={{ height: 'calc(100vh - 67px)' }}>
-        {/* Left Pane - Notes */}
-        {shouldShowLeftPane && (
-          <div className={`${isDesktop && shouldShowRightPane ? 'w-1/2' : 'w-full'} bg-light-grey flex flex-col h-full`}>
-            {/* Notes Header */}
-            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[120px] flex flex-col flex-shrink-0">
-              <div className="bg-white border border-medium-grey p-4 flex items-center justify-between h-8">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-black tracking-tight uppercase">Notes</h2>
-                  {isMobile && (
-                    <button
-                      onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                      className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black"
-                      title={isHeaderVisible ? 'Hide header' : 'Show header'}
-                    >
-                      {isHeaderVisible ? '▲' : '▼'}
-                    </button>
-                  )}
-                </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
                 <button
-                  onClick={handleCreateNote}
-                  disabled={createNote.isPending}
-                  className="btn-primary text-base font-bold disabled:opacity-50 h-8"
+                  onClick={() => navigate('/dashboard')}
+                  className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
                 >
-                  {createNote.isPending ? '...' : '+ New Note'}
+                  ← Back
+                </button>
+                <span className="text-gray-400">•</span>
+                <span className="text-xs font-bold text-black uppercase tracking-wide">
+                  Edit Project
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-1 flex-shrink-0">
+                <button
+                  onClick={handleDeleteProject}
+                  disabled={deleteProject.isPending}
+                  className="px-2 py-1 text-xs font-bold transition-colors border border-red-500 bg-white text-red-500 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleteProject.isPending ? '...' : 'Delete'}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProject}
+                  disabled={updateProject.isPending || !editName.trim()}
+                  className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {updateProject.isPending ? '...' : 'Save'}
                 </button>
               </div>
-              
-              {/* Note Navigation - Always reserve space */}
-              <div className="bg-white border border-medium-grey border-t-0 p-4 flex items-center space-x-3 min-h-[40px]">
-                {notes && notes.length > 0 ? (
-                  <>
-                    <span className="text-base text-gray-600 font-bold uppercase tracking-wide">
-                      {currentNoteIndex + 1} of {notes.length}
-                    </span>
-                    <div className="flex space-x-1">
-                      {notes.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentNoteIndex(index)}
-                          className={`w-3 h-3 border border-black transition-colors ${
-                            index === currentNoteIndex ? 'bg-orange' : 'bg-white hover:bg-gray-100'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    {currentNote && (
-                      <button
-                        onClick={() => handleDeleteNote(currentNote.id)}
-                        className="text-red-500 text-base ml-auto hover:bg-red-50 px-3 py-1 border border-red-500 font-bold transition-colors"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-base text-gray-400 font-bold uppercase tracking-wide">
-                    No notes yet
-                  </span>
-                )}
-              </div>
             </div>
-            
-            {/* Note Editor */}
-            <div className="flex-1 bg-white border-2 border-t-0 border-medium-grey font-mono mx-5 flex flex-col">
-              {currentNote ? (
-                <div className="px-4 py-4 flex-1 flex flex-col h-full">
-                  <input
-                    type="text"
-                    placeholder="Note title..."
-                    value={noteTitle}
-                    onChange={(e) => setNoteTitle(e.target.value)}
-                    className="w-full mb-4 py-2 px-0 border-b-2 border-medium-grey font-normal text-base bg-transparent focus:outline-none focus:border-black shadow-none"
-                    style={{ boxShadow: 'none' }}
-                  />
-                  <textarea
-                    placeholder="Start writing..."
-                    value={noteContent}
-                    onChange={(e) => setNoteContent(e.target.value)}
-                    className="w-full flex-1 resize-none bg-transparent font-normal text-base leading-relaxed focus:outline-none p-0 border-none"
-                  />
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="text-center space-y-4">
-                    <p className="text-lg text-gray-600 font-bold">No notes yet</p>
-                    <button
-                      onClick={handleCreateNote}
-                      className="btn-primary font-bold"
-                    >
-                      Create First Note
-                    </button>
-                  </div>
-                </div>
-              )}
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Project name"
+                className="input-field text-sm font-black uppercase tracking-tight flex-shrink-0"
+                style={{ width: '200px' }}
+                autoFocus
+              />
+              <input
+                type="text"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="input-field text-xs font-medium flex-1"
+              />
             </div>
           </div>
         )}
-        
-        {/* Right Pane - Links */}
-        {shouldShowRightPane && (
-          <div className={`${isDesktop && shouldShowLeftPane ? 'w-1/2' : 'w-full'} bg-light-grey flex flex-col`}>
-            {/* Links Header */}
-            <div className="p-5 bg-light-grey border-b border-medium-grey min-h-[120px] flex flex-col flex-shrink-0">
-              <div className="bg-white border border-medium-grey p-4 flex items-center justify-between h-8">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-black tracking-tight uppercase">Links</h2>
-                  {isMobile && (
-                    <button
-                      onClick={() => setIsHeaderVisible(!isHeaderVisible)}
-                      className="text-xs border border-medium-grey bg-white hover:bg-gray-50 px-2 py-1 transition-colors font-bold text-black"
-                      title={isHeaderVisible ? 'Hide header' : 'Show header'}
-                    >
-                      {isHeaderVisible ? '▲' : '▼'}
-                    </button>
-                  )}
+      </div>
+
+      {/* Main Content - Inside scrollable container */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="h-full floating-container flex overflow-hidden">
+          {/* Left Panel - Cards Grid */}
+          <div
+            className={`flex flex-col transition-all duration-300 ${
+              !isDesktop ? 'w-full' : editingLink ? 'w-1/2' : 'w-full'
+            }`}
+          >
+            {/* Controls */}
+            <div className="flex-shrink-0 bg-light-grey border-b border-medium-grey overflow-y-auto">
+              <div className="max-w-6xl mx-auto p-6 space-y-4">
+                {/* Tag Filter */}
+                {projectTags.length > 0 && (
+                  <div className="bg-light-grey border border-medium-grey p-3">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                        Filter:
+                      </span>
+                      <button
+                        onClick={() => setSelectedTagFilter('')}
+                        className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                          !selectedTagFilter
+                            ? 'bg-black text-white border-black'
+                            : 'bg-white text-black hover:bg-gray-50'
+                        }`}
+                      >
+                        All
+                      </button>
+                      {projectTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          onClick={() => setSelectedTagFilter(tag.id)}
+                          className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
+                            selectedTagFilter === tag.id
+                              ? 'bg-black text-white border-black'
+                              : 'bg-white text-black hover:bg-gray-50'
+                          }`}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add New Item */}
+                <div className="bg-light-grey border border-medium-grey p-4 flex space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Add new link (paste URL)..."
+                    value={newItemInput}
+                    onChange={(e) => setNewItemInput(e.target.value)}
+                    className="input-field flex-1 font-medium h-8"
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateItem()}
+                  />
+                  <button
+                    onClick={handleCreateItem}
+                    disabled={createLink.isPending || !newItemInput.trim()}
+                    className="btn-primary font-bold disabled:opacity-50 h-8"
+                  >
+                    {createLink.isPending ? '...' : '+'}
+                  </button>
                 </div>
-                <div className="w-[88px] h-8"></div> {/* Spacer to align with Notes header */}
-              </div>
-              
-              {/* Add Link - Always reserve space */}
-              <div className="bg-white border border-medium-grey border-t-0 p-4 flex space-x-2 min-h-[40px] items-start">
-                <input
-                  type="url"
-                  placeholder="Paste URL..."
-                  value={newLinkUrl}
-                  onChange={(e) => setNewLinkUrl(e.target.value)}
-                  className="input-field flex-1 font-medium h-8"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateLink()}
-                />
-                <button
-                  onClick={handleCreateLink}
-                  disabled={createLink.isPending || !newLinkUrl.trim()}
-                  className="btn-primary font-bold disabled:opacity-50 h-8"
-                >
-                  {createLink.isPending ? '...' : '+'}
-                </button>
               </div>
             </div>
-            
-            {/* Links Grid */}
+
+            {/* Cards Grid */}
             <div className="flex-1 overflow-y-auto">
-              {links && links.length > 0 ? (
+              {filteredCards && filteredCards.length > 0 ? (
                 <div className="h-full overflow-y-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
-                    {links.map((link) => (
-                        <div key={link.id} className="card p-4 cursor-pointer">
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              {link.favicon_url && (
-                                <img 
-                                  src={link.favicon_url} 
-                                  alt="" 
-                                  className="w-4 h-4 flex-shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none'
-                                  }}
-                                />
-                              )}
-                              <h3 className="font-bold text-base truncate">
-                                {link.title || new URL(link.url).hostname}
-                              </h3>
+                  <div className="max-w-6xl mx-auto p-6">
+                    <div
+                      className={`grid gap-4 ${
+                        !isDesktop
+                          ? 'grid-cols-1'
+                          : editingLink
+                          ? 'grid-cols-1 xl:grid-cols-2'
+                          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                      }`}
+                    >
+                      {filteredCards.map((link) => (
+                        <div
+                          key={link.id}
+                          className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => handleCardClick(link)}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                {link.favicon_url && (
+                                  <img
+                                    src={link.favicon_url}
+                                    alt=""
+                                    className="w-4 h-4 flex-shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                                <h3 className="font-bold text-base truncate">
+                                  {link.title || new URL(link.url).hostname}
+                                </h3>
+                              </div>
                             </div>
+
+                            {link.tag && (
+                              <div className="flex items-center">
+                                <span className="inline-block px-2 py-1 text-xs font-bold text-white bg-black border border-medium-grey">
+                                  {link.tag.name}
+                                </span>
+                              </div>
+                            )}
+
                             {link.description && (
                               <p className="text-sm text-gray-600 font-medium line-clamp-2 leading-relaxed">
                                 {link.description}
                               </p>
                             )}
+
                             <p className="text-sm text-gray-500 font-medium truncate border-t border-light-grey pt-2">
                               {link.url}
                             </p>
+
                             <div className="flex justify-between items-center pt-2 border-t border-light-grey">
                               <button
-                                onClick={() => handleDeleteLink(link.id)}
-                                className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 font-bold transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLink(link.id);
+                                }}
+                                className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 transition-colors"
                               >
                                 Delete
                               </button>
                               <button
-                                onClick={() => handleOpenLink(link.url)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenLink(link.url);
+                                }}
                                 className="text-sm btn-primary py-1 px-3 font-bold"
                               >
                                 Open
@@ -499,25 +455,69 @@ const ProjectPage = () => {
                             </div>
                           </div>
                         </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center space-y-4 p-8">
-                    <p className="text-lg text-gray-600 font-bold">No links yet</p>
-                    <p className="text-base text-gray-500 font-medium">
-                      Add your first link above
-                    </p>
+                    {selectedTagFilter ? (
+                      <>
+                        <p className="text-lg text-gray-600 font-bold">
+                          No items with this tag
+                        </p>
+                        <p className="text-base text-gray-500 font-medium">
+                          Try selecting a different tag or clear the filter
+                        </p>
+                        <button
+                          onClick={() => setSelectedTagFilter('')}
+                          className="btn-secondary font-bold"
+                        >
+                          Clear Filter
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg text-gray-600 font-bold">
+                          No links yet
+                        </p>
+                        <p className="text-base text-gray-500 font-medium">
+                          Add a link above to get started
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
             </div>
           </div>
-        )}
+
+          {/* Right Panel - Editor (Desktop) or Full Screen Modal (Mobile) */}
+          {editingLink && (
+            <div
+              className={`
+            ${
+              !isDesktop
+                ? 'fixed inset-0 z-50 bg-light-grey'
+                : 'w-1/2 border-l border-medium-grey'
+            }
+            transition-all duration-300 ease-in-out
+            ${!isDesktop && editingLink ? 'animate-slide-in-right' : ''}
+          `}
+            >
+              <LinkEditModal
+                link={editingLink}
+                isOpen={!!editingLink}
+                onClose={handleCloseEditModal}
+                onDelete={handleDeleteLinkFromModal}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProjectPage
+export default ProjectPage;

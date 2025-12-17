@@ -19,7 +19,6 @@ export const projectsApi = {
       .from('projects')
       .select(`
         *,
-        notes(count),
         links(count)
       `)
       .order('is_starred', { ascending: false })

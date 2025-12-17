@@ -13,19 +13,16 @@ export interface Project {
 }
 
 export interface ProjectWithCounts extends Project {
-  notes: { count: number }[]
   links: { count: number }[]
 }
 
-export interface Note {
+export interface Tag {
   id: string
-  project_id: string
   user_id: string
-  title?: string
-  encrypted_content: string
+  name: string
+  color: string
   created_at: string
   updated_at: string
-  order_index: number
 }
 
 export interface Link {
@@ -37,10 +34,20 @@ export interface Link {
   description?: string
   favicon_url?: string
   preview_image_url?: string
+  tag_id?: string
   created_at: string
   updated_at: string
   order_index: number
 }
+
+export interface LinkWithTag extends Link {
+  tag?: Tag
+  project?: {
+    id: string
+    name: string
+  }
+}
+
 
 // Form types for creating/updating entities
 export interface CreateProjectData {
@@ -55,17 +62,14 @@ export interface UpdateProjectData {
   is_starred?: boolean
 }
 
-export interface CreateNoteData {
-  project_id: string
-  title?: string
-  encrypted_content?: string
-  order_index?: number
+export interface CreateTagData {
+  name: string
+  color: string
 }
 
-export interface UpdateNoteData {
-  title?: string
-  encrypted_content?: string
-  order_index?: number
+export interface UpdateTagData {
+  name?: string
+  color?: string
 }
 
 export interface CreateLinkData {
@@ -75,15 +79,18 @@ export interface CreateLinkData {
   description?: string
   favicon_url?: string
   preview_image_url?: string
+  tag_id?: string
   order_index?: number
 }
 
 export interface UpdateLinkData {
+  project_id?: string
   url?: string
   title?: string
   description?: string
   favicon_url?: string
   preview_image_url?: string
+  tag_id?: string
   order_index?: number
 }
 
@@ -101,14 +108,14 @@ export interface Database {
         }
         Update: Partial<Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_modified'>>
       }
-      notes: {
-        Row: Note
-        Insert: Omit<Note, 'id' | 'created_at' | 'updated_at'> & {
+      tags: {
+        Row: Tag
+        Insert: Omit<Tag, 'id' | 'created_at' | 'updated_at'> & {
           id?: string
           created_at?: string
           updated_at?: string
         }
-        Update: Partial<Omit<Note, 'id' | 'project_id' | 'user_id' | 'created_at' | 'updated_at'>>
+        Update: Partial<Omit<Tag, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
       }
       links: {
         Row: Link
@@ -117,7 +124,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-        Update: Partial<Omit<Link, 'id' | 'project_id' | 'user_id' | 'created_at' | 'updated_at'>>
+        Update: Partial<Omit<Link, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
       }
     }
   }

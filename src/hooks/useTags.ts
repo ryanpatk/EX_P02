@@ -11,18 +11,18 @@ export const tagKeys = {
   detail: (id: string) => [...tagKeys.details(), id] as const,
 }
 
-// Predefined tag colors in brutalist style
+// Predefined tag colors in a muted, minimalist palette
 export const TAG_COLORS = [
-  '#FF3B3C', // Orange (primary)
-  '#1E3A8A', // Blue (primary)
-  '#FF0040', // Error red
-  '#00FF41', // Success green
-  '#FFFF00', // Warning yellow
-  '#00FFFF', // Info cyan
-  '#FF6B6C', // Orange muted
-  '#60A5FA', // Blue muted
-  '#E5D5C0', // Medium grey
-  '#1A1A1A', // Dark grey
+  '#6D7A6F', // Sage
+  '#9A8F7B', // Warm stone
+  '#4E6A8B', // Dusty blue
+  '#B78C7A', // Clay
+  '#A3A7A0', // Soft gray
+  '#D1C7B8', // Sand
+  '#7A8F84', // Muted green
+  '#C2B4A1', // Driftwood
+  '#49545A', // Slate
+  '#1A1916', // Ink
 ]
 
 // Tags API functions
@@ -83,6 +83,20 @@ export const tagsApi = {
       .from('links')
       .update({ tag_id: null })
       .eq('tag_id', id)
+
+    // Remove from link_tags join table
+    const { error: linkTagsError } = await supabase
+      .from('link_tags')
+      .delete()
+      .eq('tag_id', id)
+
+    if (linkTagsError) {
+      const message =
+        typeof linkTagsError.message === 'string' ? linkTagsError.message : ''
+      if (!(message.includes('link_tags') && message.includes('does not exist'))) {
+        throw linkTagsError
+      }
+    }
 
     // Then delete the tag
     const { error } = await supabase

@@ -1,22 +1,23 @@
 import { useRef, useMemo, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { LinkWithTag } from '../types/database';
+import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import LinkCard from './LinkCard';
-import { ProjectWithCounts } from '../types/database';
 
 interface LinksGridProps {
   links: LinkWithTag[];
   scrapedDataMap: Record<string, ScrapedUrlData>;
   onDeleteLink: (linkId: string) => void;
-  onUpdateLinkProject?: (linkId: string, projectId: string | null) => void;
-  projects?: ProjectWithCounts[];
-  selectedProjectsCount: number;
-  onOpenAll?: () => void;
-  filteredLinksCount?: number;
+  onUpdateLinkTags?: (linkId: string, tagIds: string[]) => void;
+  availableTags?: Tag[];
+  onCreateTag?: (name: string, color: string) => Promise<Tag>;
   onVisibleLinksChange?: (visibleLinks: LinkWithTag[]) => void;
   selectedLinkIds?: string[];
   cursorIndex?: number | null;
+  emptyTitle?: string;
+  emptySubtitle?: string;
+  onColumnChange?: (columns: number) => void;
+  onToggleSelect?: (linkId: string, index: number) => void;
 }
 
 export interface LinksGridRef {
@@ -27,14 +28,16 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
   links,
   scrapedDataMap,
   onDeleteLink,
-  onUpdateLinkProject,
-  projects = [],
-  selectedProjectsCount,
-  onOpenAll,
-  filteredLinksCount,
+  onUpdateLinkTags,
+  availableTags = [],
+  onCreateTag,
   onVisibleLinksChange,
   selectedLinkIds = [],
   cursorIndex = null,
+  emptyTitle = 'No links yet',
+  emptySubtitle = 'Add a link to get started',
+  onColumnChange,
+  onToggleSelect,
 }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -47,16 +50,25 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
     return 4; // Desktop (>= 1024px)
   }, [containerWidth]);
 
+  useEffect(() => {
+    if (onColumnChange) {
+      onColumnChange(columns);
+    }
+  }, [columns, onColumnChange]);
+
   // Calculate row height based on card dimensions
-  // Card has: image (aspect 300:157 ≈ 1.91:1) + button section (fixed height)
-  // Image height = cardWidth / (300/157) = cardWidth * 157/300 (maintains 300:157 aspect ratio)
-  // Button section: pt-4 (16px) + pb-4 (16px) + button with py-2 (16px) + button content (~24px line-height) = 72px
+  // Card has: image (aspect 16:9) + footer section (fixed height)
   const cardHeight = useMemo(() => {
     if (containerWidth === 0) return 250; // Default estimate
-    const cardWidth = containerWidth / columns;
-    const imageHeight = cardWidth * (157 / 300); // 300:157 aspect ratio (width:height) to match typical image ratios
-    const buttonSectionHeight = 72; // Fixed: pt-4 (16px) + pb-4 (16px) + button py-2 (16px) + button content (~24px)
-    return imageHeight + buttonSectionHeight;
+    const horizontalPadding = 32;
+    const columnGap = 16;
+    const totalGap = columnGap * Math.max(columns - 1, 0);
+    const availableWidth = Math.max(containerWidth - horizontalPadding - totalGap, 0);
+    const cardWidth = availableWidth / columns;
+    const imageHeight = cardWidth * (9 / 16);
+    const footerHeight = 110; // Approx footer size (open button + tags row + padding)
+    const rowGap = 16;
+    return imageHeight + footerHeight + rowGap;
   }, [containerWidth, columns]);
 
   // Calculate number of rows
@@ -195,16 +207,8 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-gray-500">
-            {selectedProjectsCount === 0
-              ? 'No links found'
-              : 'No links in selected projects'}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {selectedProjectsCount === 0
-              ? 'Select a project or add links to get started'
-              : 'Add links to get started'}
-          </p>
+          <p className="text-gray-500">{emptyTitle}</p>
+          <p className="text-sm text-gray-400 mt-1">{emptySubtitle}</p>
         </div>
       </div>
     );
@@ -219,18 +223,23 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
           className="w-full h-full overflow-auto"
           style={{ paddingBottom: '120px' }}
         >
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-0 auto-rows-max">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-max p-4">
             {links.map((link, index) => {
               const isSelected = selectedLinkIds.includes(link.id);
               const isCursor = cursorIndex === index;
               return (
-                <div key={link.id} data-link-index={index}>
+                <div
+                  key={link.id}
+                  data-link-index={index}
+                  onClick={() => onToggleSelect?.(link.id, index)}
+                >
                   <LinkCard
                     link={link}
                     scrapedData={scrapedDataMap[link.url]}
                     onDelete={onDeleteLink}
-                    onUpdateProject={onUpdateLinkProject}
-                    projects={projects}
+                    onUpdateTags={onUpdateLinkTags}
+                    availableTags={availableTags}
+                    onCreateTag={onCreateTag}
                     isSelected={isSelected}
                     isCursor={isCursor}
                   />
@@ -239,14 +248,6 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
             })}
           </div>
         </div>
-        {onOpenAll && links.length > 0 && (
-          <button
-            onClick={onOpenAll}
-            className="fixed bottom-10 left-1/2 transform -translate-x-1/2 px-4 py-2 text-sm font-medium text-black border border-medium-grey bg-white hover:bg-white transition-all duration-300 rounded-sm cursor-pointer whitespace-nowrap z-40"
-          >
-            Open All ({filteredLinksCount || links.length})
-          </button>
-        )}
       </div>
     );
   }
@@ -283,9 +284,11 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
                 }}
               >
                 <div
-                  className="grid gap-0 h-full"
+                  className="grid h-full"
                   style={{
                     gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                    gap: '16px',
+                    padding: '0 16px',
                   }}
                 >
                   {rowLinks.map((link, linkIndex) => {
@@ -293,16 +296,21 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
                     const isSelected = selectedLinkIds.includes(link.id);
                     const isCursor = cursorIndex === globalIndex;
                     return (
-                      <LinkCard
+                      <div
                         key={link.id}
-                        link={link}
-                        scrapedData={scrapedDataMap[link.url]}
-                        onDelete={onDeleteLink}
-                        onUpdateProject={onUpdateLinkProject}
-                        projects={projects}
-                        isSelected={isSelected}
-                        isCursor={isCursor}
-                      />
+                        onClick={() => onToggleSelect?.(link.id, globalIndex)}
+                      >
+                        <LinkCard
+                          link={link}
+                          scrapedData={scrapedDataMap[link.url]}
+                          onDelete={onDeleteLink}
+                          onUpdateTags={onUpdateLinkTags}
+                          availableTags={availableTags}
+                          onCreateTag={onCreateTag}
+                          isSelected={isSelected}
+                          isCursor={isCursor}
+                        />
+                      </div>
                     );
                   })}
                   {/* Fill empty cells in the last row */}
@@ -317,14 +325,6 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
           })}
         </div>
       </div>
-      {onOpenAll && links.length > 0 && (
-        <button
-          onClick={onOpenAll}
-          className="fixed bottom-10 left-1/2 transform -translate-x-1/2 px-4 py-2 text-sm font-medium text-black border border-medium-grey bg-white hover:bg-white transition-all duration-300 rounded-sm cursor-pointer whitespace-nowrap z-40"
-        >
-          Open All ({filteredLinksCount || links.length})
-        </button>
-      )}
     </div>
   );
 });
@@ -332,4 +332,3 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(({
 LinksGrid.displayName = 'LinksGrid';
 
 export default LinksGrid;
-

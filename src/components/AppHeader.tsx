@@ -1,10 +1,7 @@
 import AppLogo from './AppLogo';
-import SearchBar from './SearchBar';
 import UserProfile from './UserProfile';
 
 interface AppHeaderProps {
-  searchQuery: string;
-  setSearchQuery: (value: string) => void;
   user: any;
   isMobile: boolean;
   onMobileMenuClick: () => void;
@@ -12,32 +9,35 @@ interface AppHeaderProps {
 }
 
 const AppHeader = ({
-  searchQuery,
-  setSearchQuery,
   user,
   isMobile,
   onMobileMenuClick,
   isCommandHeld = false,
 }: AppHeaderProps) => {
   return (
-    <div className="py-4 border-b border-medium-grey flex items-center" style={{ backgroundColor: '#ffffff' }}>
-      <AppLogo />
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
-      {/* CMD state indicator */}
-      {isCommandHeld && (
-        <div className="ml-4 px-3 py-1 text-xs font-medium bg-orange text-white rounded-sm transition-opacity duration-200">
-          ⌘ CMD
-        </div>
-      )}
-      {!isMobile && user && <UserProfile user={user} isMobile={false} />}
-      {isMobile && (
-        <button
-          onClick={onMobileMenuClick}
-          className="p-2 border border-medium-grey hover:bg-gray-100"
-        >
-          ☰
-        </button>
-      )}
+    <div className="app-topbar">
+      <div className="flex items-center gap-3">
+        <AppLogo />
+        <span className="text-xs uppercase tracking-[0.2em] text-gray-500 hidden sm:inline">
+          Link Library
+        </span>
+      </div>
+      <div className="ml-auto flex items-center gap-3">
+        {isCommandHeld && (
+          <div className="cmd-indicator">
+            ⌘
+          </div>
+        )}
+        {!isMobile && user && <UserProfile user={user} isMobile={false} />}
+        {isMobile && (
+          <button
+            onClick={onMobileMenuClick}
+            className="app-icon-button"
+          >
+            ☰
+          </button>
+        )}
+      </div>
     </div>
   );
 };

@@ -27,7 +27,7 @@ const MobileDrawer = ({ user, isOpen, onClose }: MobileDrawerProps) => {
     }
     // Generate a fallback avatar using the user's email initial
     const initial = user?.email?.charAt(0).toUpperCase() || 'U'
-    return `https://ui-avatars.com/api/?name=${initial}&background=1E3A8A&color=FFFFFF&size=40&format=png&bold=true&font-size=0.6`
+    return `https://ui-avatars.com/api/?name=${initial}&background=5D6F68&color=FFFFFF&size=40&format=png&bold=true&font-size=0.6`
   }
 
   const getUserName = () => {

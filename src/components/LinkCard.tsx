@@ -1,28 +1,26 @@
-import { useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LinkWithTag } from '../types/database';
+import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
-import ProjectSelector from './ProjectSelector';
-import { ProjectWithCounts } from '../types/database';
+import TagSelector from './TagSelector';
 
 interface LinkCardProps {
   link: LinkWithTag;
   scrapedData?: ScrapedUrlData;
   onDelete: (linkId: string) => void;
-  projects?: ProjectWithCounts[];
-  onUpdateProject?: (linkId: string, projectId: string | null) => void;
+  onUpdateTags?: (linkId: string, tagIds: string[]) => void;
+  availableTags?: Tag[];
+  onCreateTag?: (name: string, color: string) => Promise<Tag>;
   isSelected?: boolean;
   isCursor?: boolean;
 }
 
-// Helper function to safely extract hostname from URL
 const getHostname = (url: string, removeWww: boolean = false): string => {
   if (!url || typeof url !== 'string') {
     return 'Unknown';
   }
 
   try {
-    // If URL doesn't have a protocol, add https://
     const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
     let hostname = new URL(urlWithProtocol).hostname;
     if (removeWww) {
@@ -30,9 +28,6 @@ const getHostname = (url: string, removeWww: boolean = false): string => {
     }
     return hostname;
   } catch (error) {
-    console.log('Failed to construct URL:', url, 'Error:', error);
-    // If URL is invalid, try to extract a simple domain-like string
-    // Remove protocol if present
     let cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
     if (removeWww) {
       cleaned = cleaned.replace('www.', '');
@@ -45,136 +40,126 @@ const LinkCard = ({
   link,
   scrapedData,
   onDelete,
-  projects = [],
-  onUpdateProject,
+  onUpdateTags,
+  availableTags = [],
+  onCreateTag,
   isSelected = false,
   isCursor = false,
 }: LinkCardProps) => {
-  const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false);
-  const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
   const [isHoveringCard, setIsHoveringCard] = useState(false);
   const [isHoveringButton, setIsHoveringButton] = useState(false);
-  const projectBadgeRef = useRef<HTMLDivElement>(null);
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
+  const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
+
   const imageUrl = scrapedData?.image || link.preview_image_url;
   const faviconUrl = scrapedData?.logo || link.favicon_url;
-
   const showFullLink = isHoveringCard && !isHoveringButton;
 
-  const handleProjectBadgeClick = (e: React.MouseEvent) => {
+  const mergedTags = useMemo(() => {
+    if (link.tags && link.tags.length > 0) return link.tags;
+
+    const tagMap = new Map<string, Tag>();
+    if (link.tag) {
+      tagMap.set(link.tag.id, link.tag);
+    }
+    if (link.link_tags) {
+      link.link_tags.forEach((linkTag) => {
+        if (linkTag.tag) {
+          tagMap.set(linkTag.tag.id, linkTag.tag);
+        }
+      });
+    }
+    return Array.from(tagMap.values());
+  }, [link]);
+
+  const selectedTagIds = mergedTags.map((tag) => tag.id);
+  const effectiveTagIds = localTagIds ?? selectedTagIds;
+
+  const displayTags = useMemo(() => {
+    if (!localTagIds) return mergedTags;
+    const tagMap = new Map(availableTags.map((tag) => [tag.id, tag]));
+    return localTagIds.map((id) => tagMap.get(id)).filter(Boolean) as Tag[];
+  }, [availableTags, localTagIds, mergedTags]);
+
+  const handleTagButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onUpdateProject && projects.length > 0) {
-      // Calculate position when opening
-      if (projectBadgeRef.current) {
-        const rect = projectBadgeRef.current.getBoundingClientRect();
-        setSelectorPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-        });
-      }
-      setIsProjectSelectorOpen(true);
+    if (!onUpdateTags || !onCreateTag) return;
+
+    if (tagButtonRef.current) {
+      const rect = tagButtonRef.current.getBoundingClientRect();
+      const left = Math.min(rect.left, window.innerWidth - 280);
+      setSelectorPosition({
+        top: rect.bottom + 8,
+        left,
+      });
     }
+    setLocalTagIds(selectedTagIds);
+    setIsTagSelectorOpen(true);
   };
 
-  const handleProjectSelect = (projectId: string | null) => {
-    if (onUpdateProject) {
-      onUpdateProject(link.id, projectId);
-    }
-    setIsProjectSelectorOpen(false);
+  const handleTagChange = (tagIds: string[]) => {
+    if (!onUpdateTags) return;
+    setLocalTagIds(tagIds);
+    onUpdateTags(link.id, tagIds);
   };
 
-  // Determine border style based on selection state
-  // Use absolutely positioned border overlay to avoid affecting layout and work with overflow-hidden
-  const getBorderClass = () => {
-    return 'border border-medium-grey';
-  };
+  useEffect(() => {
+    if (!isTagSelectorOpen) {
+      setLocalTagIds(null);
+    }
+  }, [isTagSelectorOpen]);
 
   return (
     <div
-      className={`flex flex-col ${getBorderClass()} rounded-none overflow-hidden transition-all duration-100 group h-full relative ${
-        showFullLink ? 'bg-gray-50' : 'bg-white'
-      }`}
+      className={`link-card ${showFullLink ? 'is-hovered' : ''}`}
       onMouseEnter={() => setIsHoveringCard(true)}
       onMouseLeave={() => setIsHoveringCard(false)}
     >
-      {/* Selection border overlay - absolutely positioned to not affect layout */}
-      {isSelected && (
-        <div
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            border: '2px solid var(--color-orange)',
-            boxSizing: 'border-box',
-          }}
-        />
-      )}
-      {isCursor && (
-        <div
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            border: '2px dashed #999999',
-            boxSizing: 'border-box',
-          }}
-        />
-      )}
-      {/* Selection overlay for selected cards */}
-      {isSelected && (
-        <div
-          className="absolute inset-0 pointer-events-none z-20"
-          style={{
-            backgroundColor: 'rgba(255, 59, 60, 0.15)', // Red-orange overlay
-          }}
-        />
-      )}
-      {/* Preview/Thumbnail Area */}
-      <div
-        className={`relative w-full bg-white aspect-[300/157] flex items-center justify-center overflow-hidden group/image transition-colors duration-100 flex-shrink-0 ${
-          showFullLink ? 'bg-gray-50' : ''
-        }`}
-      >
-        {imageUrl ? (
+      {isSelected && <div className="link-card-selected" />}
+      {isCursor && <div className="link-card-cursor" />}
+
+      <div className="link-card-media">
+        {imageUrl && !imageFailed ? (
           <img
             src={imageUrl}
             alt={scrapedData?.title || ''}
-            className={`w-full h-full object-contain transition-opacity duration-200 ${
-              showFullLink ? 'opacity-0' : 'opacity-100'
-            }`}
+            className={`link-card-image ${showFullLink ? 'is-hidden' : ''}`}
             onError={(e) => {
               e.currentTarget.style.display = 'none';
+              setImageFailed(true);
             }}
           />
         ) : (
-          <div
-            className={`flex flex-col items-center justify-center gap-3 transition-opacity duration-200 ${
-              showFullLink ? 'opacity-0' : 'opacity-100'
-            }`}
-          >
+          <div className={`link-card-fallback ${showFullLink ? 'is-hidden' : ''}`}>
             {faviconUrl ? (
               <img
                 src={faviconUrl}
                 alt=""
-                className="w-12 h-12"
+                className="link-card-favicon"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : null}
-            <p className="text-xs font-medium text-gray-600 text-center px-4">
+            <p className="link-card-domain">
               {scrapedData?.title || getHostname(link.url)}
             </p>
           </div>
         )}
-        {/* Delete Button - appears on hover */}
+
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(link.id);
           }}
-          className={`absolute top-3 right-3 transition-opacity duration-200 w-6 h-6 flex items-center justify-center bg-white border border-medium-grey rounded-sm hover:bg-gray-50 cursor-pointer z-10 ${
-            showFullLink ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="link-card-delete"
           title="Delete link"
         >
           <svg
-            className="w-3 h-3 text-black"
+            className="w-3 h-3"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -187,84 +172,38 @@ const LinkCard = ({
             />
           </svg>
         </button>
-        {/* Project Name Badge - Upper Left */}
-        <div ref={projectBadgeRef} className="absolute top-3 left-3 z-10">
-          {link.project ? (
-            <button
-              onClick={handleProjectBadgeClick}
-              className={`inline-block px-2 py-1 text-xs font-bold text-black bg-white bg-opacity-90 hover:bg-opacity-100 transition-opacity ${
-                onUpdateProject && projects.length > 0 ? 'cursor-pointer' : ''
-              }`}
-              title={
-                onUpdateProject && projects.length > 0
-                  ? 'Click to change project'
-                  : undefined
-              }
-            >
-              {link.project.name}
-            </button>
-          ) : onUpdateProject && projects.length > 0 ? (
-            <button
-              onClick={handleProjectBadgeClick}
-              className="inline-block px-2 py-1 text-xs font-bold text-gray-500 bg-white bg-opacity-90 hover:bg-opacity-100 transition-opacity cursor-pointer border border-dashed border-gray-400"
-              title="Click to assign project"
-            >
-              + Assign
-            </button>
-          ) : null}
-        </div>
-        {/* Link Info Overlay on Hover */}
-        <div
-          className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-200 overflow-y-auto bg-gray-50 ${
-            showFullLink ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{
-            padding: '24px',
-          }}
-        >
-          <div className="flex flex-col items-center justify-center gap-3 w-full">
+
+        <div className={`link-card-overlay ${showFullLink ? 'is-visible' : ''}`}>
+          <div className="link-card-overlay-content">
             {scrapedData?.title ? (
-              <h3 className="text-base font-bold text-black text-center">
-                {scrapedData.title}
-              </h3>
-            ) : scrapedData?.description ? (
-              <p className="text-sm text-black text-center leading-relaxed">
-                {scrapedData.description}
+              <h3 className="link-card-title">{scrapedData.title}</h3>
+            ) : scrapedData?.description || link.description ? (
+              <p className="link-card-description">
+                {scrapedData?.description || link.description}
               </p>
             ) : (
-              <p
-                className="text-xs font-medium text-black text-center break-all mt-2"
-                style={{
-                  wordBreak: 'break-all',
-                  overflowWrap: 'anywhere',
-                  opacity: 0.7,
-                }}
-              >
-                {link.url}
-              </p>
+              <p className="link-card-url">{link.url}</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Action Button */}
-      <div
-        className={`pt-4 px-4 pb-4 transition-colors duration-200 flex-shrink-0 ${
-          showFullLink ? 'bg-gray-50' : 'bg-white'
-        }`}
-      >
+      <div className="link-card-footer">
         <button
-          onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(link.url, '_blank', 'noopener,noreferrer');
+          }}
           onMouseEnter={() => setIsHoveringButton(true)}
           onMouseLeave={() => setIsHoveringButton(false)}
-          className="w-full flex items-center justify-between gap-2 px-4 py-2 text-black border border-medium-grey hover:bg-gray-50 transition-all duration-300 text-sm font-medium rounded-sm cursor-pointer bg-white"
+          className="link-card-open"
         >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="link-card-open-text">
             {faviconUrl && (
               <img
                 src={faviconUrl}
                 alt=""
-                className="w-4 h-4 flex-shrink-0"
+                className="link-card-open-icon"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
@@ -275,7 +214,7 @@ const LinkCard = ({
             </span>
           </div>
           <svg
-            className="w-4 h-4 transition-transform duration-300 flex-shrink-0"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -288,15 +227,34 @@ const LinkCard = ({
             />
           </svg>
         </button>
+
+        <div className="link-card-tags">
+          {displayTags.map((tag) => (
+            <span key={tag.id} className="tag-chip">
+              <span className="tag-dot" style={{ backgroundColor: tag.color }} />
+              {tag.name}
+            </span>
+          ))}
+          <button
+            ref={tagButtonRef}
+            type="button"
+            onClick={handleTagButtonClick}
+            className="tag-chip tag-chip-button"
+            title="Edit tags"
+          >
+            + Tag
+          </button>
+        </div>
       </div>
-      {/* Project Selector - rendered via portal to avoid clipping */}
-      {isProjectSelectorOpen &&
+
+      {isTagSelectorOpen && onCreateTag &&
         createPortal(
-          <ProjectSelector
-            projects={projects}
-            selectedProjectId={link.project_id}
-            onSelect={handleProjectSelect}
-            onClose={() => setIsProjectSelectorOpen(false)}
+          <TagSelector
+            tags={availableTags}
+            selectedTagIds={effectiveTagIds}
+            onChange={handleTagChange}
+            onCreateTag={onCreateTag}
+            onClose={() => setIsTagSelectorOpen(false)}
             position={selectorPosition}
           />,
           document.body

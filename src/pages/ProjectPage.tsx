@@ -209,9 +209,9 @@ const ProjectPage = () => {
   }
 
   return (
-    <div className="h-screen bg-light-grey flex flex-col">
+    <div className="app-shell h-screen flex flex-col">
       {/* Header - Outside container */}
-      <div className="px-4 py-3 border-b border-medium-grey bg-light-grey transition-all duration-300 flex-shrink-0">
+      <div className="project-topbar flex-shrink-0">
         {!isEditing ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -310,7 +310,7 @@ const ProjectPage = () => {
       </div>
 
       {/* Main Content - Inside scrollable container */}
-      <div className="flex-1 p-4 overflow-hidden">
+      <div className="project-body">
         <div className="h-full floating-container flex overflow-hidden">
           {/* Left Panel - Cards Grid */}
           <div

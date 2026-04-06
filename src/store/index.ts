@@ -15,9 +15,6 @@ interface AppState {
   searchQuery: string;
   selectedProjectIds: string[];
   selectedLinkIds: string[];
-  selectionCursorIndex: number | null;
-  lastCursorIndex: number | null;
-  isCommandHeld: boolean;
 
   // Actions
   setProjects: (projects: Project[]) => void;
@@ -38,9 +35,6 @@ interface AppState {
   setSelectedLinkIds: (ids: string[]) => void;
   toggleLinkSelection: (linkId: string) => void;
   clearSelectedLinks: () => void;
-  setSelectionCursorIndex: (index: number | null) => void;
-  setLastCursorIndex: (index: number | null) => void;
-  setIsCommandHeld: (held: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -53,9 +47,6 @@ export const useAppStore = create<AppState>()(
       searchQuery: '',
       selectedProjectIds: [],
       selectedLinkIds: [],
-      selectionCursorIndex: null,
-      lastCursorIndex: null,
-      isCommandHeld: false,
 
       // Project actions
       setProjects: (projects) => set({ projects }),
@@ -132,10 +123,6 @@ export const useAppStore = create<AppState>()(
           }
         }),
       clearSelectedLinks: () => set({ selectedLinkIds: [] }),
-      setSelectionCursorIndex: (index) =>
-        set({ selectionCursorIndex: index }),
-      setLastCursorIndex: (index) => set({ lastCursorIndex: index }),
-      setIsCommandHeld: (held) => set({ isCommandHeld: held }),
     })),
     {
       name: 'ex-p02-storage',

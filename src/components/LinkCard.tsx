@@ -4,18 +4,28 @@ import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import TagSelector from './TagSelector';
 
+const TAG_SELECTOR_WIDTH = 308;
+const TAG_SELECTOR_VIEWPORT_PADDING = 12;
+const TAG_SELECTOR_OFFSET_Y = 8;
+
+type ScrollParent = HTMLElement | Window;
+
 interface LinkCardProps {
   link: LinkWithTag;
+  index: number;
   scrapedData?: ScrapedUrlData;
   onDelete: (linkId: string) => void;
+  onOpen: (link: LinkWithTag, index: number) => void;
+  onToggleSelect: (linkId: string, index: number) => void;
   onUpdateTags?: (linkId: string, tagIds: string[]) => void;
   availableTags?: Tag[];
   onCreateTag?: (name: string, color: string) => Promise<Tag>;
+  onDeleteTag?: (tagId: string) => Promise<void>;
   isSelected?: boolean;
-  isCursor?: boolean;
+  selectionMode?: boolean;
 }
 
-const getHostname = (url: string, removeWww: boolean = false): string => {
+const getHostname = (url: string, removeWww = false): string => {
   if (!url || typeof url !== 'string') {
     return 'Unknown';
   }
@@ -27,7 +37,7 @@ const getHostname = (url: string, removeWww: boolean = false): string => {
       hostname = hostname.replace('www.', '');
     }
     return hostname;
-  } catch (error) {
+  } catch {
     let cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
     if (removeWww) {
       cleaned = cleaned.replace('www.', '');
@@ -36,27 +46,71 @@ const getHostname = (url: string, removeWww: boolean = false): string => {
   }
 };
 
+const getPathLabel = (url: string) => {
+  try {
+    const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
+    const parsed = new URL(urlWithProtocol);
+    const value = `${parsed.pathname}${parsed.search}`.trim();
+    if (!value || value === '/') {
+      return parsed.hostname.replace('www.', '');
+    }
+    return value;
+  } catch {
+    const withoutOrigin = url.replace(/^https?:\/\//, '');
+    const slashIndex = withoutOrigin.indexOf('/');
+    return slashIndex >= 0 ? withoutOrigin.slice(slashIndex) : withoutOrigin;
+  }
+};
+
+const getInitials = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || '::';
+
+const getScrollParents = (element: HTMLElement | null): ScrollParent[] => {
+  const parents: ScrollParent[] = [];
+  let current = element?.parentElement ?? null;
+
+  while (current) {
+    const { overflow, overflowX, overflowY } = window.getComputedStyle(current);
+    const isScrollable = /(auto|scroll|overlay)/.test(
+      `${overflow}${overflowX}${overflowY}`,
+    );
+
+    if (isScrollable) {
+      parents.push(current);
+    }
+
+    current = current.parentElement;
+  }
+
+  parents.push(window);
+  return parents;
+};
+
 const LinkCard = ({
   link,
+  index,
   scrapedData,
   onDelete,
+  onOpen,
+  onToggleSelect,
   onUpdateTags,
   availableTags = [],
   onCreateTag,
+  onDeleteTag,
   isSelected = false,
-  isCursor = false,
+  selectionMode = false,
 }: LinkCardProps) => {
-  const [isHoveringCard, setIsHoveringCard] = useState(false);
-  const [isHoveringButton, setIsHoveringButton] = useState(false);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
-  const tagButtonRef = useRef<HTMLButtonElement>(null);
-  const [imageFailed, setImageFailed] = useState(false);
   const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
-
-  const imageUrl = scrapedData?.image || link.preview_image_url;
-  const faviconUrl = scrapedData?.logo || link.favicon_url;
-  const showFullLink = isHoveringCard && !isHoveringButton;
+  const [imageFailed, setImageFailed] = useState(false);
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
 
   const mergedTags = useMemo(() => {
     if (link.tags && link.tags.length > 0) return link.tags;
@@ -77,25 +131,75 @@ const LinkCard = ({
 
   const selectedTagIds = mergedTags.map((tag) => tag.id);
   const effectiveTagIds = localTagIds ?? selectedTagIds;
+  const faviconUrl = scrapedData?.logo || link.favicon_url;
+  const title = scrapedData?.title || link.title || getHostname(link.url, true);
+  const secondaryLabel = getPathLabel(link.url);
+  const placeholderLabel = getInitials(getHostname(link.url, true));
 
-  const displayTags = useMemo(() => {
-    if (!localTagIds) return mergedTags;
-    const tagMap = new Map(availableTags.map((tag) => [tag.id, tag]));
-    return localTagIds.map((id) => tagMap.get(id)).filter(Boolean) as Tag[];
-  }, [availableTags, localTagIds, mergedTags]);
-
-  const handleTagButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!onUpdateTags || !onCreateTag) return;
-
-    if (tagButtonRef.current) {
-      const rect = tagButtonRef.current.getBoundingClientRect();
-      const left = Math.min(rect.left, window.innerWidth - 280);
-      setSelectorPosition({
-        top: rect.bottom + 8,
-        left,
-      });
+  const updateSelectorPosition = () => {
+    if (!tagButtonRef.current) {
+      return;
     }
+
+    const rect = tagButtonRef.current.getBoundingClientRect();
+    const nextLeft = Math.min(
+      Math.max(TAG_SELECTOR_VIEWPORT_PADDING, rect.left),
+      window.innerWidth - TAG_SELECTOR_WIDTH - TAG_SELECTOR_VIEWPORT_PADDING,
+    );
+
+    setSelectorPosition({
+      top: rect.bottom + TAG_SELECTOR_OFFSET_Y,
+      left: nextLeft,
+    });
+  };
+
+  useEffect(() => {
+    if (!isTagSelectorOpen) {
+      setLocalTagIds(null);
+    }
+  }, [isTagSelectorOpen]);
+
+  useEffect(() => {
+    if (!isTagSelectorOpen || !tagButtonRef.current) {
+      return;
+    }
+
+    const scrollParents = getScrollParents(tagButtonRef.current);
+    const handlePositionUpdate = () => {
+      updateSelectorPosition();
+    };
+
+    handlePositionUpdate();
+
+    scrollParents.forEach((parent) => {
+      parent.addEventListener('scroll', handlePositionUpdate, { passive: true });
+    });
+
+    window.addEventListener('resize', handlePositionUpdate);
+
+    return () => {
+      scrollParents.forEach((parent) => {
+        parent.removeEventListener('scroll', handlePositionUpdate);
+      });
+      window.removeEventListener('resize', handlePositionUpdate);
+    };
+  }, [isTagSelectorOpen]);
+
+  const handleCardActivate = () => {
+    if (selectionMode) {
+      onToggleSelect(link.id, index);
+      return;
+    }
+    onOpen(link, index);
+  };
+
+  const handleTagButtonClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!onUpdateTags || !onCreateTag || !tagButtonRef.current) {
+      return;
+    }
+
+    updateSelectorPosition();
     setLocalTagIds(selectedTagIds);
     setIsTagSelectorOpen(true);
   };
@@ -106,160 +210,97 @@ const LinkCard = ({
     onUpdateTags(link.id, tagIds);
   };
 
-  useEffect(() => {
-    if (!isTagSelectorOpen) {
-      setLocalTagIds(null);
-    }
-  }, [isTagSelectorOpen]);
-
   return (
-    <div
-      className={`link-card ${showFullLink ? 'is-hovered' : ''}`}
-      onMouseEnter={() => setIsHoveringCard(true)}
-      onMouseLeave={() => setIsHoveringCard(false)}
+    <article
+      className={`bookmark-card ${isSelected ? 'is-selected' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={handleCardActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleCardActivate();
+        }
+      }}
     >
-      {isSelected && <div className="link-card-selected" />}
-      {isCursor && <div className="link-card-cursor" />}
+      <div className={`bookmark-card-preview ${isSelected ? 'is-selected' : ''}`}>
+        <div className="bookmark-card-actions">
+          {onUpdateTags && onCreateTag && (
+            <button
+              ref={tagButtonRef}
+              type="button"
+              className="bookmark-card-action"
+              onClick={handleTagButtonClick}
+              aria-label="Edit tags"
+              title="Edit tags"
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 3v10" />
+                <path d="M3 8h10" />
+              </svg>
+            </button>
+          )}
 
-      <div className="link-card-media">
-        {imageUrl && !imageFailed ? (
+          <button
+            type="button"
+            className="bookmark-card-action"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(link.id);
+            }}
+            aria-label="Delete link"
+            title="Delete link"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 4l8 8" />
+              <path d="M12 4 4 12" />
+            </svg>
+          </button>
+        </div>
+
+        {faviconUrl && !imageFailed ? (
           <img
-            src={imageUrl}
-            alt={scrapedData?.title || ''}
-            className={`link-card-image ${showFullLink ? 'is-hidden' : ''}`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
+            src={faviconUrl}
+            alt=""
+            className="bookmark-card-favicon"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
               setImageFailed(true);
             }}
           />
         ) : (
-          <div className={`link-card-fallback ${showFullLink ? 'is-hidden' : ''}`}>
-            {faviconUrl ? (
-              <img
-                src={faviconUrl}
-                alt=""
-                className="link-card-favicon"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            ) : null}
-            <p className="link-card-domain">
-              {scrapedData?.title || getHostname(link.url)}
-            </p>
-          </div>
+          <span className="bookmark-card-placeholder">{placeholderLabel}</span>
         )}
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(link.id);
-          }}
-          className="link-card-delete"
-          title="Delete link"
-        >
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-
-        <div className={`link-card-overlay ${showFullLink ? 'is-visible' : ''}`}>
-          <div className="link-card-overlay-content">
-            {scrapedData?.title ? (
-              <h3 className="link-card-title">{scrapedData.title}</h3>
-            ) : scrapedData?.description || link.description ? (
-              <p className="link-card-description">
-                {scrapedData?.description || link.description}
-              </p>
-            ) : (
-              <p className="link-card-url">{link.url}</p>
-            )}
-          </div>
-        </div>
+        {mergedTags.length > 0 && (
+          <span className="bookmark-card-tag-indicator">{mergedTags.length}</span>
+        )}
       </div>
 
-      <div className="link-card-footer">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(link.url, '_blank', 'noopener,noreferrer');
-          }}
-          onMouseEnter={() => setIsHoveringButton(true)}
-          onMouseLeave={() => setIsHoveringButton(false)}
-          className="link-card-open"
-        >
-          <div className="link-card-open-text">
-            {faviconUrl && (
-              <img
-                src={faviconUrl}
-                alt=""
-                className="link-card-open-icon"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            )}
-            <span className="truncate">
-              {scrapedData?.title || getHostname(link.url, true)}
-            </span>
-          </div>
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-
-        <div className="link-card-tags">
-          {displayTags.map((tag) => (
-            <span key={tag.id} className="tag-chip">
-              <span className="tag-dot" style={{ backgroundColor: tag.color }} />
-              {tag.name}
-            </span>
-          ))}
-          <button
-            ref={tagButtonRef}
-            type="button"
-            onClick={handleTagButtonClick}
-            className="tag-chip tag-chip-button"
-            title="Edit tags"
-          >
-            + Tag
-          </button>
-        </div>
+      <div className="bookmark-card-meta">
+        <p className="bookmark-card-title" title={title}>
+          {title}
+        </p>
+        <p className="bookmark-card-subtitle" title={secondaryLabel}>
+          {secondaryLabel}
+        </p>
       </div>
 
-      {isTagSelectorOpen && onCreateTag &&
+      {isTagSelectorOpen &&
+        onCreateTag &&
         createPortal(
           <TagSelector
             tags={availableTags}
             selectedTagIds={effectiveTagIds}
             onChange={handleTagChange}
             onCreateTag={onCreateTag}
+            onDeleteTag={onDeleteTag}
             onClose={() => setIsTagSelectorOpen(false)}
             position={selectorPosition}
           />,
-          document.body
+          document.body,
         )}
-    </div>
+    </article>
   );
 };
 

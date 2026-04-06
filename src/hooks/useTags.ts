@@ -11,18 +11,18 @@ export const tagKeys = {
   detail: (id: string) => [...tagKeys.details(), id] as const,
 }
 
-// Predefined tag colors in a muted, minimalist palette
+// Predefined tag colors aligned to the operator palette
 export const TAG_COLORS = [
-  '#6D7A6F', // Sage
-  '#9A8F7B', // Warm stone
-  '#4E6A8B', // Dusty blue
-  '#B78C7A', // Clay
-  '#A3A7A0', // Soft gray
-  '#D1C7B8', // Sand
-  '#7A8F84', // Muted green
-  '#C2B4A1', // Driftwood
-  '#49545A', // Slate
-  '#1A1916', // Ink
+  '#0328F1',
+  '#2545FF',
+  '#FB4010',
+  '#FF7C2B',
+  '#F6F91E',
+  '#C9CC27',
+  '#1A2438',
+  '#586883',
+  '#8EA0BC',
+  '#D8E2F2',
 ]
 
 // Tags API functions

@@ -1,7 +1,8 @@
 const AppLogo = () => {
   return (
     <div className="app-logo">
-      EX_P02
+      <span className="app-logo-accent">EX</span>
+      <span className="app-logo-base">_P02</span>
     </div>
   );
 };

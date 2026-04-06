@@ -1,99 +1,114 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useBreakpointValue } from '@chakra-ui/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  useAllLinks,
-  useCreateLink,
-  useDeleteLink,
-} from '../hooks/useLinks';
-import { useCreateTag, useTags } from '../hooks/useTags';
+import { useAllLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks';
+import { useCreateTag, useDeleteTag, useTags } from '../hooks/useTags';
 import { useSetLinkTags } from '../hooks/useLinkTags';
 import {
-  useUrlScraper,
-  ScrapedUrlData,
   getCachedScrapedData,
-  urlScraperApi,
   isLocalDev,
+  ScrapedUrlData,
+  urlScraperApi,
+  useUrlScraper,
 } from '../hooks/useUrlScraper';
+import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { LinkWithTag, Tag } from '../types/database';
 import supabase from '../supabase';
-import MobileDrawer from '../components/MobileDrawer';
 import AppHeader from '../components/AppHeader';
 import LinksGrid from '../components/LinksGrid';
+import ProfilesPane from '../components/ProfilesPane';
 import SearchBar from '../components/SearchBar';
 import TagFilterBar from '../components/TagFilterBar';
-import ProfilesPane from '../components/ProfilesPane';
+
+type GridDensity = 'compact' | 'comfortable';
+type DashboardView = 'links' | 'profiles';
 
 const DashboardPage = () => {
   const [user, setUser] = useState<any>(null);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [scrapedDataMap, setScrapedDataMap] = useState<
-    Record<string, ScrapedUrlData>
-  >({});
+  const [scrapedDataMap, setScrapedDataMap] = useState<Record<string, ScrapedUrlData>>(
+    {},
+  );
   const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [activeView, setActiveView] = useState<DashboardView>('links');
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [gridDensity, setGridDensity] = useState<GridDensity>('compact');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [includeUntagged, setIncludeUntagged] = useState(false);
+  const [profileSearchQuery, setProfileSearchQuery] = useState('');
+  const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
+  const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
   const newLinkInputRef = useRef<HTMLInputElement>(null);
 
   const searchQuery = useAppStore((state) => state.searchQuery);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
-
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [includeUntagged, setIncludeUntagged] = useState(false);
-
-  // Selection state
   const selectedLinkIds = useAppStore((state) => state.selectedLinkIds);
-  const selectionCursorIndex = useAppStore(
-    (state) => state.selectionCursorIndex,
-  );
-  const lastCursorIndex = useAppStore((state) => state.lastCursorIndex);
-  const isCommandHeld = useAppStore((state) => state.isCommandHeld);
-  const setSelectedLinkIds = useAppStore((state) => state.setSelectedLinkIds);
   const toggleLinkSelection = useAppStore((state) => state.toggleLinkSelection);
   const clearSelectedLinks = useAppStore((state) => state.clearSelectedLinks);
-  const setSelectionCursorIndex = useAppStore(
-    (state) => state.setSelectionCursorIndex,
-  );
-  const setLastCursorIndex = useAppStore((state) => state.setLastCursorIndex);
-  const setIsCommandHeld = useAppStore((state) => state.setIsCommandHeld);
-
-  // Chakra breakpoint: [mobile, tablet, desktop]
-  const isMobile = useBreakpointValue([true, true, false]);
 
   const queryClient = useQueryClient();
   const { data: allLinks } = useAllLinks();
+  const { data: profiles } = useProfiles();
   const { data: tags } = useTags();
   const createTag = useCreateTag();
+  const deleteTag = useDeleteTag();
   const setLinkTags = useSetLinkTags();
   const createLink = useCreateLink();
   const deleteLink = useDeleteLink();
   const urlScraper = useUrlScraper();
   const scrapingEnabled = false;
-  const [profilesCollapsed, setProfilesCollapsed] = useState(false);
 
-  useEffect(() => {
-    if (isMobile) {
-      setProfilesCollapsed(true);
-    }
-  }, [isMobile]);
-
-  // Get current user with loading state to prevent jank
   useEffect(() => {
     const getUser = async () => {
       const {
-        data: { user },
+        data: { user: currentUser },
       } = await supabase.auth.getUser();
-      setTimeout(() => setUser(user), 100);
+      setUser(currentUser);
     };
+
     getUser();
   }, []);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+
+    html.classList.add('dashboard-scroll-lock');
+    body.classList.add('dashboard-scroll-lock');
+    root?.classList.add('dashboard-scroll-lock');
+
+    return () => {
+      html.classList.remove('dashboard-scroll-lock');
+      body.classList.remove('dashboard-scroll-lock');
+      root?.classList.remove('dashboard-scroll-lock');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isComposerOpen) {
+      requestAnimationFrame(() => {
+        newLinkInputRef.current?.focus();
+      });
+    }
+  }, [isComposerOpen]);
+
+  useEffect(() => {
+    if (activeView === 'profiles') {
+      setIsComposerOpen(false);
+    }
+  }, [activeView]);
 
   const linksWithTags = useMemo(() => {
     return (
       allLinks?.map((link) => {
         const tagMap = new Map<string, Tag>();
+
         if (link.tag) {
           tagMap.set(link.tag.id, link.tag);
         }
+
         if (link.link_tags) {
           link.link_tags.forEach((linkTag) => {
             if (linkTag.tag) {
@@ -101,6 +116,7 @@ const DashboardPage = () => {
             }
           });
         }
+
         return {
           ...link,
           tags: Array.from(tagMap.values()),
@@ -112,8 +128,10 @@ const DashboardPage = () => {
   const filterBySearch = useCallback(
     (link: LinkWithTag) => {
       if (!searchQuery.trim()) return true;
+
       const query = searchQuery.toLowerCase();
       const scrapedData = scrapedDataMap[link.url];
+
       return (
         link.url.toLowerCase().includes(query) ||
         link.title?.toLowerCase().includes(query) ||
@@ -122,34 +140,63 @@ const DashboardPage = () => {
         scrapedData?.description?.toLowerCase().includes(query)
       );
     },
-    [searchQuery, scrapedDataMap],
+    [scrapedDataMap, searchQuery],
   );
 
   const filterByTags = useCallback(
     (link: LinkWithTag) => {
       if (selectedTagIds.length === 0 && !includeUntagged) return true;
+
       const tagIds = link.tags?.map((tag) => tag.id) || [];
       const hasTags = tagIds.length > 0;
       const matchesTags = selectedTagIds.some((tagId) => tagIds.includes(tagId));
       const matchesUntagged = includeUntagged && !hasTags;
+
       return matchesTags || matchesUntagged;
     },
-    [selectedTagIds, includeUntagged],
+    [includeUntagged, selectedTagIds],
   );
 
-  const filteredLinks = useMemo(() => {
-    return linksWithTags.filter((link) => filterBySearch(link) && filterByTags(link));
-  }, [linksWithTags, filterBySearch, filterByTags]);
+  const filteredLinks = useMemo(
+    () => linksWithTags.filter((link) => filterBySearch(link) && filterByTags(link)),
+    [filterBySearch, filterByTags, linksWithTags],
+  );
+
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    linksWithTags.forEach((link) => {
+      (link.tags || []).forEach((tag) => {
+        counts[tag.id] = (counts[tag.id] ?? 0) + 1;
+      });
+    });
+
+    return counts;
+  }, [linksWithTags]);
+
+  const untaggedCount = useMemo(
+    () => linksWithTags.filter((link) => (link.tags || []).length === 0).length,
+    [linksWithTags],
+  );
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 || selectedTagIds.length > 0 || includeUntagged;
+  const totalLinkCount = linksWithTags.length;
+  const filteredLinkCount = filteredLinks.length;
+  const selectedLinkCount = selectedLinkIds.length;
+  const totalProfileCount = profiles?.length ?? 0;
+  const linkSummaryLabel = selectionMode && selectedLinkCount > 0
+    ? `${selectedLinkCount} SELECTED`
+    : hasActiveFilters
+    ? `FILTERED • ${filteredLinkCount} / ${totalLinkCount}`
+    : `ALL • ${totalLinkCount} ITEMS`;
+  const profileSummaryLabel = `PROFILES • ${totalProfileCount} ITEMS`;
+  const summaryLabel = activeView === 'profiles' ? profileSummaryLabel : linkSummaryLabel;
 
-  const emptyTitle = hasActiveFilters
-    ? 'No links match your filters'
-    : 'No links yet';
+  const emptyTitle = hasActiveFilters ? 'No links match the current filters' : 'No links yet';
   const emptySubtitle = hasActiveFilters
-    ? 'Try adjusting the search or tag filters'
-    : 'Add a link to start building your library';
+    ? 'Adjust the search or tag rail to broaden the results.'
+    : 'Use ADD to drop your first bookmark into the library.';
 
   const handleCreateLink = async () => {
     const url = newLinkUrl.trim();
@@ -158,9 +205,8 @@ const DashboardPage = () => {
     setNewLinkUrl('');
 
     try {
-      await createLink.mutateAsync({
-        url,
-      });
+      await createLink.mutateAsync({ url });
+      setIsComposerOpen(false);
     } catch {
       setNewLinkUrl(url);
     }
@@ -170,7 +216,7 @@ const DashboardPage = () => {
     try {
       await deleteLink.mutateAsync(linkId);
     } catch {
-      // Silently fail for now; could show a toast in future
+      // Intentionally silent for now.
     }
   };
 
@@ -182,15 +228,29 @@ const DashboardPage = () => {
     }
   };
 
-  const handleToggleSelection = (linkId: string, index: number) => {
-    toggleLinkSelection(linkId);
-    setSelectionCursorIndex(index);
-    setLastCursorIndex(index);
-  };
+  const handleToggleSelection = useCallback(
+    (linkId: string, _index: number) => {
+      toggleLinkSelection(linkId);
+    },
+    [toggleLinkSelection],
+  );
+
+  const handleOpenLink = useCallback((link: LinkWithTag) => {
+    window.open(link.url, '_blank', 'noopener,noreferrer');
+  }, []);
 
   const handleCreateTag = async (name: string, color: string) => {
     const created = await createTag.mutateAsync({ name, color });
     return created;
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    try {
+      await deleteTag.mutateAsync(tagId);
+      setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
+    } catch (error) {
+      console.error('Failed to delete tag:', error);
+    }
   };
 
   const handleToggleTag = (tagId: string) => {
@@ -199,25 +259,37 @@ const DashboardPage = () => {
     );
   };
 
-  const handleClearTags = () => {
+  const handleClearTagFilters = () => {
     setSelectedTagIds([]);
     setIncludeUntagged(false);
   };
 
-  // Track visible links for scraping
-  const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
-  const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
-  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
-
-  // Stable callback for visible links change
   const handleVisibleLinksChange = useCallback((links: LinkWithTag[]) => {
     setVisibleLinks(links);
   }, []);
 
-  // Load cached scraped data for ALL links immediately when links change
+  const handleToggleSelectionMode = () => {
+    if (activeView === 'profiles' && !selectionMode) {
+      setActiveView('links');
+    }
+
+    setSelectionMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        clearSelectedLinks();
+      }
+      return next;
+    });
+  };
+
+  const handleFinishSelection = () => {
+    clearSelectedLinks();
+    setSelectionMode(false);
+  };
+
   const allLinksKey =
     linksWithTags
-      ?.map((l) => l.id)
+      ?.map((link) => link.id)
       .sort()
       .join(',') || '';
   const prevAllLinksKeyRef = useRef<string>('');
@@ -225,21 +297,21 @@ const DashboardPage = () => {
     if (allLinksKey === prevAllLinksKeyRef.current || !allLinksKey) return;
     prevAllLinksKeyRef.current = allLinksKey;
 
-    if (linksWithTags && linksWithTags.length > 0) {
-      const newMap: Record<string, ScrapedUrlData> = {};
+    if (linksWithTags.length > 0) {
+      const nextMap: Record<string, ScrapedUrlData> = {};
 
       linksWithTags.forEach((link) => {
         const cachedData = getCachedScrapedData(queryClient, link.url);
         if (cachedData) {
-          newMap[link.url] = cachedData;
+          nextMap[link.url] = cachedData;
         }
       });
 
-      if (Object.keys(newMap).length > 0) {
+      if (Object.keys(nextMap).length > 0) {
         setScrapedDataMap((prev) => {
-          const hasNewData = Object.keys(newMap).some((url) => !prev[url]);
+          const hasNewData = Object.keys(nextMap).some((url) => !prev[url]);
           if (!hasNewData) return prev;
-          return { ...prev, ...newMap };
+          return { ...prev, ...nextMap };
         });
       }
     }
@@ -248,7 +320,7 @@ const DashboardPage = () => {
   const scrapingUrlsKey = Array.from(scrapingUrls).sort().join(',');
   const failedUrlsKey = Array.from(failedUrls).sort().join(',');
   const visibleLinksKey = visibleLinks
-    .map((l) => l.id)
+    .map((link) => link.id)
     .sort()
     .join(',');
 
@@ -270,14 +342,15 @@ const DashboardPage = () => {
     ) {
       return;
     }
+
     prevScrapingStateRef.current = {
       visibleLinksKey,
       scrapingUrlsKey,
       failedUrlsKey,
     };
 
-    if (visibleLinks && visibleLinks.length > 0) {
-      const newMap: Record<string, ScrapedUrlData> = {};
+    if (visibleLinks.length > 0) {
+      const nextMap: Record<string, ScrapedUrlData> = {};
 
       const uncachedLinks = visibleLinks.filter((link) => {
         const cached = getCachedScrapedData(queryClient, link.url);
@@ -323,19 +396,20 @@ const DashboardPage = () => {
               result.value.success &&
               result.value.data
             ) {
-              newMap[result.value.url] = result.value.data;
+              nextMap[result.value.url] = result.value.data;
             }
           });
-          if (Object.keys(newMap).length > 0) {
-            setScrapedDataMap((prev) => ({ ...prev, ...newMap }));
+
+          if (Object.keys(nextMap).length > 0) {
+            setScrapedDataMap((prev) => ({ ...prev, ...nextMap }));
           }
         });
       }
     }
-  }, [visibleLinksKey, scrapingUrlsKey, failedUrlsKey, queryClient]);
+  }, [failedUrls, failedUrlsKey, queryClient, scrapingEnabled, scrapingUrls, scrapingUrlsKey, urlScraper, visibleLinks, visibleLinksKey]);
 
   const filteredLinksKey = filteredLinks
-    .map((l) => l.id)
+    .map((link) => link.id)
     .sort()
     .join(',');
   const prevRefetchKeyRef = useRef<string>('');
@@ -344,11 +418,10 @@ const DashboardPage = () => {
       return;
     }
 
-    if (filteredLinksKey === prevRefetchKeyRef.current || !filteredLinksKey)
-      return;
+    if (filteredLinksKey === prevRefetchKeyRef.current || !filteredLinksKey) return;
     prevRefetchKeyRef.current = filteredLinksKey;
 
-    if (filteredLinks && filteredLinks.length > 0) {
+    if (filteredLinks.length > 0) {
       const refetchPromises = filteredLinks.map((link) =>
         urlScraperApi
           .scrape(link.url)
@@ -358,281 +431,169 @@ const DashboardPage = () => {
             return { url: link.url, success: true };
           })
           .catch((error) => {
-            console.error(
-              `Failed to refetch scrape data for ${link.url}:`,
-              error,
-            );
+            console.error(`Failed to refetch scrape data for ${link.url}:`, error);
             return { url: link.url, success: false };
           }),
       );
 
       Promise.allSettled(refetchPromises);
     }
-  }, [filteredLinksKey, queryClient]);
-
-  const [gridColumns, setGridColumns] = useState(4);
+  }, [filteredLinks, filteredLinksKey, queryClient, scrapingEnabled]);
 
   useEffect(() => {
-    setLastCursorIndex(null);
-    setSelectionCursorIndex(null);
+    if (activeView !== 'links') {
+      return;
+    }
+
     clearSelectedLinks();
-  }, [searchQuery, selectedTagIds, includeUntagged, setLastCursorIndex, setSelectionCursorIndex, clearSelectedLinks]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        if (e.metaKey && e.key === 'Enter') {
-          e.preventDefault();
-          if (selectedLinkIds.length > 0) {
-            selectedLinkIds.forEach((linkId) => {
-              const link = filteredLinks.find((l) => l.id === linkId);
-              if (link) {
-                window.open(link.url, '_blank', 'noopener,noreferrer');
-              }
-            });
-          }
-          return;
-        }
-        return;
-      }
-
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-
-      if (cmdKey && !e.shiftKey && !isCommandHeld) {
-        setIsCommandHeld(true);
-        if (selectionCursorIndex === null && filteredLinks.length > 0) {
-          const restoreIndex =
-            lastCursorIndex !== null && lastCursorIndex < filteredLinks.length
-              ? lastCursorIndex
-              : 0;
-          setSelectionCursorIndex(restoreIndex);
-        }
-      }
-
-      if (!cmdKey) {
-        if (e.key === 'Escape') {
-          clearSelectedLinks();
-          setSelectionCursorIndex(null);
-        }
-        return;
-      }
-
-      if (cmdKey && e.key === 'Enter' && selectedLinkIds.length > 0) {
-        e.preventDefault();
-        selectedLinkIds.forEach((linkId) => {
-          const link = filteredLinks.find((l) => l.id === linkId);
-          if (link) {
-            window.open(link.url, '_blank', 'noopener,noreferrer');
-          }
-        });
-        return;
-      }
-
-      if (e.key.startsWith('Arrow')) {
-        e.preventDefault();
-        const currentIndex =
-          selectionCursorIndex !== null ? selectionCursorIndex : 0;
-
-        let newIndex = currentIndex;
-        switch (e.key) {
-          case 'ArrowUp':
-            newIndex = Math.max(0, currentIndex - gridColumns);
-            break;
-          case 'ArrowDown':
-            newIndex = Math.min(
-              filteredLinks.length - 1,
-              currentIndex + gridColumns,
-            );
-            break;
-          case 'ArrowLeft':
-            newIndex = Math.max(0, currentIndex - 1);
-            break;
-          case 'ArrowRight':
-            newIndex = Math.min(filteredLinks.length - 1, currentIndex + 1);
-            break;
-        }
-
-        setSelectionCursorIndex(newIndex);
-
-        if (e.shiftKey) {
-          const newSelectedIds = new Set(selectedLinkIds);
-          if (filteredLinks[newIndex]) {
-            newSelectedIds.add(filteredLinks[newIndex].id);
-          }
-          setSelectedLinkIds(Array.from(newSelectedIds));
-        }
-        return;
-      }
-
-      if (cmdKey && e.shiftKey) {
-        if (e.key.startsWith('Arrow')) {
-          return;
-        }
-        if (
-          selectionCursorIndex !== null &&
-          filteredLinks[selectionCursorIndex]
-        ) {
-          e.preventDefault();
-          toggleLinkSelection(filteredLinks[selectionCursorIndex].id);
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-
-      if (!cmdKey && isCommandHeld) {
-        if (selectionCursorIndex !== null) {
-          setLastCursorIndex(selectionCursorIndex);
-        }
-        setIsCommandHeld(false);
-        setSelectionCursorIndex(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [
-    isCommandHeld,
-    selectionCursorIndex,
-    lastCursorIndex,
-    selectedLinkIds,
-    filteredLinks,
-    gridColumns,
-    setIsCommandHeld,
-    setSelectionCursorIndex,
-    setLastCursorIndex,
-    toggleLinkSelection,
-    setSelectedLinkIds,
-    clearSelectedLinks,
-  ]);
+    setSelectionMode(false);
+  }, [searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
 
   return (
-    <div className="app-shell h-screen flex flex-col overflow-hidden">
+    <div className="bookmark-dashboard">
       <AppHeader
         user={user}
-        isMobile={isMobile || false}
-        onMobileMenuClick={() => setIsMobileDrawerOpen(true)}
-        isCommandHeld={isCommandHeld}
+        activeView={activeView}
+        summaryLabel={summaryLabel}
+        selectedCount={selectedLinkCount}
+        selectionMode={selectionMode}
+        density={gridDensity}
+        isComposerOpen={isComposerOpen}
+        onSetActiveView={setActiveView}
+        onSetDensity={setGridDensity}
+        onToggleSelectionMode={handleToggleSelectionMode}
+        onToggleComposer={() => setIsComposerOpen((prev) => !prev)}
+        onClearSelection={clearSelectedLinks}
       />
 
-      <div className="split-view flex-1 overflow-hidden">
-        <section className="links-pane">
-          <div className="links-pane-header">
-            <div className="links-pane-title">
-              <div>
-                <p className="pane-title">All Links</p>
-                <p className="pane-subtitle">Everything, everywhere, sorted by tags.</p>
-              </div>
-              <div className="links-pane-actions">
-                <div className="link-add">
-                  <input
-                    ref={newLinkInputRef}
-                    type="url"
-                    value={newLinkUrl}
-                    onChange={(e) => setNewLinkUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCreateLink();
-                      }
-                    }}
-                    placeholder="Paste a link and hit Enter..."
-                    className="link-add-input"
-                  />
+      <div className="bookmark-workspace">
+        <aside className="bookmark-workspace-rail bookmark-workspace-rail-tags">
+          <TagFilterBar
+            tags={tags || []}
+            selectedTagIds={selectedTagIds}
+            includeUntagged={includeUntagged}
+            totalCount={totalLinkCount}
+            untaggedCount={untaggedCount}
+            tagCounts={tagCounts}
+            onToggleTag={handleToggleTag}
+            onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
+            onClear={handleClearTagFilters}
+          />
+        </aside>
+
+        <main className="bookmark-main">
+          <div className="bookmark-search-panel">
+            <SearchBar
+              value={activeView === 'links' ? searchQuery : profileSearchQuery}
+              onChange={activeView === 'links' ? setSearchQuery : setProfileSearchQuery}
+              label={activeView === 'links' ? 'SEARCH ALL:' : 'SEARCH PROFILES:'}
+              placeholder={
+                activeView === 'links'
+                  ? 'Search all bookmarks...'
+                  : 'Search profiles...'
+              }
+            />
+
+            {activeView === 'links' && isComposerOpen && (
+              <div className="bookmark-composer">
+                <input
+                  ref={newLinkInputRef}
+                  type="url"
+                  value={newLinkUrl}
+                  onChange={(event) => setNewLinkUrl(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleCreateLink();
+                    }
+                    if (event.key === 'Escape') {
+                      setIsComposerOpen(false);
+                      setNewLinkUrl('');
+                    }
+                  }}
+                  placeholder="Paste a URL to add a bookmark..."
+                  className="bookmark-composer-input"
+                />
+                <div className="bookmark-composer-actions">
                   <button
                     type="button"
+                    className="bookmark-composer-button is-primary"
                     onClick={handleCreateLink}
-                    className="link-add-button"
+                    disabled={!newLinkUrl.trim() || createLink.isPending}
                   >
-                    Add
+                    ADD
+                  </button>
+                  <button
+                    type="button"
+                    className="bookmark-composer-button"
+                    onClick={() => {
+                      setIsComposerOpen(false);
+                      setNewLinkUrl('');
+                    }}
+                  >
+                    CANCEL
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setProfilesCollapsed((prev) => !prev)}
-                  className="profiles-toggle-button"
-                >
-                  {profilesCollapsed ? 'Show profiles' : 'Hide profiles'}
-                </button>
               </div>
-            </div>
-            <div className="links-pane-controls">
-              <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            </div>
-            <TagFilterBar
-              tags={tags || []}
-              selectedTagIds={selectedTagIds}
-              includeUntagged={includeUntagged}
-              onToggleTag={handleToggleTag}
-              onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
-              onClear={handleClearTags}
-            />
+            )}
           </div>
 
-          <div className="links-pane-body">
-            <LinksGrid
-              links={filteredLinks}
-              scrapedDataMap={scrapedDataMap}
-              onDeleteLink={handleDeleteLink}
-              onUpdateLinkTags={handleUpdateLinkTags}
-              availableTags={tags || []}
-              onCreateTag={handleCreateTag}
-              onVisibleLinksChange={handleVisibleLinksChange}
-              selectedLinkIds={selectedLinkIds}
-              cursorIndex={isCommandHeld ? selectionCursorIndex : null}
-              emptyTitle={emptyTitle}
-              emptySubtitle={emptySubtitle}
-              onColumnChange={setGridColumns}
-              onToggleSelect={handleToggleSelection}
-            />
-          </div>
-        </section>
+          {activeView === 'links' ? (
+            <>
+              <div className="bookmark-grid-panel">
+                <LinksGrid
+                  links={filteredLinks}
+                  scrapedDataMap={scrapedDataMap}
+                  onDeleteLink={handleDeleteLink}
+                  onOpenLink={handleOpenLink}
+                  onUpdateLinkTags={handleUpdateLinkTags}
+                  availableTags={tags || []}
+                  onCreateTag={handleCreateTag}
+                  onDeleteTag={handleDeleteTag}
+                  onVisibleLinksChange={handleVisibleLinksChange}
+                  selectedLinkIds={selectedLinkIds}
+                  emptyTitle={emptyTitle}
+                  emptySubtitle={emptySubtitle}
+                  onToggleSelect={handleToggleSelection}
+                  selectionMode={selectionMode}
+                  density={gridDensity}
+                />
+              </div>
 
-        <aside
-          className={`profiles-pane-wrapper ${profilesCollapsed ? 'is-collapsed' : ''}`}
-        >
-          {profilesCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setProfilesCollapsed(false)}
-              className="profiles-rail-button"
-            >
-              Profiles
-            </button>
-          ) : (
-            <div className="profiles-pane-inner">
               <button
                 type="button"
-                onClick={() => setProfilesCollapsed(true)}
-                className="profiles-collapse-button"
+                className="bookmark-selection-fab is-right-flush"
+                onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
               >
-                Collapse
+                <span className="bookmark-selection-fab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none">
+                    {selectionMode ? (
+                      <>
+                        <path d="M4 8.25 6.5 10.75 12 5.25" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M3.25 3.25h4.5" />
+                        <path d="M3.25 3.25v4.5" />
+                        <path d="M12.75 12.75h-4.5" />
+                        <path d="M12.75 12.75v-4.5" />
+                      </>
+                    )}
+                  </svg>
+                </span>
+                <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
               </button>
-              <ProfilesPane selectedLinkIds={selectedLinkIds} />
-            </div>
+            </>
+          ) : (
+            <ProfilesPane
+              selectedLinkIds={selectedLinkIds}
+              selectionMode={selectionMode}
+              searchQuery={profileSearchQuery}
+              selectedTagIds={selectedTagIds}
+              includeUntagged={includeUntagged}
+            />
           )}
-        </aside>
+        </main>
       </div>
-
-      {user && isMobile && (
-        <MobileDrawer
-          user={user}
-          isOpen={isMobileDrawerOpen}
-          onClose={() => setIsMobileDrawerOpen(false)}
-        />
-      )}
     </div>
   );
 };

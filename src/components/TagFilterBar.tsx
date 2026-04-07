@@ -45,7 +45,8 @@ const TagFilterBar = ({
 
   return (
     <div className="bookmark-sidebar">
-      <div className="bookmark-sidebar-header">
+      {/* Tags Header */}
+      {/* <div className="bookmark-sidebar-header">
         <div className="bookmark-sidebar-title">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 3.5h4l5.5 5.5-3 3L4 6.5v-3Z" />
@@ -53,10 +54,15 @@ const TagFilterBar = ({
           </svg>
           <span>TAGS</span>
         </div>
-      </div>
+      </div> */}
 
       <div className="bookmark-sidebar-body">
-        <TagRow active={!hasFilters} label="ALL" count={totalCount} onClick={onClear} />
+        <TagRow
+          active={!hasFilters}
+          label="ALL"
+          count={totalCount}
+          onClick={onClear}
+        />
 
         {tags.map((tag) => (
           <TagRow

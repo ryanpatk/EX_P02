@@ -12,6 +12,7 @@ import {
   useProfiles,
   useUpdateProfile,
 } from '../hooks/useProfiles';
+import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import { LinkWithTag, Profile, Tag } from '../types/database';
 
 interface ProfilesPaneProps {
@@ -20,6 +21,7 @@ interface ProfilesPaneProps {
   searchQuery: string;
   selectedTagIds: string[];
   includeUntagged: boolean;
+  scrapedDataMap?: Record<string, ScrapedUrlData>;
 }
 
 interface ProfileRecord {
@@ -69,6 +71,15 @@ const getPathLabel = (url: string) => {
     return slashIndex >= 0 ? withoutOrigin.slice(slashIndex) : withoutOrigin;
   }
 };
+
+const getInitials = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || '::';
 
 const mergeLinkTags = (link: LinkWithTag) => {
   if (link.tags && link.tags.length > 0) {
@@ -174,15 +185,25 @@ const CloseIcon = () => (
 
 const ProfilePreviewCard = ({
   link,
+  scrapedData,
   profileName,
   onRemove,
 }: {
   link: LinkWithTag;
+  scrapedData?: ScrapedUrlData;
   profileName: string;
   onRemove: () => void;
 }) => {
-  const title = link.title || getHostname(link.url, true);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [link.id, link.url, link.favicon_url, scrapedData?.logo]);
+
+  const faviconUrl = scrapedData?.logo || link.favicon_url;
+  const title = scrapedData?.title || link.title || getHostname(link.url, true);
   const pathLabel = getPathLabel(link.url);
+  const placeholderLabel = getInitials(getHostname(link.url, true));
 
   return (
     <article className="bookmark-profile-preview-card">
@@ -191,7 +212,18 @@ const ProfilePreviewCard = ({
         className="bookmark-profile-preview-link"
         onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
       >
-        <div className="bookmark-profile-preview-media" />
+        <div className="bookmark-profile-preview-media">
+          {faviconUrl && !imageFailed ? (
+            <img
+              src={faviconUrl}
+              alt=""
+              className="bookmark-card-favicon"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <span className="bookmark-card-placeholder">{placeholderLabel}</span>
+          )}
+        </div>
         <div className="bookmark-profile-preview-meta">
           <p className="bookmark-profile-preview-title" title={title}>
             {title}
@@ -224,12 +256,14 @@ const ProfileCard = ({
   visibleLinks,
   selectedLinkIds,
   selectionMode = false,
+  scrapedDataMap,
 }: {
   profile: Profile;
   links: LinkWithTag[];
   visibleLinks: LinkWithTag[];
   selectedLinkIds: string[];
   selectionMode?: boolean;
+  scrapedDataMap?: Record<string, ScrapedUrlData>;
 }) => {
   const addLinks = useAddLinksToProfile();
   const removeLink = useRemoveLinkFromProfile();
@@ -409,6 +443,7 @@ const ProfileCard = ({
                 <ProfilePreviewCard
                   key={link.id}
                   link={link}
+                  scrapedData={scrapedDataMap?.[link.url]}
                   profileName={profile.name}
                   onRemove={() =>
                     removeLink.mutate({ profileId: profile.id, linkId: link.id })
@@ -429,6 +464,7 @@ const ProfilesPane = ({
   searchQuery,
   selectedTagIds,
   includeUntagged,
+  scrapedDataMap,
 }: ProfilesPaneProps) => {
   const { data: profiles = [] } = useProfiles();
   const createProfile = useCreateProfile();
@@ -614,6 +650,7 @@ const ProfilesPane = ({
                 visibleLinks={visibleLinks}
                 selectedLinkIds={selectedLinkIds}
                 selectionMode={selectionMode}
+                scrapedDataMap={scrapedDataMap}
               />
             ))
           )}

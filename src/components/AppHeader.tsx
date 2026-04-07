@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
 import { useDarkMode } from '../hooks/useDarkMode';
+import type { Profile } from '../types/database';
 import supabase from '../supabase';
+import ProfilePickerPopover from './ProfilePickerPopover';
 
 type GridDensity = 'compact' | 'comfortable';
 type DashboardView = 'links' | 'profiles';
@@ -15,6 +18,9 @@ interface AppHeaderProps {
   selectionMode: boolean;
   density: GridDensity;
   isComposerOpen: boolean;
+  profiles?: Profile[];
+  onAddSelectedToProfile?: (profileId: string) => Promise<void>;
+  addToProfilePending?: boolean;
   onSetActiveView: (view: DashboardView) => void;
   onSetDensity: (density: GridDensity) => void;
   onToggleSelectionMode: () => void;
@@ -127,6 +133,10 @@ const CloseIcon = () => (
   </svg>
 );
 
+const PROFILE_PICKER_WIDTH = 308;
+const PROFILE_PICKER_VIEWPORT_PADDING = 12;
+const PROFILE_PICKER_OFFSET_Y = 8;
+
 const AppHeader = ({
   user,
   activeView,
@@ -135,6 +145,9 @@ const AppHeader = ({
   selectionMode,
   density,
   isComposerOpen,
+  profiles = [],
+  onAddSelectedToProfile,
+  addToProfilePending = false,
   onSetActiveView,
   onSetDensity,
   onToggleSelectionMode,
@@ -142,7 +155,10 @@ const AppHeader = ({
   onClearSelection,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
+  const [profilePickerPosition, setProfilePickerPosition] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
+  const profilePickerButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const { isDark, toggleDarkMode } = useDarkMode();
 
@@ -162,6 +178,62 @@ const AppHeader = ({
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    if (!selectionMode || activeView !== 'links') {
+      setIsProfilePickerOpen(false);
+    }
+  }, [selectionMode, activeView]);
+
+  const updateProfilePickerPosition = () => {
+    if (!profilePickerButtonRef.current) {
+      return;
+    }
+    const rect = profilePickerButtonRef.current.getBoundingClientRect();
+    const nextLeft = Math.min(
+      Math.max(
+        PROFILE_PICKER_VIEWPORT_PADDING,
+        rect.right - PROFILE_PICKER_WIDTH,
+      ),
+      window.innerWidth - PROFILE_PICKER_WIDTH - PROFILE_PICKER_VIEWPORT_PADDING,
+    );
+    setProfilePickerPosition({
+      top: rect.bottom + PROFILE_PICKER_OFFSET_Y,
+      left: nextLeft,
+    });
+  };
+
+  useEffect(() => {
+    if (!isProfilePickerOpen) {
+      return;
+    }
+
+    const run = () => {
+      updateProfilePickerPosition();
+    };
+
+    run();
+    const raf = requestAnimationFrame(run);
+    window.addEventListener('resize', run);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', run);
+    };
+  }, [isProfilePickerOpen]);
+
+  const handleProfilePickerToggle = () => {
+    setIsProfilePickerOpen((prev) => !prev);
+  };
+
+  const handlePickProfile = async (profileId: string) => {
+    if (!onAddSelectedToProfile || selectedCount === 0) return;
+    try {
+      await onAddSelectedToProfile(profileId);
+      setIsProfilePickerOpen(false);
+    } catch {
+      // Keep popover open on failure
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -180,6 +252,9 @@ const AppHeader = ({
   const showPrimaryCta = activeView === 'links';
   const showClearCta = showPrimaryCta && selectionMode;
   const canClearSelection = selectedCount > 0;
+  const showProfilePickerButton =
+    showPrimaryCta && selectionMode && Boolean(onAddSelectedToProfile);
+  const canAddToProfile = selectedCount > 0;
 
   return (
     <header className="bookmark-toolbar">
@@ -276,6 +351,40 @@ const AppHeader = ({
 
       <div className="bookmark-toolbar-status">
         <span className="bookmark-toolbar-summary">{summaryLabel}</span>
+        {showProfilePickerButton && (
+          <>
+            <button
+              ref={profilePickerButtonRef}
+              type="button"
+              className={`bookmark-toolbar-cta bookmark-toolbar-profile-cta is-secondary ${
+                isProfilePickerOpen ? 'is-open' : ''
+              }`}
+              onClick={handleProfilePickerToggle}
+              disabled={!canAddToProfile || addToProfilePending}
+              title="Add selected bookmarks to a profile"
+              aria-label="Add selected bookmarks to a profile"
+              aria-expanded={isProfilePickerOpen}
+            >
+              <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
+                <ProfileViewIcon />
+              </span>
+              <span>PROFILE</span>
+            </button>
+            {isProfilePickerOpen &&
+              createPortal(
+                <ProfilePickerPopover
+                  profiles={profiles}
+                  selectedCount={selectedCount}
+                  onPickProfile={handlePickProfile}
+                  onClose={() => setIsProfilePickerOpen(false)}
+                  position={profilePickerPosition}
+                  anchorRef={profilePickerButtonRef}
+                  isBusy={addToProfilePending}
+                />,
+                document.body,
+              )}
+          </>
+        )}
         {showPrimaryCta && (
           <button
             type="button"

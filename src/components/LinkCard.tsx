@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
+import { getTagsForLink } from '../utils/linkTags';
 import TagSelector from './TagSelector';
 
 const TAG_SELECTOR_WIDTH = 308;
@@ -18,6 +19,12 @@ interface LinkCardProps {
   onOpen: (link: LinkWithTag, index: number) => void;
   onToggleSelect: (linkId: string, index: number) => void;
   onUpdateTags?: (linkId: string, tagIds: string[]) => void;
+  onBulkTagDelta?: (
+    linkIds: string[],
+    delta: { added: string[]; removed: string[] },
+  ) => void;
+  bulkTagEditTargetIds?: string[];
+  bulkTagUnionIds?: string[];
   availableTags?: Tag[];
   onCreateTag?: (name: string, color: string) => Promise<Tag>;
   onDeleteTag?: (tagId: string) => Promise<void>;
@@ -100,6 +107,9 @@ const LinkCard = ({
   onOpen,
   onToggleSelect,
   onUpdateTags,
+  onBulkTagDelta,
+  bulkTagEditTargetIds,
+  bulkTagUnionIds,
   availableTags = [],
   onCreateTag,
   onDeleteTag,
@@ -111,26 +121,19 @@ const LinkCard = ({
   const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const initialBulkUnionRef = useRef<string[] | null>(null);
 
-  const mergedTags = useMemo(() => {
-    if (link.tags && link.tags.length > 0) return link.tags;
-
-    const tagMap = new Map<string, Tag>();
-    if (link.tag) {
-      tagMap.set(link.tag.id, link.tag);
-    }
-    if (link.link_tags) {
-      link.link_tags.forEach((linkTag) => {
-        if (linkTag.tag) {
-          tagMap.set(linkTag.tag.id, linkTag.tag);
-        }
-      });
-    }
-    return Array.from(tagMap.values());
-  }, [link]);
+  const mergedTags = useMemo(() => getTagsForLink(link), [link]);
 
   const selectedTagIds = mergedTags.map((tag) => tag.id);
-  const effectiveTagIds = localTagIds ?? selectedTagIds;
+  const isBulkTagEdit =
+    !!bulkTagEditTargetIds &&
+    bulkTagEditTargetIds.length > 1 &&
+    !!onBulkTagDelta &&
+    bulkTagEditTargetIds.includes(link.id);
+
+  const effectiveTagIds =
+    localTagIds ?? (isBulkTagEdit ? (bulkTagUnionIds ?? []) : selectedTagIds);
   const faviconUrl = scrapedData?.logo || link.favicon_url;
   const title = scrapedData?.title || link.title || getHostname(link.url, true);
   const secondaryLabel = getPathLabel(link.url);
@@ -200,12 +203,31 @@ const LinkCard = ({
     }
 
     updateSelectorPosition();
-    setLocalTagIds(selectedTagIds);
+    if (isBulkTagEdit) {
+      const union = bulkTagUnionIds ?? [];
+      initialBulkUnionRef.current = [...union];
+      setLocalTagIds([...union]);
+    } else {
+      initialBulkUnionRef.current = null;
+      setLocalTagIds(selectedTagIds);
+    }
     setIsTagSelectorOpen(true);
   };
 
   const handleTagChange = (tagIds: string[]) => {
     if (!onUpdateTags) return;
+
+    if (isBulkTagEdit && onBulkTagDelta && bulkTagEditTargetIds) {
+      const prev = localTagIds ?? initialBulkUnionRef.current ?? [];
+      const removed = prev.filter((id) => !tagIds.includes(id));
+      const added = tagIds.filter((id) => !prev.includes(id));
+      setLocalTagIds(tagIds);
+      if (removed.length > 0 || added.length > 0) {
+        onBulkTagDelta(bulkTagEditTargetIds, { added, removed });
+      }
+      return;
+    }
+
     setLocalTagIds(tagIds);
     onUpdateTags(link.id, tagIds);
   };
@@ -231,8 +253,16 @@ const LinkCard = ({
               type="button"
               className="bookmark-card-action"
               onClick={handleTagButtonClick}
-              aria-label="Edit tags"
-              title="Edit tags"
+              aria-label={
+                isBulkTagEdit
+                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
+                  : 'Edit tags'
+              }
+              title={
+                isBulkTagEdit
+                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
+                  : 'Edit tags'
+              }
             >
               <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 3v10" />
@@ -297,6 +327,11 @@ const LinkCard = ({
             onDeleteTag={onDeleteTag}
             onClose={() => setIsTagSelectorOpen(false)}
             position={selectorPosition}
+            subtitle={
+              isBulkTagEdit
+                ? `Changes apply to ${bulkTagEditTargetIds?.length ?? 0} selected bookmarks.`
+                : undefined
+            }
           />,
           document.body,
         )}

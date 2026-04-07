@@ -10,6 +10,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
+import { getTagIdsForLink } from '../utils/linkTags';
 import LinkCard from './LinkCard';
 
 type GridDensity = 'compact' | 'comfortable';
@@ -20,6 +21,10 @@ interface LinksGridProps {
   onDeleteLink: (linkId: string) => void;
   onOpenLink: (link: LinkWithTag, index: number) => void;
   onUpdateLinkTags?: (linkId: string, tagIds: string[]) => void;
+  onBulkTagDelta?: (
+    linkIds: string[],
+    delta: { added: string[]; removed: string[] },
+  ) => void;
   availableTags?: Tag[];
   onCreateTag?: (name: string, color: string) => Promise<Tag>;
   onDeleteTag?: (tagId: string) => Promise<void>;
@@ -51,6 +56,7 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
       onDeleteLink,
       onOpenLink,
       onUpdateLinkTags,
+      onBulkTagDelta,
       availableTags = [],
       onCreateTag,
       onDeleteTag,
@@ -162,6 +168,17 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
 
     const virtualItems = virtualizer.getVirtualItems();
 
+    const bulkTagUnionIds = useMemo(() => {
+      if (!selectionMode || selectedLinkIds.length <= 1) return undefined;
+      const union = new Set<string>();
+      for (const id of selectedLinkIds) {
+        const link = links.find((l) => l.id === id);
+        if (!link) continue;
+        getTagIdsForLink(link).forEach((tid) => union.add(tid));
+      }
+      return Array.from(union);
+    }, [links, selectionMode, selectedLinkIds]);
+
     const visibleLinks = useMemo(() => {
       if (virtualItems.length === 0) return [];
 
@@ -222,6 +239,15 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
                 onOpen={onOpenLink}
                 onToggleSelect={onToggleSelect}
                 onUpdateTags={onUpdateLinkTags}
+                onBulkTagDelta={onBulkTagDelta}
+                bulkTagEditTargetIds={
+                  selectionMode &&
+                  selectedLinkIds.length > 1 &&
+                  selectedLinkIds.includes(link.id)
+                    ? selectedLinkIds
+                    : undefined
+                }
+                bulkTagUnionIds={bulkTagUnionIds}
                 availableTags={availableTags}
                 onCreateTag={onCreateTag}
                 onDeleteTag={onDeleteTag}
@@ -278,6 +304,15 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
                         onOpen={onOpenLink}
                         onToggleSelect={onToggleSelect}
                         onUpdateTags={onUpdateLinkTags}
+                        onBulkTagDelta={onBulkTagDelta}
+                        bulkTagEditTargetIds={
+                          selectionMode &&
+                          selectedLinkIds.length > 1 &&
+                          selectedLinkIds.includes(link.id)
+                            ? selectedLinkIds
+                            : undefined
+                        }
+                        bulkTagUnionIds={bulkTagUnionIds}
                         availableTags={availableTags}
                         onCreateTag={onCreateTag}
                         onDeleteTag={onDeleteTag}

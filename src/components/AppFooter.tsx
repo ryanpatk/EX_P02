@@ -1,5 +1,6 @@
 const AppFooter = () => {
-  const text = 'Extension Systems Project 02 [EX_P02] Version 0.0.1 | Produced by Intelligent Design LLC 2025©';
+  const text =
+    'Extension Systems Project 02 - Produced by PERSONAL SYSTEMS LLC 2026©';
 
   return (
     <div className="desktop-footer">
@@ -17,4 +18,3 @@ const AppFooter = () => {
 };
 
 export default AppFooter;
-

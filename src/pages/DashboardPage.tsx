@@ -10,9 +10,11 @@ import {
   urlScraperApi,
   useUrlScraper,
 } from '../hooks/useUrlScraper';
+import { useAddLinksToProfile } from '../hooks/useProfileLinks';
 import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { LinkWithTag, Tag } from '../types/database';
+import { getTagIdsForLink } from '../utils/linkTags';
 import supabase from '../supabase';
 import AppHeader from '../components/AppHeader';
 import LinksGrid from '../components/LinksGrid';
@@ -56,6 +58,7 @@ const DashboardPage = () => {
   const setLinkTags = useSetLinkTags();
   const createLink = useCreateLink();
   const deleteLink = useDeleteLink();
+  const addLinksToProfile = useAddLinksToProfile();
   const urlScraper = useUrlScraper();
   const scrapingEnabled = false;
 
@@ -227,6 +230,40 @@ const DashboardPage = () => {
       console.error('Failed to update tags:', error);
     }
   };
+
+  const handleAddSelectedToProfile = useCallback(
+    async (profileId: string) => {
+      if (selectedLinkIds.length === 0) return;
+      await addLinksToProfile.mutateAsync({
+        profileId,
+        linkIds: [...selectedLinkIds],
+      });
+    },
+    [selectedLinkIds, addLinksToProfile],
+  );
+
+  const handleBulkLinkTagDelta = useCallback(
+    async (linkIds: string[], delta: { added: string[]; removed: string[] }) => {
+      try {
+        await Promise.all(
+          linkIds.map(async (linkId) => {
+            const link = linksWithTags.find((l) => l.id === linkId);
+            if (!link) return;
+            let next = getTagIdsForLink(link).filter((id) => !delta.removed.includes(id));
+            for (const id of delta.added) {
+              if (!next.includes(id)) {
+                next = [...next, id];
+              }
+            }
+            await setLinkTags.mutateAsync({ linkId, tagIds: next });
+          }),
+        );
+      } catch (error) {
+        console.error('Failed to update tags:', error);
+      }
+    },
+    [linksWithTags, setLinkTags],
+  );
 
   const handleToggleSelection = useCallback(
     (linkId: string, _index: number) => {
@@ -459,6 +496,9 @@ const DashboardPage = () => {
         selectionMode={selectionMode}
         density={gridDensity}
         isComposerOpen={isComposerOpen}
+        profiles={profiles ?? []}
+        onAddSelectedToProfile={handleAddSelectedToProfile}
+        addToProfilePending={addLinksToProfile.isPending}
         onSetActiveView={setActiveView}
         onSetDensity={setGridDensity}
         onToggleSelectionMode={handleToggleSelectionMode}
@@ -539,13 +579,18 @@ const DashboardPage = () => {
 
           {activeView === 'links' ? (
             <>
-              <div className="bookmark-grid-panel">
+              <div
+                className={
+                  selectionMode ? 'bookmark-grid-panel is-selection-mode' : 'bookmark-grid-panel'
+                }
+              >
                 <LinksGrid
                   links={filteredLinks}
                   scrapedDataMap={scrapedDataMap}
                   onDeleteLink={handleDeleteLink}
                   onOpenLink={handleOpenLink}
                   onUpdateLinkTags={handleUpdateLinkTags}
+                  onBulkTagDelta={handleBulkLinkTagDelta}
                   availableTags={tags || []}
                   onCreateTag={handleCreateTag}
                   onDeleteTag={handleDeleteTag}
@@ -590,6 +635,7 @@ const DashboardPage = () => {
               searchQuery={profileSearchQuery}
               selectedTagIds={selectedTagIds}
               includeUntagged={includeUntagged}
+              scrapedDataMap={scrapedDataMap}
             />
           )}
         </main>

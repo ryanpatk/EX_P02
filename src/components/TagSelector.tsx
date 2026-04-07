@@ -10,6 +10,7 @@ interface TagSelectorProps {
   onDeleteTag?: (tagId: string) => Promise<void>
   onClose: () => void
   position: { top: number; left: number }
+  subtitle?: string
 }
 
 const TagSelector = ({
@@ -20,6 +21,7 @@ const TagSelector = ({
   onDeleteTag,
   onClose,
   position,
+  subtitle = 'Assign, create, or remove labels.',
 }: TagSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [newTagName, setNewTagName] = useState('')
@@ -133,7 +135,7 @@ const TagSelector = ({
       <div className="tag-selector-header">
         <div>
           <p className="tag-selector-title">TAGS</p>
-          <p className="tag-selector-subtitle">Assign, create, or remove labels.</p>
+          <p className="tag-selector-subtitle">{subtitle}</p>
         </div>
         <button
           type="button"

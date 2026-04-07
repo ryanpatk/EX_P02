@@ -25,7 +25,8 @@ const queryClient = new QueryClient({
 
 // Persist the query client cache
 // Type assertion needed due to version mismatch between @tanstack/react-query and persist packages
-const [_unsubscribe, restorePromise] = persistQueryClient({
+const [, restorePromise] = persistQueryClient({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- persist client typings lag behind @tanstack/react-query QueryClient
   queryClient: queryClient as any,
   persister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days

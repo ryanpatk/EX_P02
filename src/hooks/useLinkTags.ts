@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
+import { getErrorMessage } from '../utils/errors'
 import { linkKeys } from './useLinks'
 
 export const linkTagsApi = {
@@ -24,8 +25,8 @@ export const linkTagsApi = {
 
         if (insertError) throw insertError
       }
-    } catch (error: any) {
-      const message = typeof error?.message === 'string' ? error.message : ''
+    } catch (error: unknown) {
+      const message = getErrorMessage(error)
       if (!message.includes('link_tags') || !message.includes('does not exist')) {
         throw error
       }

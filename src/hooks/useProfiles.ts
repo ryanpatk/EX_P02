@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { Profile, CreateProfileData, UpdateProfileData } from '../types/database'
+import { getErrorMessage } from '../utils/errors'
 
 export const profileKeys = {
   all: ['profiles'] as const,
   lists: () => [...profileKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...profileKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...profileKeys.lists(), { filters }] as const,
   details: () => [...profileKeys.all, 'detail'] as const,
   detail: (id: string) => [...profileKeys.details(), id] as const,
 }
@@ -20,8 +21,8 @@ export const profilesApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
-      const message = typeof error?.message === 'string' ? error.message : ''
+    } catch (error: unknown) {
+      const message = getErrorMessage(error)
       if (message.includes('profiles') && message.includes('does not exist')) {
         return []
       }
@@ -39,8 +40,8 @@ export const profilesApi = {
 
       if (error) throw error
       return data
-    } catch (error: any) {
-      const message = typeof error?.message === 'string' ? error.message : ''
+    } catch (error: unknown) {
+      const message = getErrorMessage(error)
       if (message.includes('profiles') && message.includes('does not exist')) {
         return null
       }

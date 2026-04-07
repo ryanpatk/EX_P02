@@ -1,3 +1,4 @@
+import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +12,7 @@ type GridDensity = 'compact' | 'comfortable';
 type DashboardView = 'links' | 'profiles';
 
 interface AppHeaderProps {
-  user: any;
+  user: User | null;
   activeView: DashboardView;
   summaryLabel: string;
   selectedCount: number;

@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { ProfileLinkWithLink } from '../types/database'
+import { getErrorMessage } from '../utils/errors'
 
 export const profileLinkKeys = {
   all: ['profile-links'] as const,
   lists: () => [...profileLinkKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...profileLinkKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...profileLinkKeys.lists(), { filters }] as const,
   byProfile: (profileId: string) => [...profileLinkKeys.lists(), { profileId }] as const,
 }
 
@@ -28,8 +29,8 @@ export const profileLinksApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
-      const message = typeof error?.message === 'string' ? error.message : ''
+    } catch (error: unknown) {
+      const message = getErrorMessage(error)
       if (message.includes('profile_links') && message.includes('does not exist')) {
         return []
       }

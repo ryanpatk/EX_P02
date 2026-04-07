@@ -1,10 +1,11 @@
+import type { User } from '@supabase/supabase-js'
 import { useState, useEffect, useRef } from 'react'
 import supabase from '../supabase'
 import { useNavigate } from 'react-router-dom'
 import DarkModeToggle from './DarkModeToggle'
 
 interface UserProfileProps {
-  user: any
+  user: User | null
   isMobile?: boolean
 }
 

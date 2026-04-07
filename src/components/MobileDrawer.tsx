@@ -1,10 +1,11 @@
+import type { User } from '@supabase/supabase-js'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../supabase'
 import DarkModeToggle from './DarkModeToggle'
 
 interface MobileDrawerProps {
-  user: any
+  user: User | null
   isOpen: boolean
   onClose: () => void
 }

@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { useAppStore } from '../store'
 import { Link, LinkWithTag, CreateLinkData, UpdateLinkData } from '../types/database'
+import { getErrorMessage } from '../utils/errors'
 
 // Query keys
 export const linkKeys = {
   all: ['links'] as const,
   lists: () => [...linkKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...linkKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...linkKeys.lists(), { filters }] as const,
   details: () => [...linkKeys.all, 'detail'] as const,
   detail: (id: string) => [...linkKeys.details(), id] as const,
   byProject: (projectId: string) => [...linkKeys.lists(), { projectId }] as const,
@@ -15,8 +16,8 @@ export const linkKeys = {
 
 // Links API functions
 export const linksApi = {
-  isMissingRelationError: (error: any, relation: string) => {
-    const message = typeof error?.message === 'string' ? error.message : ''
+  isMissingRelationError: (error: unknown, relation: string) => {
+    const message = getErrorMessage(error)
     return message.includes(relation) && message.includes('does not exist')
   },
   getDefaultProjectId: async (): Promise<string> => {
@@ -62,7 +63,7 @@ export const linksApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (linksApi.isMissingRelationError(error, 'link_tags')) {
         const { data, error: fallbackError } = await supabase
           .from('links')
@@ -95,7 +96,7 @@ export const linksApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (linksApi.isMissingRelationError(error, 'link_tags')) {
         const { data, error: fallbackError } = await supabase
           .from('links')
@@ -132,7 +133,7 @@ export const linksApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (linksApi.isMissingRelationError(error, 'link_tags')) {
         const { data, error: fallbackError } = await supabase
           .from('links')
@@ -166,7 +167,7 @@ export const linksApi = {
 
       if (error) throw error
       return data
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (linksApi.isMissingRelationError(error, 'link_tags')) {
         const { data, error: fallbackError } = await supabase
           .from('links')
@@ -201,7 +202,7 @@ export const linksApi = {
 
       if (error) throw error
       return data || []
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (linksApi.isMissingRelationError(error, 'link_tags')) {
         const { data, error: fallbackError } = await supabase
           .from('links')

@@ -6,7 +6,7 @@ import { Tag, CreateTagData, UpdateTagData } from '../types/database'
 export const tagKeys = {
   all: ['tags'] as const,
   lists: () => [...tagKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...tagKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...tagKeys.lists(), { filters }] as const,
   details: () => [...tagKeys.all, 'detail'] as const,
   detail: (id: string) => [...tagKeys.details(), id] as const,
 }

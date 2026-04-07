@@ -1,3 +1,4 @@
+import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAllLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks';
@@ -26,7 +27,7 @@ type GridDensity = 'compact' | 'comfortable';
 type DashboardView = 'links' | 'profiles';
 
 const DashboardPage = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [scrapedDataMap, setScrapedDataMap] = useState<Record<string, ScrapedUrlData>>(
     {},
   );
@@ -266,7 +267,7 @@ const DashboardPage = () => {
   );
 
   const handleToggleSelection = useCallback(
-    (linkId: string, _index: number) => {
+    (linkId: string) => {
       toggleLinkSelection(linkId);
     },
     [toggleLinkSelection],
@@ -484,7 +485,7 @@ const DashboardPage = () => {
 
     clearSelectedLinks();
     setSelectionMode(false);
-  }, [searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
+  }, [activeView, searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
 
   return (
     <div className="bookmark-dashboard">

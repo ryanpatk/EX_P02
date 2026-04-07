@@ -1,22 +1,33 @@
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
+  label?: string;
+  placeholder?: string;
 }
 
-const SearchBar = ({ value, onChange }: SearchBarProps) => {
+const SearchBar = ({
+  value,
+  onChange,
+  label = 'SEARCH ALL:',
+  placeholder = 'Search all bookmarks...',
+}: SearchBarProps) => {
   return (
-    <div className="flex items-center space-x-4 flex-1 px-6 ml-2">
+    <div className="bookmark-searchbar">
+      <label className="bookmark-searchbar-label" htmlFor="bookmark-search-input">
+        {label}
+      </label>
       <input
+        id="bookmark-search-input"
         type="text"
-        placeholder="Search..."
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input-field flex-1"
-        style={{ backgroundColor: '#ffffff' }}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="bookmark-searchbar-input"
+        autoComplete="off"
+        spellCheck={false}
       />
     </div>
   );
 };
 
 export default SearchBar;
-

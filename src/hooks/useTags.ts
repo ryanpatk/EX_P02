@@ -6,23 +6,23 @@ import { Tag, CreateTagData, UpdateTagData } from '../types/database'
 export const tagKeys = {
   all: ['tags'] as const,
   lists: () => [...tagKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...tagKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...tagKeys.lists(), { filters }] as const,
   details: () => [...tagKeys.all, 'detail'] as const,
   detail: (id: string) => [...tagKeys.details(), id] as const,
 }
 
-// Predefined tag colors in brutalist style
+// Predefined tag colors aligned to the operator palette
 export const TAG_COLORS = [
-  '#FF3B3C', // Orange (primary)
-  '#1E3A8A', // Blue (primary)
-  '#FF0040', // Error red
-  '#00FF41', // Success green
-  '#FFFF00', // Warning yellow
-  '#00FFFF', // Info cyan
-  '#FF6B6C', // Orange muted
-  '#60A5FA', // Blue muted
-  '#E5D5C0', // Medium grey
-  '#1A1A1A', // Dark grey
+  '#0328F1',
+  '#2545FF',
+  '#FB4010',
+  '#FF7C2B',
+  '#F6F91E',
+  '#C9CC27',
+  '#1A2438',
+  '#586883',
+  '#8EA0BC',
+  '#D8E2F2',
 ]
 
 // Tags API functions
@@ -83,6 +83,20 @@ export const tagsApi = {
       .from('links')
       .update({ tag_id: null })
       .eq('tag_id', id)
+
+    // Remove from link_tags join table
+    const { error: linkTagsError } = await supabase
+      .from('link_tags')
+      .delete()
+      .eq('tag_id', id)
+
+    if (linkTagsError) {
+      const message =
+        typeof linkTagsError.message === 'string' ? linkTagsError.message : ''
+      if (!(message.includes('link_tags') && message.includes('does not exist'))) {
+        throw linkTagsError
+      }
+    }
 
     // Then delete the tag
     const { error } = await supabase

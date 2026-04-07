@@ -1,102 +1,141 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useBreakpointValue } from '@chakra-ui/react';
+import type { User } from '@supabase/supabase-js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAllLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks';
+import { useCreateTag, useDeleteTag, useTags } from '../hooks/useTags';
+import { useSetLinkTags } from '../hooks/useLinkTags';
 import {
-  useProjects,
-  useCreateProject,
-  useUpdateProject,
-  projectKeys,
-} from '../hooks/useProjects';
-import {
-  useProjectsLinks,
-  useCreateLink,
-  useDeleteLink,
-  useUpdateLink,
-} from '../hooks/useLinks';
-import {
-  useUrlScraper,
-  ScrapedUrlData,
   getCachedScrapedData,
-  urlScraperApi,
   isLocalDev,
+  ScrapedUrlData,
+  urlScraperApi,
+  useUrlScraper,
 } from '../hooks/useUrlScraper';
+import { useAddLinksToProfile } from '../hooks/useProfileLinks';
+import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
-import { CreateProjectData, LinkWithTag } from '../types/database';
+import { LinkWithTag, Tag } from '../types/database';
+import { getTagIdsForLink } from '../utils/linkTags';
 import supabase from '../supabase';
-import MobileDrawer from '../components/MobileDrawer';
 import AppHeader from '../components/AppHeader';
-import ProjectsList from '../components/ProjectsList';
-import NewProjectButton from '../components/NewProjectButton';
-import ProjectsHeader from '../components/ProjectsHeader';
 import LinksGrid from '../components/LinksGrid';
+import ProfilesPane from '../components/ProfilesPane';
+import SearchBar from '../components/SearchBar';
+import TagFilterBar from '../components/TagFilterBar';
+
+type GridDensity = 'compact' | 'comfortable';
+type DashboardView = 'links' | 'profiles';
 
 const DashboardPage = () => {
-  const [user, setUser] = useState<any>(null);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const selectedProjectIds = useAppStore((state) => state.selectedProjectIds);
-  const setSelectedProjectIds = useAppStore(
-    (state) => state.setSelectedProjectIds,
+  const [user, setUser] = useState<User | null>(null);
+  const [scrapedDataMap, setScrapedDataMap] = useState<Record<string, ScrapedUrlData>>(
+    {},
   );
-  const toggleProject = useAppStore((state) => state.toggleProject);
-  const [editingProjectName, setEditingProjectName] = useState<string>('');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const projectNameInputRef = useRef<HTMLInputElement>(null);
-  const newLinkInputRef = useRef<HTMLInputElement>(null);
-  const [scrapedDataMap, setScrapedDataMap] = useState<
-    Record<string, ScrapedUrlData>
-  >({});
-  const [isAddingLink, setIsAddingLink] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [activeView, setActiveView] = useState<DashboardView>('links');
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [gridDensity, setGridDensity] = useState<GridDensity>('compact');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [includeUntagged, setIncludeUntagged] = useState(false);
+  const [profileSearchQuery, setProfileSearchQuery] = useState('');
+  const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
+  const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+  const newLinkInputRef = useRef<HTMLInputElement>(null);
+
   const searchQuery = useAppStore((state) => state.searchQuery);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
-
-  // Selection state
   const selectedLinkIds = useAppStore((state) => state.selectedLinkIds);
-  const selectionCursorIndex = useAppStore(
-    (state) => state.selectionCursorIndex,
-  );
-  const lastCursorIndex = useAppStore((state) => state.lastCursorIndex);
-  const isCommandHeld = useAppStore((state) => state.isCommandHeld);
-  const setSelectedLinkIds = useAppStore((state) => state.setSelectedLinkIds);
   const toggleLinkSelection = useAppStore((state) => state.toggleLinkSelection);
   const clearSelectedLinks = useAppStore((state) => state.clearSelectedLinks);
-  const setSelectionCursorIndex = useAppStore(
-    (state) => state.setSelectionCursorIndex,
-  );
-  const setLastCursorIndex = useAppStore((state) => state.setLastCursorIndex);
-  const setIsCommandHeld = useAppStore((state) => state.setIsCommandHeld);
-
-  // Chakra breakpoint: [mobile, tablet, desktop]
-  const isMobile = useBreakpointValue([true, true, false]);
 
   const queryClient = useQueryClient();
-  const { data: projects, isLoading } = useProjects();
-  const { data: allLinks } = useProjectsLinks(selectedProjectIds);
-  const createProject = useCreateProject();
-  const updateProject = useUpdateProject();
+  const { data: allLinks } = useAllLinks();
+  const { data: profiles } = useProfiles();
+  const { data: tags } = useTags();
+  const createTag = useCreateTag();
+  const deleteTag = useDeleteTag();
+  const setLinkTags = useSetLinkTags();
   const createLink = useCreateLink();
   const deleteLink = useDeleteLink();
-  const updateLink = useUpdateLink();
+  const addLinksToProfile = useAddLinksToProfile();
   const urlScraper = useUrlScraper();
+  const scrapingEnabled = false;
 
-  // Get current user with loading state to prevent jank
   useEffect(() => {
     const getUser = async () => {
       const {
-        data: { user },
+        data: { user: currentUser },
       } = await supabase.auth.getUser();
-      // Small delay to prevent visual jank
-      setTimeout(() => setUser(user), 100);
+      setUser(currentUser);
     };
+
     getUser();
   }, []);
 
-  // Filter links by search query
-  const filteredLinks =
-    allLinks?.filter((link) => {
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+
+    html.classList.add('dashboard-scroll-lock');
+    body.classList.add('dashboard-scroll-lock');
+    root?.classList.add('dashboard-scroll-lock');
+
+    return () => {
+      html.classList.remove('dashboard-scroll-lock');
+      body.classList.remove('dashboard-scroll-lock');
+      root?.classList.remove('dashboard-scroll-lock');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isComposerOpen) {
+      requestAnimationFrame(() => {
+        newLinkInputRef.current?.focus();
+      });
+    }
+  }, [isComposerOpen]);
+
+  useEffect(() => {
+    if (activeView === 'profiles') {
+      setIsComposerOpen(false);
+    }
+  }, [activeView]);
+
+  const linksWithTags = useMemo(() => {
+    return (
+      allLinks?.map((link) => {
+        const tagMap = new Map<string, Tag>();
+
+        if (link.tag) {
+          tagMap.set(link.tag.id, link.tag);
+        }
+
+        if (link.link_tags) {
+          link.link_tags.forEach((linkTag) => {
+            if (linkTag.tag) {
+              tagMap.set(linkTag.tag.id, linkTag.tag);
+            }
+          });
+        }
+
+        return {
+          ...link,
+          tags: Array.from(tagMap.values()),
+        } as LinkWithTag;
+      }) || []
+    );
+  }, [allLinks]);
+
+  const filterBySearch = useCallback(
+    (link: LinkWithTag) => {
       if (!searchQuery.trim()) return true;
+
       const query = searchQuery.toLowerCase();
       const scrapedData = scrapedDataMap[link.url];
+
       return (
         link.url.toLowerCase().includes(query) ||
         link.title?.toLowerCase().includes(query) ||
@@ -104,86 +143,76 @@ const DashboardPage = () => {
         scrapedData?.title?.toLowerCase().includes(query) ||
         scrapedData?.description?.toLowerCase().includes(query)
       );
-    }) || [];
+    },
+    [scrapedDataMap, searchQuery],
+  );
 
-  // Focus project name input when a newly created project is selected
-  useEffect(() => {
-    if (isEditingName && projectNameInputRef.current) {
-      projectNameInputRef.current.focus();
-      projectNameInputRef.current.select();
-    }
-  }, [isEditingName]);
+  const filterByTags = useCallback(
+    (link: LinkWithTag) => {
+      if (selectedTagIds.length === 0 && !includeUntagged) return true;
 
-  // Focus new link input when it expands
-  useEffect(() => {
-    if (isAddingLink && newLinkInputRef.current) {
-      newLinkInputRef.current.focus();
-    }
-  }, [isAddingLink]);
+      const tagIds = link.tags?.map((tag) => tag.id) || [];
+      const hasTags = tagIds.length > 0;
+      const matchesTags = selectedTagIds.some((tagId) => tagIds.includes(tagId));
+      const matchesUntagged = includeUntagged && !hasTags;
 
-  const handleCreateProject = async () => {
-    const projectData: CreateProjectData = {
-      name: 'new project',
-      is_starred: false,
-    };
+      return matchesTags || matchesUntagged;
+    },
+    [includeUntagged, selectedTagIds],
+  );
 
-    try {
-      const newProject = await createProject.mutateAsync(projectData);
-      // Auto-select the newly created project
-      if (newProject) {
-        setSelectedProjectIds([newProject.id]);
-        // Set editing state and name, then focus will happen via useEffect
-        setEditingProjectName(newProject.name);
-        setIsEditingName(true);
-      }
-    } catch (error) {}
-  };
+  const filteredLinks = useMemo(
+    () => linksWithTags.filter((link) => filterBySearch(link) && filterByTags(link)),
+    [filterBySearch, filterByTags, linksWithTags],
+  );
 
-  const handleToggleProject = (projectId: string) => {
-    toggleProject(projectId);
-  };
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
 
-  const handleOpenAll = () => {
-    filteredLinks.forEach((link) => {
-      window.open(link.url, '_blank', 'noopener,noreferrer');
-    });
-  };
-
-  const handleUpdateProjectName = async (
-    newName: string,
-    projectId?: string,
-  ) => {
-    const projectIdToUpdate = projectId || selectedProjectIds[0];
-    if (!projectIdToUpdate || !newName.trim()) return;
-
-    try {
-      await updateProject.mutateAsync({
-        id: projectIdToUpdate,
-        updates: { name: newName.trim() },
+    linksWithTags.forEach((link) => {
+      (link.tags || []).forEach((tag) => {
+        counts[tag.id] = (counts[tag.id] ?? 0) + 1;
       });
-      setIsEditingName(false);
-    } catch (error) {}
-  };
+    });
 
-  const handleCreateLinkForSelectedProject = async () => {
-    if (selectedProjectIds.length !== 1) return;
+    return counts;
+  }, [linksWithTags]);
+
+  const untaggedCount = useMemo(
+    () => linksWithTags.filter((link) => (link.tags || []).length === 0).length,
+    [linksWithTags],
+  );
+
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 || selectedTagIds.length > 0 || includeUntagged;
+  const totalLinkCount = linksWithTags.length;
+  const filteredLinkCount = filteredLinks.length;
+  const selectedLinkCount = selectedLinkIds.length;
+  const totalProfileCount = profiles?.length ?? 0;
+  const linkSummaryLabel = selectionMode && selectedLinkCount > 0
+    ? `${selectedLinkCount} SELECTED`
+    : hasActiveFilters
+    ? `FILTERED • ${filteredLinkCount} / ${totalLinkCount}`
+    : `ALL • ${totalLinkCount} ITEMS`;
+  const profileSummaryLabel = `PROFILES • ${totalProfileCount} ITEMS`;
+  const summaryLabel = activeView === 'profiles' ? profileSummaryLabel : linkSummaryLabel;
+
+  const emptyTitle = hasActiveFilters ? 'No links match the current filters' : 'No links yet';
+  const emptySubtitle = hasActiveFilters
+    ? 'Adjust the search or tag rail to broaden the results.'
+    : 'Use ADD to drop your first bookmark into the library.';
+
+  const handleCreateLink = async () => {
     const url = newLinkUrl.trim();
     if (!url) return;
 
-    // Optimistically clear the input
-    const urlToCreate = url;
     setNewLinkUrl('');
 
     try {
-      await createLink.mutateAsync({
-        project_id: selectedProjectIds[0],
-        url: urlToCreate,
-      });
-      setIsAddingLink(false);
+      await createLink.mutateAsync({ url });
+      setIsComposerOpen(false);
     } catch {
-      // Restore the URL on error
-      setNewLinkUrl(urlToCreate);
-      // Silently fail for now; could show a toast in future
+      setNewLinkUrl(url);
     }
   };
 
@@ -191,228 +220,159 @@ const DashboardPage = () => {
     try {
       await deleteLink.mutateAsync(linkId);
     } catch {
-      // Silently fail for now; could show a toast in future
+      // Intentionally silent for now.
     }
   };
 
-  const handleUpdateLinkProject = async (
-    linkId: string,
-    projectId: string | null,
-  ) => {
+  const handleUpdateLinkTags = async (linkId: string, tagIds: string[]) => {
     try {
-      // Find the current link to get the old project ID
-      const currentLink = allLinks?.find((l) => l.id === linkId);
-      const oldProjectId = currentLink?.project_id || undefined;
-
-      // Optimistically update project link counts
-      if (projects) {
-        queryClient.setQueryData(projectKeys.lists(), (oldData: any) => {
-          if (!oldData) return oldData;
-
-          return oldData.map((project: any) => {
-            // Decrement count for old project
-            if (oldProjectId && project.id === oldProjectId) {
-              const currentCount = project.links?.[0]?.count || 0;
-              return {
-                ...project,
-                links: [{ count: Math.max(0, currentCount - 1) }],
-              };
-            }
-            // Increment count for new project
-            if (projectId && project.id === projectId) {
-              const currentCount = project.links?.[0]?.count || 0;
-              return {
-                ...project,
-                links: [{ count: currentCount + 1 }],
-              };
-            }
-            return project;
-          });
-        });
-      }
-
-      await updateLink.mutateAsync({
-        id: linkId,
-        updates: { project_id: projectId || undefined },
-        oldProjectId,
-      });
-    } catch {
-      // On error, invalidate to refetch correct data
-      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+      await setLinkTags.mutateAsync({ linkId, tagIds });
+    } catch (error) {
+      console.error('Failed to update tags:', error);
     }
   };
 
-  const handleToggleStar = async (projectId: string, isStarred: boolean) => {
-    try {
-      await updateProject.mutateAsync({
-        id: projectId,
-        updates: { is_starred: !isStarred },
+  const handleAddSelectedToProfile = useCallback(
+    async (profileId: string) => {
+      if (selectedLinkIds.length === 0) return;
+      await addLinksToProfile.mutateAsync({
+        profileId,
+        linkIds: [...selectedLinkIds],
       });
-    } catch (error) {}
-  };
-
-  const selectedProjects =
-    projects?.filter((p) => selectedProjectIds.includes(p.id)) || [];
-  const singleSelectedProject =
-    selectedProjects.length === 1 ? selectedProjects[0] : null;
-
-  // Create stable string keys for dependency tracking
-  const selectedProjectIdsKey = useMemo(
-    () => selectedProjectIds.sort().join(','),
-    [selectedProjectIds],
+    },
+    [selectedLinkIds, addLinksToProfile],
   );
 
-  // Reset cursor position when projects change
-  useEffect(() => {
-    setLastCursorIndex(null);
-    setSelectionCursorIndex(null);
-  }, [selectedProjectIdsKey, setLastCursorIndex, setSelectionCursorIndex]);
+  const handleBulkLinkTagDelta = useCallback(
+    async (linkIds: string[], delta: { added: string[]; removed: string[] }) => {
+      try {
+        await Promise.all(
+          linkIds.map(async (linkId) => {
+            const link = linksWithTags.find((l) => l.id === linkId);
+            if (!link) return;
+            let next = getTagIdsForLink(link).filter((id) => !delta.removed.includes(id));
+            for (const id of delta.added) {
+              if (!next.includes(id)) {
+                next = [...next, id];
+              }
+            }
+            await setLinkTags.mutateAsync({ linkId, tagIds: next });
+          }),
+        );
+      } catch (error) {
+        console.error('Failed to update tags:', error);
+      }
+    },
+    [linksWithTags, setLinkTags],
+  );
 
-  // Track which project is being edited
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const handleToggleSelection = useCallback(
+    (linkId: string) => {
+      toggleLinkSelection(linkId);
+    },
+    [toggleLinkSelection],
+  );
 
-  // Update editing name when selected project changes (but don't reset if we're editing)
-  const singleSelectedProjectId = singleSelectedProject?.id;
-  const singleSelectedProjectName = singleSelectedProject?.name;
-  const selectedProjectNamesKey = selectedProjects
-    .map((p) => `${p.id}:${p.name}`)
-    .sort()
-    .join('|');
+  const handleOpenLink = useCallback((link: LinkWithTag) => {
+    window.open(link.url, '_blank', 'noopener,noreferrer');
+  }, []);
 
-  const prevStateRef = useRef({
-    editingProjectId: null as string | null,
-    singleSelectedProjectId: undefined as string | undefined,
-    isEditingName: false,
-    selectedProjectIdsKey: '',
-    selectedProjectNamesKey: '',
-  });
+  const handleCreateTag = async (name: string, color: string) => {
+    const created = await createTag.mutateAsync({ name, color });
+    return created;
+  };
 
-  useEffect(() => {
-    // Skip if currently editing
-    if (isEditingName) {
-      prevStateRef.current = {
-        editingProjectId,
-        singleSelectedProjectId,
-        isEditingName,
-        selectedProjectIdsKey,
-        selectedProjectNamesKey,
-      };
-      return;
+  const handleDeleteTag = async (tagId: string) => {
+    try {
+      await deleteTag.mutateAsync(tagId);
+      setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
+    } catch (error) {
+      console.error('Failed to delete tag:', error);
     }
+  };
 
-    // Check if relevant state actually changed
-    const stateChanged =
-      prevStateRef.current.editingProjectId !== editingProjectId ||
-      prevStateRef.current.singleSelectedProjectId !==
-        singleSelectedProjectId ||
-      prevStateRef.current.isEditingName !== isEditingName ||
-      prevStateRef.current.selectedProjectIdsKey !== selectedProjectIdsKey ||
-      prevStateRef.current.selectedProjectNamesKey !== selectedProjectNamesKey;
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+    );
+  };
 
-    if (!stateChanged) return;
+  const handleClearTagFilters = () => {
+    setSelectedTagIds([]);
+    setIncludeUntagged(false);
+  };
 
-    // Update the ref
-    prevStateRef.current = {
-      editingProjectId,
-      singleSelectedProjectId,
-      isEditingName,
-      selectedProjectIdsKey,
-      selectedProjectNamesKey,
-    };
-
-    // Find the project name to use
-    let targetName: string | undefined;
-    if (editingProjectId) {
-      const editingProject = selectedProjects.find(
-        (p) => p.id === editingProjectId,
-      );
-      targetName = editingProject?.name;
-    } else if (singleSelectedProjectId) {
-      targetName = singleSelectedProjectName;
-    }
-
-    // Update the name only if it's different
-    if (targetName && targetName !== editingProjectName) {
-      setEditingProjectName(targetName);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    editingProjectId,
-    singleSelectedProjectId,
-    singleSelectedProjectName,
-    isEditingName,
-    editingProjectName,
-    selectedProjectIdsKey,
-    selectedProjectNamesKey,
-  ]);
-
-  // Track visible links for scraping
-  const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
-  const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
-  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
-
-  // Stable callback for visible links change
   const handleVisibleLinksChange = useCallback((links: LinkWithTag[]) => {
     setVisibleLinks(links);
   }, []);
 
-  // Load cached scraped data for ALL links immediately when links change
+  const handleToggleSelectionMode = () => {
+    if (activeView === 'profiles' && !selectionMode) {
+      setActiveView('links');
+    }
+
+    setSelectionMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        clearSelectedLinks();
+      }
+      return next;
+    });
+  };
+
+  const handleFinishSelection = () => {
+    clearSelectedLinks();
+    setSelectionMode(false);
+  };
+
   const allLinksKey =
-    allLinks
-      ?.map((l) => l.id)
+    linksWithTags
+      ?.map((link) => link.id)
       .sort()
       .join(',') || '';
   const prevAllLinksKeyRef = useRef<string>('');
   useEffect(() => {
-    // Only run if the actual link IDs changed
     if (allLinksKey === prevAllLinksKeyRef.current || !allLinksKey) return;
     prevAllLinksKeyRef.current = allLinksKey;
 
-    if (allLinks && allLinks.length > 0) {
-      const newMap: Record<string, ScrapedUrlData> = {};
+    if (linksWithTags.length > 0) {
+      const nextMap: Record<string, ScrapedUrlData> = {};
 
-      // Load all cached data immediately so links display right away
-      allLinks.forEach((link) => {
+      linksWithTags.forEach((link) => {
         const cachedData = getCachedScrapedData(queryClient, link.url);
         if (cachedData) {
-          newMap[link.url] = cachedData;
+          nextMap[link.url] = cachedData;
         }
       });
 
-      // Update map with cached data immediately (only if there's new data)
-      if (Object.keys(newMap).length > 0) {
+      if (Object.keys(nextMap).length > 0) {
         setScrapedDataMap((prev) => {
-          // Check if we're actually adding new data
-          const hasNewData = Object.keys(newMap).some((url) => !prev[url]);
+          const hasNewData = Object.keys(nextMap).some((url) => !prev[url]);
           if (!hasNewData) return prev;
-          return { ...prev, ...newMap };
+          return { ...prev, ...nextMap };
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allLinksKey, queryClient]);
+  }, [allLinksKey, linksWithTags, queryClient]);
 
-  // Create stable keys for Sets and visible links to avoid infinite loops
   const scrapingUrlsKey = Array.from(scrapingUrls).sort().join(',');
   const failedUrlsKey = Array.from(failedUrls).sort().join(',');
   const visibleLinksKey = visibleLinks
-    .map((l) => l.id)
+    .map((link) => link.id)
     .sort()
     .join(',');
 
-  // Scrape URLs for visible links only (only if not cached and not already scraping/failed)
   const prevScrapingStateRef = useRef({
     visibleLinksKey: '',
     scrapingUrlsKey: '',
     failedUrlsKey: '',
   });
+
   useEffect(() => {
-    // Skip scraping if not in local dev mode
-    if (!isLocalDev()) {
+    if (!scrapingEnabled || !isLocalDev()) {
       return;
     }
 
-    // Only run if visible links actually changed
     if (
       visibleLinksKey === prevScrapingStateRef.current.visibleLinksKey &&
       scrapingUrlsKey === prevScrapingStateRef.current.scrapingUrlsKey &&
@@ -420,16 +380,16 @@ const DashboardPage = () => {
     ) {
       return;
     }
+
     prevScrapingStateRef.current = {
       visibleLinksKey,
       scrapingUrlsKey,
       failedUrlsKey,
     };
 
-    if (visibleLinks && visibleLinks.length > 0) {
-      const newMap: Record<string, ScrapedUrlData> = {};
+    if (visibleLinks.length > 0) {
+      const nextMap: Record<string, ScrapedUrlData> = {};
 
-      // Only scrape visible URLs that aren't cached, not currently scraping, and haven't failed
       const uncachedLinks = visibleLinks.filter((link) => {
         const cached = getCachedScrapedData(queryClient, link.url);
         const isScraping = scrapingUrls.has(link.url);
@@ -438,7 +398,6 @@ const DashboardPage = () => {
       });
 
       if (uncachedLinks.length > 0) {
-        // Mark URLs as scraping
         setScrapingUrls((prev) => {
           const next = new Set(prev);
           uncachedLinks.forEach((link) => next.add(link.url));
@@ -449,7 +408,6 @@ const DashboardPage = () => {
           urlScraper
             .mutateAsync(link.url)
             .then((data) => {
-              // Remove from scraping set
               setScrapingUrls((prev) => {
                 const next = new Set(prev);
                 next.delete(link.url);
@@ -458,7 +416,6 @@ const DashboardPage = () => {
               return { url: link.url, data, success: true };
             })
             .catch((error) => {
-              // Remove from scraping set and add to failed set
               setScrapingUrls((prev) => {
                 const next = new Set(prev);
                 next.delete(link.url);
@@ -471,397 +428,219 @@ const DashboardPage = () => {
         );
 
         Promise.allSettled(scrapePromises).then((results) => {
-          // Update map with newly scraped data
           results.forEach((result) => {
             if (
               result.status === 'fulfilled' &&
               result.value.success &&
               result.value.data
             ) {
-              newMap[result.value.url] = result.value.data;
+              nextMap[result.value.url] = result.value.data;
             }
           });
-          if (Object.keys(newMap).length > 0) {
-            setScrapedDataMap((prev) => ({ ...prev, ...newMap }));
+
+          if (Object.keys(nextMap).length > 0) {
+            setScrapedDataMap((prev) => ({ ...prev, ...nextMap }));
           }
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleLinksKey, scrapingUrlsKey, failedUrlsKey, queryClient]);
+  }, [failedUrls, failedUrlsKey, queryClient, scrapingEnabled, scrapingUrls, scrapingUrlsKey, urlScraper, visibleLinks, visibleLinksKey]);
 
-  // Refetch scraped data on mount and when filtered links change (to get fresh data from updated endpoint)
   const filteredLinksKey = filteredLinks
-    .map((l) => l.id)
+    .map((link) => link.id)
     .sort()
     .join(',');
   const prevRefetchKeyRef = useRef<string>('');
   useEffect(() => {
-    // Skip refetching if not in local dev mode
-    if (!isLocalDev()) {
+    if (!scrapingEnabled || !isLocalDev()) {
       return;
     }
 
-    // Only refetch if the set of filtered links actually changed
-    if (filteredLinksKey === prevRefetchKeyRef.current || !filteredLinksKey)
-      return;
+    if (filteredLinksKey === prevRefetchKeyRef.current || !filteredLinksKey) return;
     prevRefetchKeyRef.current = filteredLinksKey;
 
-    // Refetch all filtered links (even if cached) to get fresh data from updated endpoint
-    if (filteredLinks && filteredLinks.length > 0) {
-      // Force refetch all filtered links by fetching fresh data and updating cache
+    if (filteredLinks.length > 0) {
       const refetchPromises = filteredLinks.map((link) =>
         urlScraperApi
           .scrape(link.url)
           .then((data) => {
-            // Update the cache with fresh data
             queryClient.setQueryData(['scraper', link.url], data);
-            // Update the local state
             setScrapedDataMap((prev) => ({ ...prev, [link.url]: data }));
             return { url: link.url, success: true };
           })
           .catch((error) => {
-            console.error(
-              `Failed to refetch scrape data for ${link.url}:`,
-              error,
-            );
+            console.error(`Failed to refetch scrape data for ${link.url}:`, error);
             return { url: link.url, success: false };
           }),
       );
 
-      // Don't await - let it run in background
       Promise.allSettled(refetchPromises);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredLinksKey, queryClient]);
+  }, [filteredLinks, filteredLinksKey, queryClient, scrapingEnabled]);
 
-  // Calculate columns for navigation (same logic as LinksGrid)
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 1024,
-  );
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (activeView !== 'links') {
+      return;
+    }
 
-  const columns = useMemo(() => {
-    if (windowWidth < 640) return 2; // Mobile
-    if (windowWidth < 1024) return 3; // Tablet
-    return 4; // Desktop
-  }, [windowWidth]);
-
-  // Keyboard handlers for multi-select
-  useEffect(() => {
-    // Don't handle keyboard events if user is typing in an input
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if user is typing in an input/textarea
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        // Allow CMD+ENTER even in inputs to open selected links
-        if (e.metaKey && e.key === 'Enter') {
-          e.preventDefault();
-          if (selectedLinkIds.length > 0) {
-            selectedLinkIds.forEach((linkId) => {
-              const link = filteredLinks.find((l) => l.id === linkId);
-              if (link) {
-                window.open(link.url, '_blank', 'noopener,noreferrer');
-              }
-            });
-          }
-          return;
-        }
-        return;
-      }
-
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-
-      // CMD key down - show cursor
-      if (cmdKey && !e.shiftKey && !isCommandHeld) {
-        setIsCommandHeld(true);
-        // Restore cursor to last position, or first link if no last position
-        if (selectionCursorIndex === null && filteredLinks.length > 0) {
-          const restoreIndex =
-            lastCursorIndex !== null && lastCursorIndex < filteredLinks.length
-              ? lastCursorIndex
-              : 0;
-          setSelectionCursorIndex(restoreIndex);
-        }
-      }
-
-      // Only handle navigation/selection if CMD is held
-      if (!cmdKey) {
-        // ESC to clear selection (works even without CMD)
-        if (e.key === 'Escape') {
-          clearSelectedLinks();
-          setSelectionCursorIndex(null);
-        }
-        return;
-      }
-
-      // CMD+ENTER - open all selected links
-      if (cmdKey && e.key === 'Enter' && selectedLinkIds.length > 0) {
-        e.preventDefault();
-        selectedLinkIds.forEach((linkId) => {
-          const link = filteredLinks.find((l) => l.id === linkId);
-          if (link) {
-            window.open(link.url, '_blank', 'noopener,noreferrer');
-          }
-        });
-        return;
-      }
-
-      // Arrow key navigation
-      if (e.key.startsWith('Arrow')) {
-        e.preventDefault();
-        const currentIndex =
-          selectionCursorIndex !== null ? selectionCursorIndex : 0;
-
-        let newIndex = currentIndex;
-        switch (e.key) {
-          case 'ArrowUp':
-            newIndex = Math.max(0, currentIndex - columns);
-            break;
-          case 'ArrowDown':
-            newIndex = Math.min(
-              filteredLinks.length - 1,
-              currentIndex + columns,
-            );
-            break;
-          case 'ArrowLeft':
-            newIndex = Math.max(0, currentIndex - 1);
-            break;
-          case 'ArrowRight':
-            newIndex = Math.min(filteredLinks.length - 1, currentIndex + 1);
-            break;
-        }
-
-        setSelectionCursorIndex(newIndex);
-
-        // CMD+SHIFT+Arrow - select only the target item (not the entire range)
-        if (e.shiftKey) {
-          const newSelectedIds = new Set(selectedLinkIds);
-          // Only select the new target item
-          if (filteredLinks[newIndex]) {
-            newSelectedIds.add(filteredLinks[newIndex].id);
-          }
-          setSelectedLinkIds(Array.from(newSelectedIds));
-        }
-        return;
-      }
-
-      // CMD+SHIFT - toggle selection at cursor
-      // Handle both Shift key press and other keys with Shift modifier
-      if (cmdKey && e.shiftKey) {
-        // If it's an arrow key, range selection is already handled above
-        if (e.key.startsWith('Arrow')) {
-          return;
-        }
-        // For Shift key itself or other keys, toggle selection at cursor
-        if (
-          selectionCursorIndex !== null &&
-          filteredLinks[selectionCursorIndex]
-        ) {
-          e.preventDefault();
-          toggleLinkSelection(filteredLinks[selectionCursorIndex].id);
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-
-      // CMD key released - save current cursor position before hiding
-      if (!cmdKey && isCommandHeld) {
-        if (selectionCursorIndex !== null) {
-          setLastCursorIndex(selectionCursorIndex);
-        }
-        setIsCommandHeld(false);
-        setSelectionCursorIndex(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [
-    isCommandHeld,
-    selectionCursorIndex,
-    lastCursorIndex,
-    selectedLinkIds,
-    filteredLinks,
-    columns,
-    setIsCommandHeld,
-    setSelectionCursorIndex,
-    setLastCursorIndex,
-    toggleLinkSelection,
-    setSelectedLinkIds,
-    clearSelectedLinks,
-  ]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400"></div>
-      </div>
-    );
-  }
+    clearSelectedLinks();
+    setSelectionMode(false);
+  }, [activeView, searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
+    <div className="bookmark-dashboard">
       <AppHeader
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
         user={user}
-        isMobile={isMobile || false}
-        onMobileMenuClick={() => setIsMobileDrawerOpen(true)}
-        isCommandHeld={isCommandHeld}
+        activeView={activeView}
+        summaryLabel={summaryLabel}
+        selectedCount={selectedLinkCount}
+        selectionMode={selectionMode}
+        density={gridDensity}
+        isComposerOpen={isComposerOpen}
+        profiles={profiles ?? []}
+        onAddSelectedToProfile={handleAddSelectedToProfile}
+        addToProfilePending={addLinksToProfile.isPending}
+        onSetActiveView={setActiveView}
+        onSetDensity={setGridDensity}
+        onToggleSelectionMode={handleToggleSelectionMode}
+        onToggleComposer={() => setIsComposerOpen((prev) => !prev)}
+        onClearSelection={clearSelectedLinks}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Project List */}
-        {!isMobile && (
-          <div className="w-75 border-r border-medium-grey overflow-y-auto flex flex-col relative bg-white">
-            <ProjectsList
-              projects={projects || []}
-              selectedProjectIds={selectedProjectIds}
-              onToggleProject={handleToggleProject}
-              onToggleStar={handleToggleStar}
-            />
-            <NewProjectButton
-              onClick={handleCreateProject}
-              disabled={createProject.isPending}
-            />
-          </div>
-        )}
+      <div className="bookmark-workspace">
+        <aside className="bookmark-workspace-rail bookmark-workspace-rail-tags">
+          <TagFilterBar
+            tags={tags || []}
+            selectedTagIds={selectedTagIds}
+            includeUntagged={includeUntagged}
+            totalCount={totalLinkCount}
+            untaggedCount={untaggedCount}
+            tagCounts={tagCounts}
+            onToggleTag={handleToggleTag}
+            onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
+            onClear={handleClearTagFilters}
+          />
+        </aside>
 
-        {/* Right Content Area - Selected Project or Empty State */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-white">
-          {selectedProjects.length > 0 && (
-            <ProjectsHeader
-              selectedProjects={selectedProjects}
-              isEditingName={isEditingName}
-              editingProjectName={editingProjectName}
-              editingProjectId={editingProjectId}
-              singleSelectedProject={singleSelectedProject}
-              onToggleProject={handleToggleProject}
-              onToggleStar={handleToggleStar}
-              onStartEditing={(project) => {
-                setIsEditingName(true);
-                setEditingProjectId(project.id);
-                setEditingProjectName(project.name);
-              }}
-              onUpdateProjectName={(newName) => {
-                if (editingProjectId) {
-                  handleUpdateProjectName(newName, editingProjectId);
-                }
-              }}
-              onStopEditing={() => {
-                setIsEditingName(false);
-                setEditingProjectId(null);
-                const currentProject = selectedProjects.find(
-                  (p) => p.id === editingProjectId,
-                );
-                setEditingProjectName(
-                  currentProject?.name || singleSelectedProject?.name || '',
-                );
-              }}
-              onEditingNameChange={setEditingProjectName}
-              projectNameInputRef={projectNameInputRef}
-            />
-          )}
-
-          {/* Project Content Grid */}
-          <div className="flex-1 overflow-hidden relative">
-            <LinksGrid
-              links={filteredLinks}
-              scrapedDataMap={scrapedDataMap}
-              onDeleteLink={handleDeleteLink}
-              onUpdateLinkProject={handleUpdateLinkProject}
-              projects={projects || []}
-              selectedProjectsCount={selectedProjects.length}
-              onOpenAll={handleOpenAll}
-              filteredLinksCount={filteredLinks.length}
-              onVisibleLinksChange={handleVisibleLinksChange}
-              selectedLinkIds={selectedLinkIds}
-              cursorIndex={isCommandHeld ? selectionCursorIndex : null}
+        <main className="bookmark-main">
+          <div className="bookmark-search-panel">
+            <SearchBar
+              value={activeView === 'links' ? searchQuery : profileSearchQuery}
+              onChange={activeView === 'links' ? setSearchQuery : setProfileSearchQuery}
+              label={activeView === 'links' ? 'SEARCH ALL:' : 'SEARCH PROFILES:'}
+              placeholder={
+                activeView === 'links'
+                  ? 'Search all bookmarks...'
+                  : 'Search profiles...'
+              }
             />
 
-            {/* Floating New Link Button / Input */}
-            {selectedProjectIds.length === 1 && (
-              <div
-                className={`fixed bottom-10 right-6 z-40 flex items-center transition-all duration-300 ${
-                  isAddingLink
-                    ? 'w-[320px] h-12 rounded-sm bg-white border border-medium-grey px-3'
-                    : 'w-12 h-12 rounded-sm bg-white border border-medium-grey text-black'
-                }`}
-              >
-                {isAddingLink ? (
-                  <>
-                    <span className="text-lg font-bold mr-2">+</span>
-                    <input
-                      ref={newLinkInputRef}
-                      type="url"
-                      value={newLinkUrl}
-                      onChange={(e) => setNewLinkUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCreateLinkForSelectedProject();
-                        } else if (e.key === 'Escape') {
-                          setIsAddingLink(false);
-                          setNewLinkUrl('');
-                        }
-                      }}
-                      placeholder="Paste a link and press Enter..."
-                      className="flex-1 bg-transparent border-none outline-none text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingLink(false);
-                        setNewLinkUrl('');
-                      }}
-                      className="ml-2 text-sm text-gray-500 hover:text-black cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </>
-                ) : (
+            {activeView === 'links' && isComposerOpen && (
+              <div className="bookmark-composer">
+                <input
+                  ref={newLinkInputRef}
+                  type="url"
+                  value={newLinkUrl}
+                  onChange={(event) => setNewLinkUrl(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleCreateLink();
+                    }
+                    if (event.key === 'Escape') {
+                      setIsComposerOpen(false);
+                      setNewLinkUrl('');
+                    }
+                  }}
+                  placeholder="Paste a URL to add a bookmark..."
+                  className="bookmark-composer-input"
+                />
+                <div className="bookmark-composer-actions">
                   <button
                     type="button"
-                    onClick={() => setIsAddingLink(true)}
-                    className="w-full h-full flex items-center justify-center text-lg font-bold leading-none cursor-pointer"
+                    className="bookmark-composer-button is-primary"
+                    onClick={handleCreateLink}
+                    disabled={!newLinkUrl.trim() || createLink.isPending}
                   >
-                    +
+                    ADD
                   </button>
-                )}
+                  <button
+                    type="button"
+                    className="bookmark-composer-button"
+                    onClick={() => {
+                      setIsComposerOpen(false);
+                      setNewLinkUrl('');
+                    }}
+                  >
+                    CANCEL
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Mobile Drawer */}
-      {user && isMobile && (
-        <MobileDrawer
-          user={user}
-          isOpen={isMobileDrawerOpen}
-          onClose={() => setIsMobileDrawerOpen(false)}
-        />
-      )}
+          {activeView === 'links' ? (
+            <>
+              <div
+                className={
+                  selectionMode ? 'bookmark-grid-panel is-selection-mode' : 'bookmark-grid-panel'
+                }
+              >
+                <LinksGrid
+                  links={filteredLinks}
+                  scrapedDataMap={scrapedDataMap}
+                  onDeleteLink={handleDeleteLink}
+                  onOpenLink={handleOpenLink}
+                  onUpdateLinkTags={handleUpdateLinkTags}
+                  onBulkTagDelta={handleBulkLinkTagDelta}
+                  availableTags={tags || []}
+                  onCreateTag={handleCreateTag}
+                  onDeleteTag={handleDeleteTag}
+                  onVisibleLinksChange={handleVisibleLinksChange}
+                  selectedLinkIds={selectedLinkIds}
+                  emptyTitle={emptyTitle}
+                  emptySubtitle={emptySubtitle}
+                  onToggleSelect={handleToggleSelection}
+                  selectionMode={selectionMode}
+                  density={gridDensity}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="bookmark-selection-fab is-right-flush"
+                onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
+              >
+                <span className="bookmark-selection-fab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none">
+                    {selectionMode ? (
+                      <>
+                        <path d="M4 8.25 6.5 10.75 12 5.25" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M3.25 3.25h4.5" />
+                        <path d="M3.25 3.25v4.5" />
+                        <path d="M12.75 12.75h-4.5" />
+                        <path d="M12.75 12.75v-4.5" />
+                      </>
+                    )}
+                  </svg>
+                </span>
+                <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
+              </button>
+            </>
+          ) : (
+            <ProfilesPane
+              selectedLinkIds={selectedLinkIds}
+              selectionMode={selectionMode}
+              searchQuery={profileSearchQuery}
+              selectedTagIds={selectedTagIds}
+              includeUntagged={includeUntagged}
+              scrapedDataMap={scrapedDataMap}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 };

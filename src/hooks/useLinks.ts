@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { useAppStore } from '../store'
 import { Link, LinkWithTag, CreateLinkData, UpdateLinkData } from '../types/database'
+import { getErrorMessage } from '../utils/errors'
 
 // Query keys
 export const linkKeys = {
   all: ['links'] as const,
   lists: () => [...linkKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...linkKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...linkKeys.lists(), { filters }] as const,
   details: () => [...linkKeys.all, 'detail'] as const,
   detail: (id: string) => [...linkKeys.details(), id] as const,
   byProject: (projectId: string) => [...linkKeys.lists(), { projectId }] as const,
@@ -15,33 +16,102 @@ export const linkKeys = {
 
 // Links API functions
 export const linksApi = {
-  getByProject: async (projectId: string): Promise<LinkWithTag[]> => {
-    const { data, error } = await supabase
-      .from('links')
-      .select(`
-        *,
-        tag:tags(*),
-        project:projects(id, name)
-      `)
-      .eq('project_id', projectId)
-      .order('order_index', { ascending: true })
+  isMissingRelationError: (error: unknown, relation: string) => {
+    const message = getErrorMessage(error)
+    return message.includes(relation) && message.includes('does not exist')
+  },
+  getDefaultProjectId: async (): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
 
-    if (error) throw error
-    return data || []
+    const { data: existing, error: existingError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('name', 'Library')
+      .limit(1)
+
+    if (existingError) throw existingError
+    if (existing && existing.length > 0) return existing[0].id
+
+    const { data: created, error: createError } = await supabase
+      .from('projects')
+      .insert({
+        user_id: user.id,
+        name: 'Library',
+        description: 'Default link library (hidden)',
+        is_starred: false,
+      })
+      .select('id')
+      .single()
+
+    if (createError) throw createError
+    return created.id
+  },
+  getByProject: async (projectId: string): Promise<LinkWithTag[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select(`
+          *,
+          tag:tags(*),
+          link_tags:link_tags(tag:tags(*)),
+          project:projects(id, name)
+        `)
+        .eq('project_id', projectId)
+        .order('order_index', { ascending: true })
+
+      if (error) throw error
+      return data || []
+    } catch (error: unknown) {
+      if (linksApi.isMissingRelationError(error, 'link_tags')) {
+        const { data, error: fallbackError } = await supabase
+          .from('links')
+          .select(`
+            *,
+            tag:tags(*),
+            project:projects(id, name)
+          `)
+          .eq('project_id', projectId)
+          .order('order_index', { ascending: true })
+
+        if (fallbackError) throw fallbackError
+        return data || []
+      }
+      throw error
+    }
   },
 
   getAll: async (): Promise<LinkWithTag[]> => {
-    const { data, error } = await supabase
-      .from('links')
-      .select(`
-        *,
-        tag:tags(*),
-        project:projects(id, name)
-      `)
-      .order('order_index', { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select(`
+          *,
+          tag:tags(*),
+          link_tags:link_tags(tag:tags(*)),
+          project:projects(id, name)
+        `)
+        .order('created_at', { ascending: false })
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+      return data || []
+    } catch (error: unknown) {
+      if (linksApi.isMissingRelationError(error, 'link_tags')) {
+        const { data, error: fallbackError } = await supabase
+          .from('links')
+          .select(`
+            *,
+            tag:tags(*),
+            project:projects(id, name)
+          `)
+          .order('created_at', { ascending: false })
+
+        if (fallbackError) throw fallbackError
+        return data || []
+      }
+      throw error
+    }
   },
 
   getByProjects: async (projectIds: string[]): Promise<LinkWithTag[]> => {
@@ -49,60 +119,119 @@ export const linksApi = {
       return linksApi.getAll()
     }
 
-    const { data, error } = await supabase
-      .from('links')
-      .select(`
-        *,
-        tag:tags(*),
-        project:projects(id, name)
-      `)
-      .in('project_id', projectIds)
-      .order('order_index', { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select(`
+          *,
+          tag:tags(*),
+          link_tags:link_tags(tag:tags(*)),
+          project:projects(id, name)
+        `)
+        .in('project_id', projectIds)
+        .order('order_index', { ascending: true })
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+      return data || []
+    } catch (error: unknown) {
+      if (linksApi.isMissingRelationError(error, 'link_tags')) {
+        const { data, error: fallbackError } = await supabase
+          .from('links')
+          .select(`
+            *,
+            tag:tags(*),
+            project:projects(id, name)
+          `)
+          .in('project_id', projectIds)
+          .order('order_index', { ascending: true })
+
+        if (fallbackError) throw fallbackError
+        return data || []
+      }
+      throw error
+    }
   },
 
   getById: async (id: string): Promise<LinkWithTag | null> => {
-    const { data, error } = await supabase
-      .from('links')
-      .select(`
-        *,
-        tag:tags(*),
-        project:projects(id, name)
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select(`
+          *,
+          tag:tags(*),
+          link_tags:link_tags(tag:tags(*)),
+          project:projects(id, name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+      return data
+    } catch (error: unknown) {
+      if (linksApi.isMissingRelationError(error, 'link_tags')) {
+        const { data, error: fallbackError } = await supabase
+          .from('links')
+          .select(`
+            *,
+            tag:tags(*),
+            project:projects(id, name)
+          `)
+          .eq('id', id)
+          .single()
+
+        if (fallbackError) throw fallbackError
+        return data
+      }
+      throw error
+    }
   },
 
   // Get links by tag across all projects
   getByTag: async (tagId: string): Promise<LinkWithTag[]> => {
-    const { data, error } = await supabase
-      .from('links')
-      .select(`
-        *,
-        tag:tags(*),
-        project:projects(name)
-      `)
-      .eq('tag_id', tagId)
-      .order('order_index', { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select(`
+          *,
+          tag:tags(*),
+          link_tags:link_tags(tag:tags(*)),
+          project:projects(name)
+        `)
+        .eq('tag_id', tagId)
+        .order('order_index', { ascending: true })
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+      return data || []
+    } catch (error: unknown) {
+      if (linksApi.isMissingRelationError(error, 'link_tags')) {
+        const { data, error: fallbackError } = await supabase
+          .from('links')
+          .select(`
+            *,
+            tag:tags(*),
+            project:projects(name)
+          `)
+          .eq('tag_id', tagId)
+          .order('order_index', { ascending: true })
+
+        if (fallbackError) throw fallbackError
+        return data || []
+      }
+      throw error
+    }
   },
 
   create: async (linkData: CreateLinkData): Promise<Link> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
+    const projectId = linkData.project_id || await linksApi.getDefaultProjectId()
+
     // Get the highest order_index for this project
     const { data: existingLinks } = await supabase
       .from('links')
       .select('order_index')
-      .eq('project_id', linkData.project_id)
+      .eq('project_id', projectId)
       .order('order_index', { ascending: false })
       .limit(1)
 
@@ -113,6 +242,7 @@ export const linksApi = {
       .insert({
         ...linkData,
         user_id: user.id,
+        project_id: projectId,
         order_index: linkData.order_index ?? maxOrder + 1,
       })
       .select()
@@ -187,6 +317,13 @@ export const useProjectLinks = (projectId: string) => {
   })
 }
 
+export const useAllLinks = () => {
+  return useQuery({
+    queryKey: linkKeys.lists(),
+    queryFn: linksApi.getAll,
+  })
+}
+
 export const useProjectsLinks = (projectIds: string[]) => {
   return useQuery({
     queryKey: [...linkKeys.lists(), { projectIds }],
@@ -227,7 +364,7 @@ export const useCreateLink = () => {
       // Create optimistic link
       const optimisticLink: LinkWithTag = {
         id: `temp-${Date.now()}`,
-        project_id: linkData.project_id,
+        project_id: linkData.project_id || 'pending',
         user_id: '', // Will be set by server
         url: linkData.url,
         title: linkData.title,

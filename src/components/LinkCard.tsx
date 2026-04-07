@@ -1,38 +1,52 @@
-import { useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LinkWithTag } from '../types/database';
+import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
-import ProjectSelector from './ProjectSelector';
-import { ProjectWithCounts } from '../types/database';
+import { getTagsForLink } from '../utils/linkTags';
+import TagSelector from './TagSelector';
+
+const TAG_SELECTOR_WIDTH = 308;
+const TAG_SELECTOR_VIEWPORT_PADDING = 12;
+const TAG_SELECTOR_OFFSET_Y = 8;
+
+type ScrollParent = HTMLElement | Window;
 
 interface LinkCardProps {
   link: LinkWithTag;
+  index: number;
   scrapedData?: ScrapedUrlData;
   onDelete: (linkId: string) => void;
-  projects?: ProjectWithCounts[];
-  onUpdateProject?: (linkId: string, projectId: string | null) => void;
+  onOpen: (link: LinkWithTag, index: number) => void;
+  onToggleSelect: (linkId: string, index: number) => void;
+  onOpenPreview?: (anchor: HTMLButtonElement) => void;
+  isPreviewOpen?: boolean;
+  onUpdateTags?: (linkId: string, tagIds: string[]) => void;
+  onBulkTagDelta?: (
+    linkIds: string[],
+    delta: { added: string[]; removed: string[] },
+  ) => void;
+  bulkTagEditTargetIds?: string[];
+  bulkTagUnionIds?: string[];
+  availableTags?: Tag[];
+  onCreateTag?: (name: string, color: string) => Promise<Tag>;
+  onDeleteTag?: (tagId: string) => Promise<void>;
   isSelected?: boolean;
-  isCursor?: boolean;
+  selectionMode?: boolean;
 }
 
-// Helper function to safely extract hostname from URL
-const getHostname = (url: string, removeWww: boolean = false): string => {
+const getHostname = (url: string, removeWww = false): string => {
   if (!url || typeof url !== 'string') {
     return 'Unknown';
   }
 
   try {
-    // If URL doesn't have a protocol, add https://
     const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
     let hostname = new URL(urlWithProtocol).hostname;
     if (removeWww) {
       hostname = hostname.replace('www.', '');
     }
     return hostname;
-  } catch (error) {
-    console.log('Failed to construct URL:', url, 'Error:', error);
-    // If URL is invalid, try to extract a simple domain-like string
-    // Remove protocol if present
+  } catch {
     let cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
     if (removeWww) {
       cleaned = cleaned.replace('www.', '');
@@ -41,267 +55,315 @@ const getHostname = (url: string, removeWww: boolean = false): string => {
   }
 };
 
+const getPathLabel = (url: string) => {
+  try {
+    const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
+    const parsed = new URL(urlWithProtocol);
+    const value = `${parsed.pathname}${parsed.search}`.trim();
+    if (!value || value === '/') {
+      return parsed.hostname.replace('www.', '');
+    }
+    return value;
+  } catch {
+    const withoutOrigin = url.replace(/^https?:\/\//, '');
+    const slashIndex = withoutOrigin.indexOf('/');
+    return slashIndex >= 0 ? withoutOrigin.slice(slashIndex) : withoutOrigin;
+  }
+};
+
+const getInitials = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || '::';
+
+const getScrollParents = (element: HTMLElement | null): ScrollParent[] => {
+  const parents: ScrollParent[] = [];
+  let current = element?.parentElement ?? null;
+
+  while (current) {
+    const { overflow, overflowX, overflowY } = window.getComputedStyle(current);
+    const isScrollable = /(auto|scroll|overlay)/.test(
+      `${overflow}${overflowX}${overflowY}`,
+    );
+
+    if (isScrollable) {
+      parents.push(current);
+    }
+
+    current = current.parentElement;
+  }
+
+  parents.push(window);
+  return parents;
+};
+
 const LinkCard = ({
   link,
+  index,
   scrapedData,
   onDelete,
-  projects = [],
-  onUpdateProject,
+  onOpen,
+  onToggleSelect,
+  onOpenPreview,
+  isPreviewOpen = false,
+  onUpdateTags,
+  onBulkTagDelta,
+  bulkTagEditTargetIds,
+  bulkTagUnionIds,
+  availableTags = [],
+  onCreateTag,
+  onDeleteTag,
   isSelected = false,
-  isCursor = false,
+  selectionMode = false,
 }: LinkCardProps) => {
-  const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false);
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
-  const [isHoveringCard, setIsHoveringCard] = useState(false);
-  const [isHoveringButton, setIsHoveringButton] = useState(false);
-  const projectBadgeRef = useRef<HTMLDivElement>(null);
-  const imageUrl = scrapedData?.image || link.preview_image_url;
+  const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
+  const initialBulkUnionRef = useRef<string[] | null>(null);
+
+  const mergedTags = useMemo(() => getTagsForLink(link), [link]);
+
+  const selectedTagIds = mergedTags.map((tag) => tag.id);
+  const isBulkTagEdit =
+    !!bulkTagEditTargetIds &&
+    bulkTagEditTargetIds.length > 1 &&
+    !!onBulkTagDelta &&
+    bulkTagEditTargetIds.includes(link.id);
+
+  const effectiveTagIds =
+    localTagIds ?? (isBulkTagEdit ? (bulkTagUnionIds ?? []) : selectedTagIds);
   const faviconUrl = scrapedData?.logo || link.favicon_url;
+  const title = scrapedData?.title || link.title || getHostname(link.url, true);
+  const secondaryLabel = getPathLabel(link.url);
+  const placeholderLabel = getInitials(getHostname(link.url, true));
 
-  const showFullLink = isHoveringCard && !isHoveringButton;
+  const updateSelectorPosition = () => {
+    if (!tagButtonRef.current) {
+      return;
+    }
 
-  const handleProjectBadgeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onUpdateProject && projects.length > 0) {
-      // Calculate position when opening
-      if (projectBadgeRef.current) {
-        const rect = projectBadgeRef.current.getBoundingClientRect();
-        setSelectorPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-        });
+    const rect = tagButtonRef.current.getBoundingClientRect();
+    const nextLeft = Math.min(
+      Math.max(TAG_SELECTOR_VIEWPORT_PADDING, rect.left),
+      window.innerWidth - TAG_SELECTOR_WIDTH - TAG_SELECTOR_VIEWPORT_PADDING,
+    );
+
+    setSelectorPosition({
+      top: rect.bottom + TAG_SELECTOR_OFFSET_Y,
+      left: nextLeft,
+    });
+  };
+
+  useEffect(() => {
+    if (!isTagSelectorOpen) {
+      setLocalTagIds(null);
+    }
+  }, [isTagSelectorOpen]);
+
+  useEffect(() => {
+    if (!isTagSelectorOpen || !tagButtonRef.current) {
+      return;
+    }
+
+    const scrollParents = getScrollParents(tagButtonRef.current);
+    const handlePositionUpdate = () => {
+      updateSelectorPosition();
+    };
+
+    handlePositionUpdate();
+
+    scrollParents.forEach((parent) => {
+      parent.addEventListener('scroll', handlePositionUpdate, { passive: true });
+    });
+
+    window.addEventListener('resize', handlePositionUpdate);
+
+    return () => {
+      scrollParents.forEach((parent) => {
+        parent.removeEventListener('scroll', handlePositionUpdate);
+      });
+      window.removeEventListener('resize', handlePositionUpdate);
+    };
+  }, [isTagSelectorOpen]);
+
+  const handleCardActivate = () => {
+    if (selectionMode) {
+      onToggleSelect(link.id, index);
+      return;
+    }
+    onOpen(link, index);
+  };
+
+  const handleTagButtonClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!onUpdateTags || !onCreateTag || !tagButtonRef.current) {
+      return;
+    }
+
+    updateSelectorPosition();
+    if (isBulkTagEdit) {
+      const union = bulkTagUnionIds ?? [];
+      initialBulkUnionRef.current = [...union];
+      setLocalTagIds([...union]);
+    } else {
+      initialBulkUnionRef.current = null;
+      setLocalTagIds(selectedTagIds);
+    }
+    setIsTagSelectorOpen(true);
+  };
+
+  const handleTagChange = (tagIds: string[]) => {
+    if (!onUpdateTags) return;
+
+    if (isBulkTagEdit && onBulkTagDelta && bulkTagEditTargetIds) {
+      const prev = localTagIds ?? initialBulkUnionRef.current ?? [];
+      const removed = prev.filter((id) => !tagIds.includes(id));
+      const added = tagIds.filter((id) => !prev.includes(id));
+      setLocalTagIds(tagIds);
+      if (removed.length > 0 || added.length > 0) {
+        onBulkTagDelta(bulkTagEditTargetIds, { added, removed });
       }
-      setIsProjectSelectorOpen(true);
+      return;
     }
-  };
 
-  const handleProjectSelect = (projectId: string | null) => {
-    if (onUpdateProject) {
-      onUpdateProject(link.id, projectId);
-    }
-    setIsProjectSelectorOpen(false);
-  };
-
-  // Determine border style based on selection state
-  // Use absolutely positioned border overlay to avoid affecting layout and work with overflow-hidden
-  const getBorderClass = () => {
-    return 'border border-medium-grey';
+    setLocalTagIds(tagIds);
+    onUpdateTags(link.id, tagIds);
   };
 
   return (
-    <div
-      className={`flex flex-col ${getBorderClass()} rounded-none overflow-hidden transition-all duration-100 group h-full relative ${
-        showFullLink ? 'bg-gray-50' : 'bg-white'
-      }`}
-      onMouseEnter={() => setIsHoveringCard(true)}
-      onMouseLeave={() => setIsHoveringCard(false)}
+    <article
+      className={`bookmark-card ${isSelected ? 'is-selected' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={handleCardActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleCardActivate();
+        }
+      }}
     >
-      {/* Selection border overlay - absolutely positioned to not affect layout */}
-      {isSelected && (
-        <div
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            border: '2px solid var(--color-orange)',
-            boxSizing: 'border-box',
-          }}
-        />
-      )}
-      {isCursor && (
-        <div
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            border: '2px dashed #999999',
-            boxSizing: 'border-box',
-          }}
-        />
-      )}
-      {/* Selection overlay for selected cards */}
-      {isSelected && (
-        <div
-          className="absolute inset-0 pointer-events-none z-20"
-          style={{
-            backgroundColor: 'rgba(255, 59, 60, 0.15)', // Red-orange overlay
-          }}
-        />
-      )}
-      {/* Preview/Thumbnail Area */}
-      <div
-        className={`relative w-full bg-white aspect-[300/157] flex items-center justify-center overflow-hidden group/image transition-colors duration-100 flex-shrink-0 ${
-          showFullLink ? 'bg-gray-50' : ''
-        }`}
-      >
-        {imageUrl ? (
+      <div className={`bookmark-card-preview ${isSelected ? 'is-selected' : ''}`}>
+        {onOpenPreview && (
+          <div className="bookmark-card-actions-left">
+            <button
+              ref={previewButtonRef}
+              type="button"
+              className={`bookmark-card-action ${isPreviewOpen ? 'is-open' : ''}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (previewButtonRef.current) {
+                  onOpenPreview(previewButtonRef.current);
+                }
+              }}
+              aria-label="Preview page in floating window"
+              title="Preview page"
+              aria-expanded={isPreviewOpen}
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="3.75" />
+                <path d="m10.1 10.1 3.4 3.4" />
+              </svg>
+            </button>
+          </div>
+        )}
+        <div className="bookmark-card-actions">
+          {onUpdateTags && onCreateTag && (
+            <button
+              ref={tagButtonRef}
+              type="button"
+              className="bookmark-card-action"
+              onClick={handleTagButtonClick}
+              aria-label={
+                isBulkTagEdit
+                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
+                  : 'Edit tags'
+              }
+              title={
+                isBulkTagEdit
+                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
+                  : 'Edit tags'
+              }
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 3v10" />
+                <path d="M3 8h10" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="bookmark-card-action"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(link.id);
+            }}
+            aria-label="Delete link"
+            title="Delete link"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 4l8 8" />
+              <path d="M12 4 4 12" />
+            </svg>
+          </button>
+        </div>
+
+        {faviconUrl && !imageFailed ? (
           <img
-            src={imageUrl}
-            alt={scrapedData?.title || ''}
-            className={`w-full h-full object-contain transition-opacity duration-200 ${
-              showFullLink ? 'opacity-0' : 'opacity-100'
-            }`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
+            src={faviconUrl}
+            alt=""
+            className="bookmark-card-favicon"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              setImageFailed(true);
             }}
           />
         ) : (
-          <div
-            className={`flex flex-col items-center justify-center gap-3 transition-opacity duration-200 ${
-              showFullLink ? 'opacity-0' : 'opacity-100'
-            }`}
-          >
-            {faviconUrl ? (
-              <img
-                src={faviconUrl}
-                alt=""
-                className="w-12 h-12"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            ) : null}
-            <p className="text-xs font-medium text-gray-600 text-center px-4">
-              {scrapedData?.title || getHostname(link.url)}
-            </p>
-          </div>
+          <span className="bookmark-card-placeholder">{placeholderLabel}</span>
         )}
-        {/* Delete Button - appears on hover */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(link.id);
-          }}
-          className={`absolute top-3 right-3 transition-opacity duration-200 w-6 h-6 flex items-center justify-center bg-white border border-medium-grey rounded-sm hover:bg-gray-50 cursor-pointer z-10 ${
-            showFullLink ? 'opacity-100' : 'opacity-0'
-          }`}
-          title="Delete link"
-        >
-          <svg
-            className="w-3 h-3 text-black"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-        {/* Project Name Badge - Upper Left */}
-        <div ref={projectBadgeRef} className="absolute top-3 left-3 z-10">
-          {link.project ? (
-            <button
-              onClick={handleProjectBadgeClick}
-              className={`inline-block px-2 py-1 text-xs font-bold text-black bg-white bg-opacity-90 hover:bg-opacity-100 transition-opacity ${
-                onUpdateProject && projects.length > 0 ? 'cursor-pointer' : ''
-              }`}
-              title={
-                onUpdateProject && projects.length > 0
-                  ? 'Click to change project'
-                  : undefined
-              }
-            >
-              {link.project.name}
-            </button>
-          ) : onUpdateProject && projects.length > 0 ? (
-            <button
-              onClick={handleProjectBadgeClick}
-              className="inline-block px-2 py-1 text-xs font-bold text-gray-500 bg-white bg-opacity-90 hover:bg-opacity-100 transition-opacity cursor-pointer border border-dashed border-gray-400"
-              title="Click to assign project"
-            >
-              + Assign
-            </button>
-          ) : null}
-        </div>
-        {/* Link Info Overlay on Hover */}
-        <div
-          className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-200 overflow-y-auto bg-gray-50 ${
-            showFullLink ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{
-            padding: '24px',
-          }}
-        >
-          <div className="flex flex-col items-center justify-center gap-3 w-full">
-            {scrapedData?.title ? (
-              <h3 className="text-base font-bold text-black text-center">
-                {scrapedData.title}
-              </h3>
-            ) : scrapedData?.description ? (
-              <p className="text-sm text-black text-center leading-relaxed">
-                {scrapedData.description}
-              </p>
-            ) : (
-              <p
-                className="text-xs font-medium text-black text-center break-all mt-2"
-                style={{
-                  wordBreak: 'break-all',
-                  overflowWrap: 'anywhere',
-                  opacity: 0.7,
-                }}
-              >
-                {link.url}
-              </p>
-            )}
-          </div>
-        </div>
+
+        {mergedTags.length > 0 && (
+          <span className="bookmark-card-tag-indicator">{mergedTags.length}</span>
+        )}
       </div>
 
-      {/* Action Button */}
-      <div
-        className={`pt-4 px-4 pb-4 transition-colors duration-200 flex-shrink-0 ${
-          showFullLink ? 'bg-gray-50' : 'bg-white'
-        }`}
-      >
-        <button
-          onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
-          onMouseEnter={() => setIsHoveringButton(true)}
-          onMouseLeave={() => setIsHoveringButton(false)}
-          className="w-full flex items-center justify-between gap-2 px-4 py-2 text-black border border-medium-grey hover:bg-gray-50 transition-all duration-300 text-sm font-medium rounded-sm cursor-pointer bg-white"
-        >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            {faviconUrl && (
-              <img
-                src={faviconUrl}
-                alt=""
-                className="w-4 h-4 flex-shrink-0"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            )}
-            <span className="truncate">
-              {scrapedData?.title || getHostname(link.url, true)}
-            </span>
-          </div>
-          <svg
-            className="w-4 h-4 transition-transform duration-300 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+      <div className="bookmark-card-meta">
+        <p className="bookmark-card-title" title={title}>
+          {title}
+        </p>
+        <p className="bookmark-card-subtitle" title={secondaryLabel}>
+          {secondaryLabel}
+        </p>
       </div>
-      {/* Project Selector - rendered via portal to avoid clipping */}
-      {isProjectSelectorOpen &&
+
+      {isTagSelectorOpen &&
+        onCreateTag &&
         createPortal(
-          <ProjectSelector
-            projects={projects}
-            selectedProjectId={link.project_id}
-            onSelect={handleProjectSelect}
-            onClose={() => setIsProjectSelectorOpen(false)}
+          <TagSelector
+            tags={availableTags}
+            selectedTagIds={effectiveTagIds}
+            onChange={handleTagChange}
+            onCreateTag={onCreateTag}
+            onDeleteTag={onDeleteTag}
+            onClose={() => setIsTagSelectorOpen(false)}
             position={selectorPosition}
+            subtitle={
+              isBulkTagEdit
+                ? `Changes apply to ${bulkTagEditTargetIds?.length ?? 0} selected bookmarks.`
+                : undefined
+            }
           />,
-          document.body
+          document.body,
         )}
-    </div>
+    </article>
   );
 };
 

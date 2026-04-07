@@ -1,10 +1,11 @@
+import type { User } from '@supabase/supabase-js'
 import { useState, useEffect, useRef } from 'react'
 import supabase from '../supabase'
 import { useNavigate } from 'react-router-dom'
 import DarkModeToggle from './DarkModeToggle'
 
 interface UserProfileProps {
-  user: any
+  user: User | null
   isMobile?: boolean
 }
 
@@ -46,7 +47,7 @@ const UserProfile = ({ user, isMobile = false }: UserProfileProps) => {
     }
     // Generate a fallback avatar using the user's email initial
     const initial = user?.email?.charAt(0).toUpperCase() || 'U'
-    return `https://ui-avatars.com/api/?name=${initial}&background=FF69B4&color=FFFFFF&size=40&format=png&bold=true&font-size=0.6`
+    return `https://ui-avatars.com/api/?name=${initial}&background=0328F1&color=F7FAFF&size=40&format=png&bold=true&font-size=0.6`
   }
 
   const getUserName = () => {
@@ -56,39 +57,37 @@ const UserProfile = ({ user, isMobile = false }: UserProfileProps) => {
   if (isMobile) {
     return (
       <div className="relative" ref={dropdownRef}>
-        {/* Hamburger Menu Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 hover:bg-gray-100 transition-colors border border-medium-grey bg-white"
+          className="app-icon-button"
+          aria-label="Open user menu"
         >
-          <div className="flex flex-col space-y-1">
-            <div className="w-5 h-0.5 bg-black transition-all duration-200"></div>
-            <div className="w-5 h-0.5 bg-black transition-all duration-200"></div>
-            <div className="w-5 h-0.5 bg-black transition-all duration-200"></div>
-          </div>
+          ☰
         </button>
 
-        {/* Mobile Menu Dropdown */}
         {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-64 bg-white border-2 border-medium-grey shadow-lg z-50">
-            <div className="p-4 border-b border-medium-grey">
-              <div className="flex items-center space-x-3">
-                <img
-                  src={getAvatarUrl()}
-                  alt="User avatar"
-                  className="w-6 h-6 border border-medium-grey"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-black truncate">{getUserName()}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          <div className="user-menu">
+            <div className="user-menu-section">
+              <div className="flex items-center gap-3">
+                <div className="header-user-avatar">
+                  <img
+                    src={getAvatarUrl()}
+                    alt="User avatar"
+                    className="header-user-image is-visible"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="user-menu-label">Signed in</p>
+                  <p className="user-menu-email">{getUserName()}</p>
+                  <p className="user-menu-email">{user?.email}</p>
                 </div>
               </div>
             </div>
-            <div className="p-2">
-              <DarkModeToggle className="w-full justify-start border-b border-medium-grey pb-2 mb-2" />
+            <div className="user-menu-actions">
+              <DarkModeToggle className="user-menu-action" />
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                className="user-menu-action user-menu-logout"
               >
                 Logout
               </button>
@@ -104,34 +103,34 @@ const UserProfile = ({ user, isMobile = false }: UserProfileProps) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 p-2 hover:bg-gray-100 transition-colors"
+        className="header-user-button"
       >
-        <div className="w-8 h-8 border border-medium-grey bg-gray-100 flex items-center justify-center">
+        <div className="header-user-avatar">
           <img
             src={getAvatarUrl()}
             alt="User avatar"
-            className={`w-8 h-8 border border-medium-grey transition-opacity duration-200 ${avatarLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`header-user-image ${avatarLoaded ? 'is-visible' : ''}`}
             onLoad={() => setAvatarLoaded(true)}
             onError={() => setAvatarLoaded(true)}
           />
           {!avatarLoaded && (
-            <div className="absolute w-8 h-8 bg-gray-200 border border-medium-grey animate-pulse" />
+            <div className="header-user-skeleton" />
           )}
         </div>
-        <span className="text-sm font-bold text-black">{getUserName()}</span>
+        <span className="header-user-name">{getUserName()}</span>
       </button>
 
-      {/* Desktop Dropdown */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-white border-2 border-medium-grey shadow-lg z-50">
-          <div className="p-3 border-b border-medium-grey">
-            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+        <div className="user-menu">
+          <div className="user-menu-section">
+            <p className="user-menu-label">Signed in</p>
+            <p className="user-menu-email">{user?.email}</p>
           </div>
-          <div className="p-2">
-            <DarkModeToggle className="w-full justify-start border-b border-medium-grey pb-2 mb-2" />
+          <div className="user-menu-actions">
+            <DarkModeToggle className="user-menu-action" />
             <button
               onClick={handleLogout}
-              className="w-full text-left px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+              className="user-menu-action user-menu-logout"
             >
               Logout
             </button>

@@ -25,11 +25,12 @@ const queryClient = new QueryClient({
 
 // Persist the query client cache
 // Type assertion needed due to version mismatch between @tanstack/react-query and persist packages
-persistQueryClient({
+const [, restorePromise] = persistQueryClient({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- persist client typings lag behind @tanstack/react-query QueryClient
   queryClient: queryClient as any,
   persister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-  buster: '', // Change this to invalidate cache when needed
+  buster: '2026-02-04-links-v2',
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => {
       // Persist links, projects, tags, and scraped URL data
@@ -40,12 +41,18 @@ persistQueryClient({
           firstKey === 'links' ||
           firstKey === 'projects' ||
           firstKey === 'tags' ||
+          firstKey === 'profiles' ||
+          firstKey === 'profile-links' ||
           firstKey === 'scraper'
         );
       }
       return false;
     },
   },
+});
+
+restorePromise?.catch(() => {
+  // Swallow restore errors (e.g., corrupted cache with non-thenable promises)
 });
 
 const Providers = () => {

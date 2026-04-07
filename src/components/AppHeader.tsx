@@ -156,7 +156,10 @@ const AppHeader = ({
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
-  const [profilePickerPosition, setProfilePickerPosition] = useState({ top: 0, left: 0 });
+  const [profilePickerPosition, setProfilePickerPosition] = useState({
+    top: 0,
+    left: 0,
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const profilePickerButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
@@ -194,7 +197,9 @@ const AppHeader = ({
         PROFILE_PICKER_VIEWPORT_PADDING,
         rect.right - PROFILE_PICKER_WIDTH,
       ),
-      window.innerWidth - PROFILE_PICKER_WIDTH - PROFILE_PICKER_VIEWPORT_PADDING,
+      window.innerWidth -
+        PROFILE_PICKER_WIDTH -
+        PROFILE_PICKER_VIEWPORT_PADDING,
     );
     setProfilePickerPosition({
       top: rect.bottom + PROFILE_PICKER_OFFSET_Y,
@@ -332,7 +337,9 @@ const AppHeader = ({
           <div className="bookmark-tool-group">
             <ToolbarIconButton
               active={selectionMode}
-              title={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+              title={
+                selectionMode ? 'Exit selection mode' : 'Enter selection mode'
+              }
               onClick={onToggleSelectionMode}
             >
               <SelectIcon />

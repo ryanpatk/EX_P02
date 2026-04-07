@@ -18,6 +18,8 @@ interface LinkCardProps {
   onDelete: (linkId: string) => void;
   onOpen: (link: LinkWithTag, index: number) => void;
   onToggleSelect: (linkId: string, index: number) => void;
+  onOpenPreview?: (anchor: HTMLButtonElement) => void;
+  isPreviewOpen?: boolean;
   onUpdateTags?: (linkId: string, tagIds: string[]) => void;
   onBulkTagDelta?: (
     linkIds: string[],
@@ -106,6 +108,8 @@ const LinkCard = ({
   onDelete,
   onOpen,
   onToggleSelect,
+  onOpenPreview,
+  isPreviewOpen = false,
   onUpdateTags,
   onBulkTagDelta,
   bulkTagEditTargetIds,
@@ -121,6 +125,7 @@ const LinkCard = ({
   const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
   const initialBulkUnionRef = useRef<string[] | null>(null);
 
   const mergedTags = useMemo(() => getTagsForLink(link), [link]);
@@ -246,6 +251,29 @@ const LinkCard = ({
       }}
     >
       <div className={`bookmark-card-preview ${isSelected ? 'is-selected' : ''}`}>
+        {onOpenPreview && (
+          <div className="bookmark-card-actions-left">
+            <button
+              ref={previewButtonRef}
+              type="button"
+              className={`bookmark-card-action ${isPreviewOpen ? 'is-open' : ''}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (previewButtonRef.current) {
+                  onOpenPreview(previewButtonRef.current);
+                }
+              }}
+              aria-label="Preview page in floating window"
+              title="Preview page"
+              aria-expanded={isPreviewOpen}
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="3.75" />
+                <path d="m10.1 10.1 3.4 3.4" />
+              </svg>
+            </button>
+          </div>
+        )}
         <div className="bookmark-card-actions">
           {onUpdateTags && onCreateTag && (
             <button

@@ -12,6 +12,7 @@ import { LinkWithTag, Tag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import { getTagIdsForLink } from '../utils/linkTags';
 import LinkCard from './LinkCard';
+import LinkPreviewPopover from './LinkPreviewPopover';
 
 type GridDensity = 'compact' | 'comfortable';
 
@@ -73,6 +74,21 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
   ) => {
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(0);
+    const [preview, setPreview] = useState<{
+      linkId: string;
+      anchorEl: HTMLElement;
+    } | null>(null);
+
+    const previewLink = useMemo(
+      () => (preview ? links.find((l) => l.id === preview.linkId) : undefined),
+      [links, preview],
+    );
+
+    useEffect(() => {
+      if (preview && !links.some((l) => l.id === preview.linkId)) {
+        setPreview(null);
+      }
+    }, [links, preview]);
 
     const gap = density === 'compact' ? COMPACT_GAP : COMFORTABLE_GAP;
     const minCardWidth =
@@ -224,43 +240,60 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
       const fallbackColumns = density === 'compact' ? 6 : 4;
 
       return (
-        <div ref={parentRef} className="bookmark-grid-scroll" style={gridStyle}>
-          <div
-            className="bookmark-grid-fallback"
-            style={{ gridTemplateColumns: `repeat(${fallbackColumns}, minmax(0, 1fr))` }}
-          >
-            {links.map((link, index) => (
-              <LinkCard
-                key={link.id}
-                link={link}
-                index={index}
-                scrapedData={scrapedDataMap[link.url]}
-                onDelete={onDeleteLink}
-                onOpen={onOpenLink}
-                onToggleSelect={onToggleSelect}
-                onUpdateTags={onUpdateLinkTags}
-                onBulkTagDelta={onBulkTagDelta}
-                bulkTagEditTargetIds={
-                  selectionMode &&
-                  selectedLinkIds.length > 1 &&
-                  selectedLinkIds.includes(link.id)
-                    ? selectedLinkIds
-                    : undefined
-                }
-                bulkTagUnionIds={bulkTagUnionIds}
-                availableTags={availableTags}
-                onCreateTag={onCreateTag}
-                onDeleteTag={onDeleteTag}
-                isSelected={selectedLinkIds.includes(link.id)}
-                selectionMode={selectionMode}
-              />
-            ))}
+        <>
+          <div ref={parentRef} className="bookmark-grid-scroll" style={gridStyle}>
+            <div
+              className="bookmark-grid-fallback"
+              style={{ gridTemplateColumns: `repeat(${fallbackColumns}, minmax(0, 1fr))` }}
+            >
+              {links.map((link, index) => (
+                <LinkCard
+                  key={link.id}
+                  link={link}
+                  index={index}
+                  scrapedData={scrapedDataMap[link.url]}
+                  onDelete={onDeleteLink}
+                  onOpen={onOpenLink}
+                  onToggleSelect={onToggleSelect}
+                  onOpenPreview={(anchorEl) => {
+                    setPreview((prev) =>
+                      prev?.linkId === link.id ? null : { linkId: link.id, anchorEl },
+                    );
+                  }}
+                  isPreviewOpen={preview?.linkId === link.id}
+                  onUpdateTags={onUpdateLinkTags}
+                  onBulkTagDelta={onBulkTagDelta}
+                  bulkTagEditTargetIds={
+                    selectionMode &&
+                    selectedLinkIds.length > 1 &&
+                    selectedLinkIds.includes(link.id)
+                      ? selectedLinkIds
+                      : undefined
+                  }
+                  bulkTagUnionIds={bulkTagUnionIds}
+                  availableTags={availableTags}
+                  onCreateTag={onCreateTag}
+                  onDeleteTag={onDeleteTag}
+                  isSelected={selectedLinkIds.includes(link.id)}
+                  selectionMode={selectionMode}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+          {previewLink && preview && (
+            <LinkPreviewPopover
+              link={previewLink}
+              scrapedData={scrapedDataMap[previewLink.url]}
+              anchorEl={preview.anchorEl}
+              onClose={() => setPreview(null)}
+            />
+          )}
+        </>
       );
     }
 
     return (
+      <>
       <div ref={parentRef} className="bookmark-grid-scroll" style={gridStyle}>
         <div
           style={{
@@ -303,6 +336,12 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
                         onDelete={onDeleteLink}
                         onOpen={onOpenLink}
                         onToggleSelect={onToggleSelect}
+                        onOpenPreview={(anchorEl) => {
+                          setPreview((prev) =>
+                            prev?.linkId === link.id ? null : { linkId: link.id, anchorEl },
+                          );
+                        }}
+                        isPreviewOpen={preview?.linkId === link.id}
                         onUpdateTags={onUpdateLinkTags}
                         onBulkTagDelta={onBulkTagDelta}
                         bulkTagEditTargetIds={
@@ -331,6 +370,15 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
           })}
         </div>
       </div>
+      {previewLink && preview && (
+        <LinkPreviewPopover
+          link={previewLink}
+          scrapedData={scrapedDataMap[previewLink.url]}
+          anchorEl={preview.anchorEl}
+          onClose={() => setPreview(null)}
+        />
+      )}
+      </>
     );
   },
 );

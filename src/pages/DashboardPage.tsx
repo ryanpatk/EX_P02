@@ -32,13 +32,16 @@ const DashboardPage = () => {
     {},
   );
   const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [activeView, setActiveView] = useState<DashboardView>('links');
+  const [visibleViews, setVisibleViews] = useState<Record<DashboardView, boolean>>({
+    links: true,
+    profiles: true,
+  });
+  const [isTagsCollapsed, setIsTagsCollapsed] = useState(true);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [gridDensity, setGridDensity] = useState<GridDensity>('compact');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [includeUntagged, setIncludeUntagged] = useState(false);
-  const [profileSearchQuery, setProfileSearchQuery] = useState('');
   const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
   const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
   const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
@@ -62,6 +65,9 @@ const DashboardPage = () => {
   const addLinksToProfile = useAddLinksToProfile();
   const urlScraper = useUrlScraper();
   const scrapingEnabled = false;
+  const showLinks = visibleViews.links;
+  const showProfiles = visibleViews.profiles;
+  const isSplitView = showLinks && showProfiles;
 
   useEffect(() => {
     const getUser = async () => {
@@ -99,10 +105,10 @@ const DashboardPage = () => {
   }, [isComposerOpen]);
 
   useEffect(() => {
-    if (activeView === 'profiles') {
+    if (!showLinks) {
       setIsComposerOpen(false);
     }
-  }, [activeView]);
+  }, [showLinks]);
 
   const linksWithTags = useMemo(() => {
     return (
@@ -195,7 +201,12 @@ const DashboardPage = () => {
     ? `FILTERED • ${filteredLinkCount} / ${totalLinkCount}`
     : `ALL • ${totalLinkCount} ITEMS`;
   const profileSummaryLabel = `PROFILES • ${totalProfileCount} ITEMS`;
-  const summaryLabel = activeView === 'profiles' ? profileSummaryLabel : linkSummaryLabel;
+  const splitSummaryLabel = `LINKS + PROFILES • ${totalLinkCount} ITEMS`;
+  const summaryLabel = showLinks && showProfiles
+    ? splitSummaryLabel
+    : showProfiles
+    ? profileSummaryLabel
+    : linkSummaryLabel;
 
   const emptyTitle = hasActiveFilters ? 'No links match the current filters' : 'No links yet';
   const emptySubtitle = hasActiveFilters
@@ -307,8 +318,8 @@ const DashboardPage = () => {
   }, []);
 
   const handleToggleSelectionMode = () => {
-    if (activeView === 'profiles' && !selectionMode) {
-      setActiveView('links');
+    if (!showLinks && !selectionMode) {
+      setVisibleViews((prev) => ({ ...prev, links: true }));
     }
 
     setSelectionMode((prev) => {
@@ -324,6 +335,29 @@ const DashboardPage = () => {
     clearSelectedLinks();
     setSelectionMode(false);
   };
+
+  const handleToggleView = useCallback(
+    (view: DashboardView) => {
+      const otherView: DashboardView = view === 'links' ? 'profiles' : 'links';
+      const nextValue = !visibleViews[view];
+
+      if (!nextValue && !visibleViews[otherView]) {
+        return;
+      }
+
+      if (view === 'links' && !nextValue) {
+        setIsComposerOpen(false);
+        clearSelectedLinks();
+        setSelectionMode(false);
+      }
+
+      setVisibleViews((prev) => ({
+        ...prev,
+        [view]: nextValue,
+      }));
+    },
+    [clearSelectedLinks, visibleViews],
+  );
 
   const allLinksKey =
     linksWithTags
@@ -479,19 +513,20 @@ const DashboardPage = () => {
   }, [filteredLinks, filteredLinksKey, queryClient, scrapingEnabled]);
 
   useEffect(() => {
-    if (activeView !== 'links') {
+    if (!showLinks) {
       return;
     }
 
     clearSelectedLinks();
     setSelectionMode(false);
-  }, [activeView, searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
+  }, [showLinks, searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
 
   return (
     <div className="bookmark-dashboard">
       <AppHeader
         user={user}
-        activeView={activeView}
+        showLinks={showLinks}
+        showProfiles={showProfiles}
         summaryLabel={summaryLabel}
         selectedCount={selectedLinkCount}
         selectionMode={selectionMode}
@@ -500,15 +535,19 @@ const DashboardPage = () => {
         profiles={profiles ?? []}
         onAddSelectedToProfile={handleAddSelectedToProfile}
         addToProfilePending={addLinksToProfile.isPending}
-        onSetActiveView={setActiveView}
+        onToggleView={handleToggleView}
         onSetDensity={setGridDensity}
         onToggleSelectionMode={handleToggleSelectionMode}
         onToggleComposer={() => setIsComposerOpen((prev) => !prev)}
         onClearSelection={clearSelectedLinks}
       />
 
-      <div className="bookmark-workspace">
-        <aside className="bookmark-workspace-rail bookmark-workspace-rail-tags">
+      <div className={`bookmark-workspace ${isTagsCollapsed ? 'is-tags-collapsed' : ''}`}>
+        <aside
+          className={`bookmark-workspace-rail bookmark-workspace-rail-tags ${
+            isTagsCollapsed ? 'is-collapsed' : ''
+          }`}
+        >
           <TagFilterBar
             tags={tags || []}
             selectedTagIds={selectedTagIds}
@@ -516,129 +555,161 @@ const DashboardPage = () => {
             totalCount={totalLinkCount}
             untaggedCount={untaggedCount}
             tagCounts={tagCounts}
+            collapsed={isTagsCollapsed}
             onToggleTag={handleToggleTag}
             onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
             onClear={handleClearTagFilters}
+            onToggleCollapsed={() => setIsTagsCollapsed((prev) => !prev)}
           />
         </aside>
 
         <main className="bookmark-main">
           <div className="bookmark-search-panel">
             <SearchBar
-              value={activeView === 'links' ? searchQuery : profileSearchQuery}
-              onChange={activeView === 'links' ? setSearchQuery : setProfileSearchQuery}
-              label={activeView === 'links' ? 'SEARCH ALL:' : 'SEARCH PROFILES:'}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              label={
+                showLinks && showProfiles
+                  ? 'SEARCH:'
+                  : showProfiles
+                  ? 'SEARCH PROFILES:'
+                  : 'SEARCH ALL:'
+              }
               placeholder={
-                activeView === 'links'
+                showLinks && showProfiles
+                  ? `Search ${totalLinkCount} bookmarks...`
+                  : showLinks
                   ? 'Search all bookmarks...'
                   : 'Search profiles...'
               }
             />
 
-            {activeView === 'links' && isComposerOpen && (
-              <div className="bookmark-composer">
-                <input
-                  ref={newLinkInputRef}
-                  type="url"
-                  value={newLinkUrl}
-                  onChange={(event) => setNewLinkUrl(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      handleCreateLink();
-                    }
-                    if (event.key === 'Escape') {
-                      setIsComposerOpen(false);
-                      setNewLinkUrl('');
-                    }
-                  }}
-                  placeholder="Paste a URL to add a bookmark..."
-                  className="bookmark-composer-input"
-                />
-                <div className="bookmark-composer-actions">
-                  <button
-                    type="button"
-                    className="bookmark-composer-button is-primary"
-                    onClick={handleCreateLink}
-                    disabled={!newLinkUrl.trim() || createLink.isPending}
-                  >
-                    ADD
-                  </button>
-                  <button
-                    type="button"
-                    className="bookmark-composer-button"
-                    onClick={() => {
-                      setIsComposerOpen(false);
-                      setNewLinkUrl('');
+            {showLinks && (
+              <div
+                className={`bookmark-composer-shell ${isComposerOpen ? 'is-open' : ''}`}
+              >
+                <div className="bookmark-composer">
+                  <input
+                    ref={newLinkInputRef}
+                    type="url"
+                    value={newLinkUrl}
+                    onChange={(event) => setNewLinkUrl(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleCreateLink();
+                      }
+                      if (event.key === 'Escape') {
+                        setIsComposerOpen(false);
+                        setNewLinkUrl('');
+                      }
                     }}
-                  >
-                    CANCEL
-                  </button>
+                    placeholder="Paste a URL to add a bookmark..."
+                    className="bookmark-composer-input"
+                  />
+                  <div className="bookmark-composer-actions">
+                    <button
+                      type="button"
+                      className="bookmark-composer-button is-primary"
+                      onClick={handleCreateLink}
+                      disabled={!newLinkUrl.trim() || createLink.isPending}
+                    >
+                      ADD
+                    </button>
+                    <button
+                      type="button"
+                      className="bookmark-composer-button"
+                      onClick={() => {
+                        setIsComposerOpen(false);
+                        setNewLinkUrl('');
+                      }}
+                    >
+                      CANCEL
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {activeView === 'links' ? (
-            <>
-              <div
-                className={
-                  selectionMode ? 'bookmark-grid-panel is-selection-mode' : 'bookmark-grid-panel'
-                }
-              >
-                <LinksGrid
-                  links={filteredLinks}
-                  scrapedDataMap={scrapedDataMap}
-                  onDeleteLink={handleDeleteLink}
-                  onOpenLink={handleOpenLink}
-                  onUpdateLinkTags={handleUpdateLinkTags}
-                  onBulkTagDelta={handleBulkLinkTagDelta}
-                  availableTags={tags || []}
-                  onCreateTag={handleCreateTag}
-                  onDeleteTag={handleDeleteTag}
-                  onVisibleLinksChange={handleVisibleLinksChange}
-                  selectedLinkIds={selectedLinkIds}
-                  emptyTitle={emptyTitle}
-                  emptySubtitle={emptySubtitle}
-                  onToggleSelect={handleToggleSelection}
-                  selectionMode={selectionMode}
-                  density={gridDensity}
-                />
-              </div>
+          <div
+            className={`bookmark-main-layout ${isSplitView ? 'is-split' : ''} ${
+              showLinks ? 'has-links' : ''
+            } ${showProfiles ? 'has-profiles' : ''}`}
+          >
+            <section
+              className={`bookmark-main-column bookmark-main-column-links ${
+                showLinks ? 'is-visible' : 'is-hidden'
+              }`}
+              aria-hidden={!showLinks}
+            >
+                <div
+                  className={
+                    selectionMode
+                      ? 'bookmark-grid-panel is-selection-mode'
+                      : 'bookmark-grid-panel'
+                  }
+                >
+                  <LinksGrid
+                    links={filteredLinks}
+                    scrapedDataMap={scrapedDataMap}
+                    onDeleteLink={handleDeleteLink}
+                    onOpenLink={handleOpenLink}
+                    onUpdateLinkTags={handleUpdateLinkTags}
+                    onBulkTagDelta={handleBulkLinkTagDelta}
+                    availableTags={tags || []}
+                    onCreateTag={handleCreateTag}
+                    onDeleteTag={handleDeleteTag}
+                    onVisibleLinksChange={handleVisibleLinksChange}
+                    selectedLinkIds={selectedLinkIds}
+                    emptyTitle={emptyTitle}
+                    emptySubtitle={emptySubtitle}
+                    onToggleSelect={handleToggleSelection}
+                    selectionMode={selectionMode}
+                    density={gridDensity}
+                  />
+                </div>
 
-              <button
-                type="button"
-                className="bookmark-selection-fab is-right-flush"
-                onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
-              >
-                <span className="bookmark-selection-fab-icon" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    {selectionMode ? (
-                      <>
-                        <path d="M4 8.25 6.5 10.75 12 5.25" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M3.25 3.25h4.5" />
-                        <path d="M3.25 3.25v4.5" />
-                        <path d="M12.75 12.75h-4.5" />
-                        <path d="M12.75 12.75v-4.5" />
-                      </>
-                    )}
-                  </svg>
-                </span>
-                <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
-              </button>
-            </>
-          ) : (
-            <ProfilesPane
-              selectedLinkIds={selectedLinkIds}
-              selectionMode={selectionMode}
-              searchQuery={profileSearchQuery}
-              selectedTagIds={selectedTagIds}
-              includeUntagged={includeUntagged}
-              scrapedDataMap={scrapedDataMap}
-            />
-          )}
+                <button
+                  type="button"
+                  className="bookmark-selection-fab is-pane-anchored"
+                  onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
+                >
+                  <span className="bookmark-selection-fab-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none">
+                      {selectionMode ? (
+                        <>
+                          <path d="M4 8.25 6.5 10.75 12 5.25" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M3.25 3.25h4.5" />
+                          <path d="M3.25 3.25v4.5" />
+                          <path d="M12.75 12.75h-4.5" />
+                          <path d="M12.75 12.75v-4.5" />
+                        </>
+                      )}
+                    </svg>
+                  </span>
+                  <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
+                </button>
+            </section>
+
+            <section
+              className={`bookmark-main-column bookmark-main-column-profiles ${
+                showProfiles ? 'is-visible' : 'is-hidden'
+              }`}
+              aria-hidden={!showProfiles}
+            >
+              <ProfilesPane
+                selectedLinkIds={selectedLinkIds}
+                selectionMode={selectionMode}
+                searchQuery={searchQuery}
+                selectedTagIds={selectedTagIds}
+                includeUntagged={includeUntagged}
+                scrapedDataMap={scrapedDataMap}
+              />
+            </section>
+          </div>
         </main>
       </div>
     </div>

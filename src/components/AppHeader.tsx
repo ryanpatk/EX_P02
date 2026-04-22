@@ -13,7 +13,8 @@ type DashboardView = 'links' | 'profiles';
 
 interface AppHeaderProps {
   user: User | null;
-  activeView: DashboardView;
+  showLinks: boolean;
+  showProfiles: boolean;
   summaryLabel: string;
   selectedCount: number;
   selectionMode: boolean;
@@ -22,7 +23,7 @@ interface AppHeaderProps {
   profiles?: Profile[];
   onAddSelectedToProfile?: (profileId: string) => Promise<void>;
   addToProfilePending?: boolean;
-  onSetActiveView: (view: DashboardView) => void;
+  onToggleView: (view: DashboardView) => void;
   onSetDensity: (density: GridDensity) => void;
   onToggleSelectionMode: () => void;
   onToggleComposer: () => void;
@@ -140,7 +141,8 @@ const PROFILE_PICKER_OFFSET_Y = 8;
 
 const AppHeader = ({
   user,
-  activeView,
+  showLinks,
+  showProfiles,
   summaryLabel,
   selectedCount,
   selectionMode,
@@ -149,7 +151,7 @@ const AppHeader = ({
   profiles = [],
   onAddSelectedToProfile,
   addToProfilePending = false,
-  onSetActiveView,
+  onToggleView,
   onSetDensity,
   onToggleSelectionMode,
   onToggleComposer,
@@ -183,10 +185,10 @@ const AppHeader = ({
   }, [isMenuOpen]);
 
   useEffect(() => {
-    if (!selectionMode || activeView !== 'links') {
+    if (!selectionMode || !showLinks || showProfiles) {
       setIsProfilePickerOpen(false);
     }
-  }, [selectionMode, activeView]);
+  }, [selectionMode, showLinks, showProfiles]);
 
   const updateProfilePickerPosition = () => {
     if (!profilePickerButtonRef.current) {
@@ -255,11 +257,14 @@ const AppHeader = ({
     user?.email ||
     'Signed in';
 
-  const showPrimaryCta = activeView === 'links';
+  const showPrimaryCta = showLinks;
   const showClearCta = showPrimaryCta && selectionMode;
   const canClearSelection = selectedCount > 0;
   const showProfilePickerButton =
-    showPrimaryCta && selectionMode && Boolean(onAddSelectedToProfile);
+    showPrimaryCta &&
+    !showProfiles &&
+    selectionMode &&
+    Boolean(onAddSelectedToProfile);
   const canAddToProfile = selectedCount > 0;
 
   return (
@@ -300,18 +305,18 @@ const AppHeader = ({
       <div className="bookmark-toolbar-center" aria-label="Dashboard controls">
         <div className="bookmark-view-switch">
           <ViewTab
-            active={activeView === 'links'}
+            active={showLinks}
             label="LINKS"
-            title="Show links view"
-            onClick={() => onSetActiveView('links')}
+            title={showLinks ? 'Hide links view' : 'Show links view'}
+            onClick={() => onToggleView('links')}
           >
             <LinkViewIcon />
           </ViewTab>
           <ViewTab
-            active={activeView === 'profiles'}
+            active={showProfiles}
             label="PROFILES"
-            title="Show profiles view"
-            onClick={() => onSetActiveView('profiles')}
+            title={showProfiles ? 'Hide profiles view' : 'Show profiles view'}
+            onClick={() => onToggleView('profiles')}
           >
             <ProfileViewIcon />
           </ViewTab>

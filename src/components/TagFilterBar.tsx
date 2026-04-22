@@ -7,9 +7,11 @@ interface TagFilterBarProps {
   totalCount: number;
   untaggedCount: number;
   tagCounts: Record<string, number>;
+  collapsed?: boolean;
   onToggleTag: (tagId: string) => void;
   onToggleUntagged: () => void;
   onClear: () => void;
+  onToggleCollapsed: () => void;
 }
 
 interface TagRowProps {
@@ -37,16 +39,35 @@ const TagFilterBar = ({
   totalCount,
   untaggedCount,
   tagCounts,
+  collapsed = false,
   onToggleTag,
   onToggleUntagged,
   onClear,
+  onToggleCollapsed,
 }: TagFilterBarProps) => {
   const hasFilters = selectedTagIds.length > 0 || includeUntagged;
 
+  if (collapsed) {
+    return (
+      <div className="bookmark-sidebar is-collapsed">
+        <button
+          type="button"
+          className="bookmark-sidebar-collapse"
+          onClick={onToggleCollapsed}
+          aria-label="Expand tags"
+          title="Expand tags"
+        >
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m6 4.5 4 3.5-4 3.5" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bookmark-sidebar">
-      {/* Tags Header */}
-      {/* <div className="bookmark-sidebar-header">
+      <div className="bookmark-sidebar-header">
         <div className="bookmark-sidebar-title">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 3.5h4l5.5 5.5-3 3L4 6.5v-3Z" />
@@ -54,7 +75,18 @@ const TagFilterBar = ({
           </svg>
           <span>TAGS</span>
         </div>
-      </div> */}
+        <button
+          type="button"
+          className="bookmark-sidebar-collapse"
+          onClick={onToggleCollapsed}
+          aria-label="Collapse tags"
+          title="Collapse tags"
+        >
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m10 4.5-4 3.5 4 3.5" />
+          </svg>
+        </button>
+      </div>
 
       <div className="bookmark-sidebar-body">
         <TagRow

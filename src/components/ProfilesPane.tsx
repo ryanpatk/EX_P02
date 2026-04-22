@@ -431,7 +431,9 @@ const ProfileCard = ({
         </div>
       </header>
 
-      {isExpanded && (
+      <div
+        className={`bookmark-profile-main-content ${isExpanded ? 'is-expanded' : ''}`}
+      >
         <div className="bookmark-profile-main-body">
           {visibleLinks.length === 0 ? (
             <div className="bookmark-profile-main-empty">
@@ -453,7 +455,7 @@ const ProfileCard = ({
             </div>
           )}
         </div>
-      )}
+      </div>
     </section>
   );
 };
@@ -471,6 +473,7 @@ const ProfilesPane = ({
 
   const [isCreating, setIsCreating] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
+  const createInputRef = useRef<HTMLInputElement>(null);
 
   const profileLinkQueries = useQueries({
     queries: profiles.map((profile) => ({
@@ -547,6 +550,17 @@ const ProfilesPane = ({
 
   const isLoadingProfiles = profileLinkQueries.some((query) => query.isLoading);
 
+  useEffect(() => {
+    if (!isCreating) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      createInputRef.current?.focus();
+      createInputRef.current?.select();
+    });
+  }, [isCreating]);
+
   const handleCreateProfile = async () => {
     const trimmed = newProfileName.trim();
 
@@ -588,9 +602,10 @@ const ProfilesPane = ({
           </button>
         </div>
 
-        {isCreating && (
+        <div className={`bookmark-profile-creator-shell ${isCreating ? 'is-open' : ''}`}>
           <div className="bookmark-profile-creator">
             <input
+              ref={createInputRef}
               type="text"
               value={newProfileName}
               onChange={(event) => setNewProfileName(event.target.value)}
@@ -606,7 +621,6 @@ const ProfilesPane = ({
               }}
               placeholder="Name the new profile..."
               className="bookmark-profile-creator-input"
-              autoFocus
             />
 
             <div className="bookmark-profile-creator-actions">
@@ -630,7 +644,7 @@ const ProfilesPane = ({
               </button>
             </div>
           </div>
-        )}
+        </div>
 
         <div className="bookmark-profiles-stack">
           {isLoadingProfiles && profiles.length === 0 ? (

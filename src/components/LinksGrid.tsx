@@ -310,6 +310,7 @@ const LinksGrid = forwardRef<LinksGridRef, LinksGridProps>(
             return (
               <div
                 key={virtualRow.key}
+                className="bookmark-grid-virtual-row"
                 data-index={virtualRow.index}
                 ref={virtualizer.measureElement}
                 style={{

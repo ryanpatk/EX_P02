@@ -110,6 +110,12 @@ const DashboardPage = () => {
     }
   }, [showLinks]);
 
+  useEffect(() => {
+    if (selectionMode) {
+      setIsComposerOpen(false);
+    }
+  }, [selectionMode]);
+
   const linksWithTags = useMemo(() => {
     return (
       allLinks?.map((link) => {
@@ -331,11 +337,6 @@ const DashboardPage = () => {
     });
   };
 
-  const handleFinishSelection = () => {
-    clearSelectedLinks();
-    setSelectionMode(false);
-  };
-
   const handleToggleView = useCallback(
     (view: DashboardView) => {
       const otherView: DashboardView = view === 'links' ? 'profiles' : 'links';
@@ -531,14 +532,12 @@ const DashboardPage = () => {
         selectedCount={selectedLinkCount}
         selectionMode={selectionMode}
         density={gridDensity}
-        isComposerOpen={isComposerOpen}
         profiles={profiles ?? []}
         onAddSelectedToProfile={handleAddSelectedToProfile}
         addToProfilePending={addLinksToProfile.isPending}
         onToggleView={handleToggleView}
         onSetDensity={setGridDensity}
         onToggleSelectionMode={handleToggleSelectionMode}
-        onToggleComposer={() => setIsComposerOpen((prev) => !prev)}
         onClearSelection={clearSelectedLinks}
       />
 
@@ -584,51 +583,6 @@ const DashboardPage = () => {
               }
             />
 
-            {showLinks && (
-              <div
-                className={`bookmark-composer-shell ${isComposerOpen ? 'is-open' : ''}`}
-              >
-                <div className="bookmark-composer">
-                  <input
-                    ref={newLinkInputRef}
-                    type="url"
-                    value={newLinkUrl}
-                    onChange={(event) => setNewLinkUrl(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        handleCreateLink();
-                      }
-                      if (event.key === 'Escape') {
-                        setIsComposerOpen(false);
-                        setNewLinkUrl('');
-                      }
-                    }}
-                    placeholder="Paste a URL to add a bookmark..."
-                    className="bookmark-composer-input"
-                  />
-                  <div className="bookmark-composer-actions">
-                    <button
-                      type="button"
-                      className="bookmark-composer-button is-primary"
-                      onClick={handleCreateLink}
-                      disabled={!newLinkUrl.trim() || createLink.isPending}
-                    >
-                      ADD
-                    </button>
-                    <button
-                      type="button"
-                      className="bookmark-composer-button"
-                      onClick={() => {
-                        setIsComposerOpen(false);
-                        setNewLinkUrl('');
-                      }}
-                    >
-                      CANCEL
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div
@@ -669,29 +623,64 @@ const DashboardPage = () => {
                   />
                 </div>
 
-                <button
-                  type="button"
-                  className="bookmark-selection-fab is-pane-anchored"
-                  onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
-                >
-                  <span className="bookmark-selection-fab-icon" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" fill="none">
-                      {selectionMode ? (
-                        <>
-                          <path d="M4 8.25 6.5 10.75 12 5.25" />
-                        </>
-                      ) : (
-                        <>
-                          <path d="M3.25 3.25h4.5" />
-                          <path d="M3.25 3.25v4.5" />
-                          <path d="M12.75 12.75h-4.5" />
-                          <path d="M12.75 12.75v-4.5" />
-                        </>
-                      )}
-                    </svg>
-                  </span>
-                  <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
-                </button>
+                {!selectionMode && (
+                  <div
+                    className={`bookmark-floating-composer-shell ${
+                      isComposerOpen ? 'is-open' : ''
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="bookmark-add-fab"
+                      onClick={() => setIsComposerOpen(true)}
+                    >
+                      <span className="bookmark-add-fab-icon" aria-hidden="true">
+                        +
+                      </span>
+                      <span>ADD</span>
+                    </button>
+
+                    <div className="bookmark-floating-composer" role="dialog" aria-label="Add bookmark">
+                      <input
+                        ref={newLinkInputRef}
+                        type="url"
+                        value={newLinkUrl}
+                        onChange={(event) => setNewLinkUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            handleCreateLink();
+                          }
+                          if (event.key === 'Escape') {
+                            setIsComposerOpen(false);
+                            setNewLinkUrl('');
+                          }
+                        }}
+                        placeholder="Paste a URL to add a bookmark..."
+                        className="bookmark-floating-composer-input"
+                      />
+                      <div className="bookmark-floating-composer-actions">
+                        <button
+                          type="button"
+                          className="bookmark-floating-composer-button is-primary"
+                          onClick={handleCreateLink}
+                          disabled={!newLinkUrl.trim() || createLink.isPending}
+                        >
+                          ADD
+                        </button>
+                        <button
+                          type="button"
+                          className="bookmark-floating-composer-button"
+                          onClick={() => {
+                            setIsComposerOpen(false);
+                            setNewLinkUrl('');
+                          }}
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
             </section>
 
             <section

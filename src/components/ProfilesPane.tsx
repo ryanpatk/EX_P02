@@ -388,20 +388,22 @@ const ProfileCard = ({
         </div>
 
         <div className="bookmark-profile-main-actions">
-          <button
-            type="button"
-            className="bookmark-profile-main-action"
-            onClick={handleOpenAll}
-            disabled={links.length === 0}
-          >
-            <OpenIcon />
-            <span>OPEN ALL</span>
-          </button>
+          {!selectionMode && (
+            <button
+              type="button"
+              className="bookmark-profile-main-action"
+              onClick={handleOpenAll}
+              disabled={links.length === 0}
+            >
+              <OpenIcon />
+              <span>OPEN ALL</span>
+            </button>
+          )}
 
           {showAddSelected && (
             <button
               type="button"
-              className="bookmark-profile-main-action"
+              className="bookmark-profile-main-action is-selection-accent"
               onClick={handleAddSelected}
               disabled={addLinks.isPending}
             >

@@ -19,14 +19,12 @@ interface AppHeaderProps {
   selectedCount: number;
   selectionMode: boolean;
   density: GridDensity;
-  isComposerOpen: boolean;
   profiles?: Profile[];
   onAddSelectedToProfile?: (profileId: string) => Promise<void>;
   addToProfilePending?: boolean;
   onToggleView: (view: DashboardView) => void;
   onSetDensity: (density: GridDensity) => void;
   onToggleSelectionMode: () => void;
-  onToggleComposer: () => void;
   onClearSelection: () => void;
 }
 
@@ -121,17 +119,16 @@ const ProfileViewIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M8 3v10" />
-    <path d="M3 8h10" />
-  </svg>
-);
-
 const CloseIcon = () => (
   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M4 4l8 8" />
     <path d="M12 4 4 12" />
+  </svg>
+);
+
+const DoneIcon = () => (
+  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M4 8.25 6.5 10.75 12 5.25" />
   </svg>
 );
 
@@ -147,14 +144,12 @@ const AppHeader = ({
   selectedCount,
   selectionMode,
   density,
-  isComposerOpen,
   profiles = [],
   onAddSelectedToProfile,
   addToProfilePending = false,
   onToggleView,
   onSetDensity,
   onToggleSelectionMode,
-  onToggleComposer,
   onClearSelection,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -257,11 +252,11 @@ const AppHeader = ({
     user?.email ||
     'Signed in';
 
-  const showPrimaryCta = showLinks;
-  const showClearCta = showPrimaryCta && selectionMode;
+  const showSelectionCta = showLinks;
+  const showClearCta = showSelectionCta && selectionMode;
   const canClearSelection = selectedCount > 0;
   const showProfilePickerButton =
-    showPrimaryCta &&
+    showSelectionCta &&
     !showProfiles &&
     selectionMode &&
     Boolean(onAddSelectedToProfile);
@@ -276,7 +271,10 @@ const AppHeader = ({
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-label="Open account menu"
         >
-          EX_P02
+          <span className="bookmark-view-tab-icon" aria-hidden="true">
+            <LinkViewIcon />
+          </span>
+          <span>SuperLinks</span>
         </button>
 
         {isMenuOpen && (
@@ -340,18 +338,6 @@ const AppHeader = ({
             </ToolbarIconButton>
           </div>
 
-          <div className="bookmark-tool-group">
-            <ToolbarIconButton
-              active={selectionMode}
-              title={
-                selectionMode ? 'Exit selection mode' : 'Enter selection mode'
-              }
-              onClick={onToggleSelectionMode}
-            >
-              <SelectIcon />
-            </ToolbarIconButton>
-          </div>
-
           <ToolbarIconButton
             active={isDark}
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -398,19 +384,29 @@ const AppHeader = ({
               )}
           </>
         )}
-        {showPrimaryCta && (
+        {showClearCta && (
           <button
             type="button"
-            className={`bookmark-toolbar-cta ${
-              showClearCta ? 'is-secondary' : 'is-primary'
-            } ${isComposerOpen ? 'is-open' : ''}`}
-            onClick={showClearCta ? onClearSelection : onToggleComposer}
-            disabled={showClearCta && !canClearSelection}
+            className="bookmark-toolbar-cta is-secondary"
+            onClick={onClearSelection}
+            disabled={!canClearSelection}
           >
             <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
-              {showClearCta ? <CloseIcon /> : <PlusIcon />}
+              <CloseIcon />
             </span>
-            <span>{showClearCta ? 'CLEAR' : 'ADD'}</span>
+            <span>CLEAR</span>
+          </button>
+        )}
+        {showSelectionCta && (
+          <button
+            type="button"
+            className="bookmark-toolbar-cta is-accent"
+            onClick={onToggleSelectionMode}
+          >
+            <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
+              {selectionMode ? <DoneIcon /> : <SelectIcon />}
+            </span>
+            <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
           </button>
         )}
       </div>

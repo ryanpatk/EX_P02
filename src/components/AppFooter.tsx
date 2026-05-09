@@ -1,6 +1,5 @@
 const AppFooter = () => {
-  const text =
-    'Extension Systems Project 02 - Produced by PERSONAL SYSTEMS LLC 2026©';
+  const text = 'SuperLinks v1.0.0 - produced by Extension Systems, LLC © 2026';
 
   return (
     <div className="desktop-footer">

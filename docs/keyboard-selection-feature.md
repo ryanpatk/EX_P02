@@ -99,7 +99,7 @@ The selection state is managed globally using Zustand with persistence:
 - Centralized keyboard event handling for all selection functionality
 - Manages cursor navigation logic (arrow key movement)
 - Handles selection toggling and range selection
-- Coordinates with LinksGrid for auto-scrolling
+- Coordinates with LinksList for auto-scrolling
 - Displays visual CMD indicator in AppHeader
 
 **Key Logic**:
@@ -110,41 +110,27 @@ The selection state is managed globally using Zustand with persistence:
 - Resets cursor position when projects change
 
 **Column Calculation**:
-- Mobile (< 640px): 2 columns
-- Tablet (640px - 1024px): 3 columns
-- Desktop (> 1024px): 4 columns
+- The main feed uses a single-column virtualized list; horizontal column math is not used for layout.
 
-#### LinksGrid.tsx
+#### LinksList.tsx
 
 **Responsibilities**:
-- Receives `selectedLinkIds` and `cursorIndex` props
-- Passes `isSelected` and `isCursor` props to individual LinkCard components
-- Exposes `scrollToIndex` method via `forwardRef` and `useImperativeHandle`
-- Auto-scrolls when cursor moves to offscreen items
+- Receives `selectedLinkIds` and passes selection state to row components
+- Exposes `scrollToIndex` via `forwardRef` and `useImperativeHandle`
+- Auto-scrolls when the keyboard cursor moves to offscreen rows
 
 **Auto-Scroll Implementation**:
-- Uses TanStack Virtual's `scrollToIndex` method
-- Triggers on cursor index changes for vertical movement (up/down)
-- Uses `requestAnimationFrame` for smooth scrolling
-- Aligns cursor card to center of viewport
+- Uses TanStack Virtual `scrollToIndex` for the vertical list
+- Triggers when the cursor index changes (up/down navigation)
+- Uses `requestAnimationFrame` for smooth scrolling where applicable
+- Aligns the target row toward the center of the scroll viewport
 
-#### LinkCard.tsx
+#### LinkListRow.tsx
 
 **Responsibilities**:
-- Receives `isSelected` and `isCursor` props
-- Applies visual styling based on selection state
-- Uses absolutely positioned overlays to avoid layout shifts
-
-**Visual Implementation**:
-- **Selected State**:
-  - Absolutely positioned border overlay with orange color
-  - Absolutely positioned red-orange background overlay
-  - Both overlays use `z-index` to appear above card content
-- **Cursor State**:
-  - Absolutely positioned dashed grey border overlay
-- **Default Border**: Standard border class applied to main card div
-
-**Important**: Uses absolutely positioned overlays instead of modifying the card's border directly to prevent layout shifts and work correctly with `overflow-hidden` on the card container.
+- Renders a single bookmark row in the feed list (favicon, titles, tag chips, actions)
+- Handles row click for open / selection mode and surfaces action buttons without triggering navigation
+- **Selected State**: border and highlight classes on the row container (see app styles)
 
 #### AppHeader.tsx
 
@@ -178,7 +164,7 @@ The selection state is managed globally using Zustand with persistence:
 3. **Arrow Keys (with CMD)**:
    - Calculates new index based on current position and column count
    - Updates `selectionCursorIndex`
-   - Triggers auto-scroll via LinksGrid ref
+   - Triggers auto-scroll via LinksList ref
    - If SHIFT is also held, adds target item to selection
 
 4. **CMD + SHIFT**:

@@ -1,7 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAllLinks, useCreateLink, useDeleteLink } from '../hooks/useLinks';
+import { useAllLinks, useCreateLink, useDeleteLink, useUpdateLink } from '../hooks/useLinks';
 import { useCreateTag, useDeleteTag, useTags } from '../hooks/useTags';
 import { useSetLinkTags } from '../hooks/useLinkTags';
 import {
@@ -11,38 +11,41 @@ import {
   urlScraperApi,
   useUrlScraper,
 } from '../hooks/useUrlScraper';
-import { useAddLinksToProfile } from '../hooks/useProfileLinks';
+import { useAddLinksToProfile, useProfileLinkMembership } from '../hooks/useProfileLinks';
 import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { LinkWithTag, Tag } from '../types/database';
-import { getTagIdsForLink } from '../utils/linkTags';
 import supabase from '../supabase';
 import AppHeader from '../components/AppHeader';
-import LinksGrid from '../components/LinksGrid';
-import ProfilesPane from '../components/ProfilesPane';
-import SearchBar from '../components/SearchBar';
+import BookmarkOmnibar from '../components/BookmarkOmnibar';
+import LinksList from '../components/LinksList';
+import LinkDetailsPanel from '../components/LinkDetailsPanel';
+import ProfileFilterBar from '../components/ProfileFilterBar';
 import TagFilterBar from '../components/TagFilterBar';
+import { getTagIdsForLink } from '../utils/linkTags';
+import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
 
-type GridDensity = 'compact' | 'comfortable';
-type DashboardView = 'links' | 'profiles';
+type MobileRail = 'none' | 'tags' | 'profiles';
 
 const DashboardPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [scrapedDataMap, setScrapedDataMap] = useState<Record<string, ScrapedUrlData>>(
     {},
   );
-  const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [activeView, setActiveView] = useState<DashboardView>('links');
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [gridDensity, setGridDensity] = useState<GridDensity>('compact');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [includeUntagged, setIncludeUntagged] = useState(false);
-  const [profileSearchQuery, setProfileSearchQuery] = useState('');
   const [visibleLinks, setVisibleLinks] = useState<LinkWithTag[]>([]);
   const [scrapingUrls, setScrapingUrls] = useState<Set<string>>(new Set());
   const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
-  const newLinkInputRef = useRef<HTMLInputElement>(null);
+  const [mobileRail, setMobileRail] = useState<MobileRail>('none');
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [detailLinkId, setDetailLinkId] = useState<string | null>(null);
+  const [isNarrow, setIsNarrow] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 899px)').matches,
+  );
 
   const searchQuery = useAppStore((state) => state.searchQuery);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
@@ -53,15 +56,30 @@ const DashboardPage = () => {
   const queryClient = useQueryClient();
   const { data: allLinks } = useAllLinks();
   const { data: profiles } = useProfiles();
+  const { data: membershipRows } = useProfileLinkMembership();
   const { data: tags } = useTags();
   const createTag = useCreateTag();
   const deleteTag = useDeleteTag();
   const setLinkTags = useSetLinkTags();
   const createLink = useCreateLink();
   const deleteLink = useDeleteLink();
+  const updateLink = useUpdateLink();
   const addLinksToProfile = useAddLinksToProfile();
   const urlScraper = useUrlScraper();
   const scrapingEnabled = false;
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 899px)');
+    const onChange = () => setIsNarrow(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isNarrow) {
+      setMobileRail('none');
+    }
+  }, [isNarrow]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -91,18 +109,13 @@ const DashboardPage = () => {
   }, []);
 
   useEffect(() => {
-    if (isComposerOpen) {
-      requestAnimationFrame(() => {
-        newLinkInputRef.current?.focus();
-      });
+    if (
+      selectedProfileId &&
+      !(profiles ?? []).some((p) => p.id === selectedProfileId)
+    ) {
+      setSelectedProfileId(null);
     }
-  }, [isComposerOpen]);
-
-  useEffect(() => {
-    if (activeView === 'profiles') {
-      setIsComposerOpen(false);
-    }
-  }, [activeView]);
+  }, [profiles, selectedProfileId]);
 
   const linksWithTags = useMemo(() => {
     return (
@@ -128,6 +141,35 @@ const DashboardPage = () => {
       }) || []
     );
   }, [allLinks]);
+
+  const profileLinkSets = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const row of membershipRows ?? []) {
+      if (!map.has(row.profile_id)) {
+        map.set(row.profile_id, new Set());
+      }
+      map.get(row.profile_id)!.add(row.link_id);
+    }
+    return map;
+  }, [membershipRows]);
+
+  const profileCountsByProfile = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const row of membershipRows ?? []) {
+      counts[row.profile_id] = (counts[row.profile_id] ?? 0) + 1;
+    }
+    return counts;
+  }, [membershipRows]);
+
+  const profileCountsForBar = useMemo(() => {
+    const merged = { ...profileCountsByProfile };
+    (profiles ?? []).forEach((p) => {
+      if (merged[p.id] === undefined) {
+        merged[p.id] = 0;
+      }
+    });
+    return merged;
+  }, [profiles, profileCountsByProfile]);
 
   const filterBySearch = useCallback(
     (link: LinkWithTag) => {
@@ -161,9 +203,41 @@ const DashboardPage = () => {
     [includeUntagged, selectedTagIds],
   );
 
+  const filterByProfile = useCallback(
+    (link: LinkWithTag) => {
+      if (!selectedProfileId) {
+        return true;
+      }
+      return profileLinkSets.get(selectedProfileId)?.has(link.id) ?? false;
+    },
+    [profileLinkSets, selectedProfileId],
+  );
+
   const filteredLinks = useMemo(
-    () => linksWithTags.filter((link) => filterBySearch(link) && filterByTags(link)),
-    [filterBySearch, filterByTags, linksWithTags],
+    () =>
+      linksWithTags.filter(
+        (link) =>
+          filterBySearch(link) && filterByTags(link) && filterByProfile(link),
+      ),
+    [filterByProfile, filterBySearch, filterByTags, linksWithTags],
+  );
+
+  const superFavoriteLinks = useMemo(
+    () =>
+      [...linksWithTags]
+        .filter((l) => l.is_super_favorite)
+        .sort((a, b) => {
+          const ta = (a.title || a.url).toLowerCase();
+          const tb = (b.title || b.url).toLowerCase();
+          return ta.localeCompare(tb);
+        }),
+    [linksWithTags],
+  );
+
+  const detailLink = useMemo(
+    () =>
+      detailLinkId ? linksWithTags.find((l) => l.id === detailLinkId) : undefined,
+    [detailLinkId, linksWithTags],
   );
 
   const tagCounts = useMemo(() => {
@@ -184,98 +258,199 @@ const DashboardPage = () => {
   );
 
   const hasActiveFilters =
-    searchQuery.trim().length > 0 || selectedTagIds.length > 0 || includeUntagged;
+    searchQuery.trim().length > 0 ||
+    selectedTagIds.length > 0 ||
+    includeUntagged ||
+    selectedProfileId !== null;
   const totalLinkCount = linksWithTags.length;
-  const filteredLinkCount = filteredLinks.length;
   const selectedLinkCount = selectedLinkIds.length;
-  const totalProfileCount = profiles?.length ?? 0;
-  const linkSummaryLabel = selectionMode && selectedLinkCount > 0
-    ? `${selectedLinkCount} SELECTED`
-    : hasActiveFilters
-    ? `FILTERED • ${filteredLinkCount} / ${totalLinkCount}`
-    : `ALL • ${totalLinkCount} ITEMS`;
-  const profileSummaryLabel = `PROFILES • ${totalProfileCount} ITEMS`;
-  const summaryLabel = activeView === 'profiles' ? profileSummaryLabel : linkSummaryLabel;
+
+  const bulkAssignActive = selectionMode && selectedLinkCount > 0;
+
+  const [bulkActionToast, setBulkActionToast] = useState<string | null>(null);
+  const bulkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashBulkSuccess = useCallback((message: string) => {
+    setBulkActionToast(message);
+    if (bulkToastTimerRef.current) {
+      clearTimeout(bulkToastTimerRef.current);
+    }
+    bulkToastTimerRef.current = setTimeout(() => {
+      setBulkActionToast(null);
+      bulkToastTimerRef.current = null;
+    }, 3400);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bulkToastTimerRef.current) {
+        clearTimeout(bulkToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const emptyTitle = hasActiveFilters ? 'No links match the current filters' : 'No links yet';
   const emptySubtitle = hasActiveFilters
-    ? 'Adjust the search or tag rail to broaden the results.'
-    : 'Use ADD to drop your first bookmark into the library.';
+    ? 'Adjust search, tags, or profile to broaden the results.'
+    : 'Search or paste a URL above, then use Add link when it appears.';
 
-  const handleCreateLink = async () => {
-    const url = newLinkUrl.trim();
-    if (!url) return;
+  const showOmnibarAdd =
+    isUrlLike(searchQuery.trim()) && filteredLinks.length === 0;
 
-    setNewLinkUrl('');
+  const handleOmnibarAdd = useCallback(async () => {
+    const raw = searchQuery.trim();
+    const url = normalizeUrlInput(raw);
+    if (!url || filteredLinks.length > 0 || !isUrlLike(raw)) return;
 
     try {
       await createLink.mutateAsync({ url });
-      setIsComposerOpen(false);
+      setSearchQuery('');
     } catch {
-      setNewLinkUrl(url);
+      // Keep query for retry
     }
-  };
-
-  const handleDeleteLink = async (linkId: string) => {
-    try {
-      await deleteLink.mutateAsync(linkId);
-    } catch {
-      // Intentionally silent for now.
-    }
-  };
-
-  const handleUpdateLinkTags = async (linkId: string, tagIds: string[]) => {
-    try {
-      await setLinkTags.mutateAsync({ linkId, tagIds });
-    } catch (error) {
-      console.error('Failed to update tags:', error);
-    }
-  };
+  }, [searchQuery, filteredLinks.length, createLink, setSearchQuery]);
 
   const handleAddSelectedToProfile = useCallback(
     async (profileId: string) => {
       if (selectedLinkIds.length === 0) return;
-      await addLinksToProfile.mutateAsync({
-        profileId,
-        linkIds: [...selectedLinkIds],
-      });
-    },
-    [selectedLinkIds, addLinksToProfile],
-  );
-
-  const handleBulkLinkTagDelta = useCallback(
-    async (linkIds: string[], delta: { added: string[]; removed: string[] }) => {
+      const profile = profiles?.find((p) => p.id === profileId);
+      const inProfile = profileLinkSets.get(profileId) ?? new Set<string>();
+      const newlyAdded = selectedLinkIds.filter((id) => !inProfile.has(id));
       try {
-        await Promise.all(
-          linkIds.map(async (linkId) => {
-            const link = linksWithTags.find((l) => l.id === linkId);
-            if (!link) return;
-            let next = getTagIdsForLink(link).filter((id) => !delta.removed.includes(id));
-            for (const id of delta.added) {
-              if (!next.includes(id)) {
-                next = [...next, id];
-              }
-            }
-            await setLinkTags.mutateAsync({ linkId, tagIds: next });
-          }),
-        );
+        await addLinksToProfile.mutateAsync({
+          profileId,
+          linkIds: [...selectedLinkIds],
+        });
+        const name = profile?.name ?? 'profile';
+        if (newlyAdded.length === 0) {
+          flashBulkSuccess(`Selection was already in “${name}”.`);
+        } else if (newlyAdded.length === selectedLinkIds.length) {
+          flashBulkSuccess(
+            `Added ${newlyAdded.length} bookmark${newlyAdded.length === 1 ? '' : 's'} to “${name}”.`,
+          );
+        } else {
+          flashBulkSuccess(
+            `Added ${newlyAdded.length} bookmark${newlyAdded.length === 1 ? '' : 's'} to “${name}” (${selectedLinkIds.length - newlyAdded.length} already there).`,
+          );
+        }
       } catch (error) {
-        console.error('Failed to update tags:', error);
+        console.error('Failed to add links to profile:', error);
       }
     },
-    [linksWithTags, setLinkTags],
+    [
+      selectedLinkIds,
+      addLinksToProfile,
+      profiles,
+      profileLinkSets,
+      flashBulkSuccess,
+    ],
+  );
+
+  const handleBulkAddTagToSelection = useCallback(
+    async (tagId: string) => {
+      if (selectedLinkIds.length === 0) return;
+      const tag = tags?.find((t) => t.id === tagId);
+      const tagName = tag?.name ?? 'tag';
+      let toApply = 0;
+      for (const linkId of selectedLinkIds) {
+        const link = linksWithTags.find((l) => l.id === linkId);
+        if (!link) continue;
+        const cur = getTagIdsForLink(link);
+        if (!cur.includes(tagId)) {
+          toApply += 1;
+        }
+      }
+      if (toApply === 0) {
+        flashBulkSuccess(
+          `Selection already had “${tagName}”.`,
+        );
+        return;
+      }
+      try {
+        await Promise.all(
+          selectedLinkIds.map(async (linkId) => {
+            const link = linksWithTags.find((l) => l.id === linkId);
+            if (!link) return;
+            const cur = getTagIdsForLink(link);
+            if (cur.includes(tagId)) return;
+            await setLinkTags.mutateAsync({
+              linkId,
+              tagIds: [...cur, tagId],
+            });
+          }),
+        );
+        flashBulkSuccess(
+          `Applied “${tagName}” to ${toApply} bookmark${toApply === 1 ? '' : 's'}.`,
+        );
+      } catch (error) {
+        console.error('Failed to bulk-apply tag:', error);
+      }
+    },
+    [
+      selectedLinkIds,
+      linksWithTags,
+      tags,
+      setLinkTags,
+      flashBulkSuccess,
+    ],
   );
 
   const handleToggleSelection = useCallback(
-    (linkId: string) => {
+    (linkId: string, index: number) => {
+      void index;
       toggleLinkSelection(linkId);
     },
     [toggleLinkSelection],
   );
 
-  const handleOpenLink = useCallback((link: LinkWithTag) => {
+  const handleOpenLink = useCallback((link: LinkWithTag, index: number) => {
+    void index;
     window.open(link.url, '_blank', 'noopener,noreferrer');
   }, []);
+
+  const handleOpenLinkDetails = useCallback(
+    (link: LinkWithTag, index: number) => {
+      void index;
+      setDetailLinkId(link.id);
+    },
+    [],
+  );
+
+  const handleSuperFavoriteHeaderOpen = useCallback((link: LinkWithTag) => {
+    window.open(link.url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const handleDetailUpdateUrl = useCallback(
+    async (url: string) => {
+      if (!detailLinkId) return;
+      await updateLink.mutateAsync({
+        id: detailLinkId,
+        updates: { url },
+      });
+    },
+    [detailLinkId, updateLink],
+  );
+
+  const handleDetailToggleSuper = useCallback(
+    async (next: boolean) => {
+      if (!detailLinkId) return;
+      await updateLink.mutateAsync({
+        id: detailLinkId,
+        updates: { is_super_favorite: next },
+      });
+    },
+    [detailLinkId, updateLink],
+  );
+
+  const handleDeleteLinkFromDetail = useCallback(async () => {
+    if (!detailLinkId) return;
+    try {
+      await deleteLink.mutateAsync(detailLinkId);
+      setDetailLinkId(null);
+    } catch {
+      /* silent */
+    }
+  }, [detailLinkId, deleteLink]);
 
   const handleCreateTag = async (name: string, color: string) => {
     const created = await createTag.mutateAsync({ name, color });
@@ -292,37 +467,51 @@ const DashboardPage = () => {
   };
 
   const handleToggleTag = (tagId: string) => {
+    if (bulkAssignActive) {
+      void handleBulkAddTagToSelection(tagId);
+      return;
+    }
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
   };
 
   const handleClearTagFilters = () => {
+    if (bulkAssignActive) return;
     setSelectedTagIds([]);
     setIncludeUntagged(false);
   };
+
+  const handleClearProfileFilter = useCallback(() => {
+    if (bulkAssignActive) return;
+    setSelectedProfileId(null);
+  }, [bulkAssignActive]);
+
+  const handleToggleProfileFilter = useCallback(
+    (profileId: string) => {
+      if (bulkAssignActive) {
+        void handleAddSelectedToProfile(profileId);
+        return;
+      }
+      setSelectedProfileId((prev) => (prev === profileId ? null : profileId));
+    },
+    [bulkAssignActive, handleAddSelectedToProfile],
+  );
 
   const handleVisibleLinksChange = useCallback((links: LinkWithTag[]) => {
     setVisibleLinks(links);
   }, []);
 
   const handleToggleSelectionMode = () => {
-    if (activeView === 'profiles' && !selectionMode) {
-      setActiveView('links');
-    }
-
     setSelectionMode((prev) => {
       const next = !prev;
       if (!next) {
         clearSelectedLinks();
+      } else {
+        setDetailLinkId(null);
       }
       return next;
     });
-  };
-
-  const handleFinishSelection = () => {
-    clearSelectedLinks();
-    setSelectionMode(false);
   };
 
   const allLinksKey =
@@ -479,167 +668,215 @@ const DashboardPage = () => {
   }, [filteredLinks, filteredLinksKey, queryClient, scrapingEnabled]);
 
   useEffect(() => {
-    if (activeView !== 'links') {
-      return;
+    if (detailLinkId && !linksWithTags.some((l) => l.id === detailLinkId)) {
+      setDetailLinkId(null);
     }
+  }, [detailLinkId, linksWithTags]);
 
+  useEffect(() => {
     clearSelectedLinks();
     setSelectionMode(false);
-  }, [activeView, searchQuery, selectedTagIds, includeUntagged, clearSelectedLinks]);
+    setDetailLinkId(null);
+  }, [searchQuery, selectedTagIds, includeUntagged, selectedProfileId, clearSelectedLinks]);
 
   return (
     <div className="bookmark-dashboard">
       <AppHeader
         user={user}
-        activeView={activeView}
-        summaryLabel={summaryLabel}
         selectedCount={selectedLinkCount}
         selectionMode={selectionMode}
-        density={gridDensity}
-        isComposerOpen={isComposerOpen}
-        profiles={profiles ?? []}
-        onAddSelectedToProfile={handleAddSelectedToProfile}
-        addToProfilePending={addLinksToProfile.isPending}
-        onSetActiveView={setActiveView}
-        onSetDensity={setGridDensity}
         onToggleSelectionMode={handleToggleSelectionMode}
-        onToggleComposer={() => setIsComposerOpen((prev) => !prev)}
         onClearSelection={clearSelectedLinks}
+        superFavoriteLinks={superFavoriteLinks}
+        scrapedDataMap={scrapedDataMap}
+        onSuperFavoriteOpen={handleSuperFavoriteHeaderOpen}
       />
 
-      <div className="bookmark-workspace">
-        <aside className="bookmark-workspace-rail bookmark-workspace-rail-tags">
-          <TagFilterBar
-            tags={tags || []}
-            selectedTagIds={selectedTagIds}
-            includeUntagged={includeUntagged}
-            totalCount={totalLinkCount}
-            untaggedCount={untaggedCount}
-            tagCounts={tagCounts}
-            onToggleTag={handleToggleTag}
-            onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
-            onClear={handleClearTagFilters}
+      <div className="bookmark-feed-layout">
+        {isNarrow && mobileRail !== 'none' && (
+          <button
+            type="button"
+            className="bookmark-mobile-scrim"
+            aria-label="Close panel"
+            onClick={() => setMobileRail('none')}
           />
+        )}
+
+        <aside
+          className={`bookmark-rail bookmark-rail--tags ${
+            isNarrow && mobileRail === 'tags' ? 'is-mobile-open' : ''
+          }`}
+        >
+          {isNarrow && (
+            <div className="bookmark-rail-mobile-header">
+              <span className="bookmark-rail-mobile-title">Tags</span>
+              <button
+                type="button"
+                className="bookmark-rail-mobile-close"
+                onClick={() => setMobileRail('none')}
+              >
+                Close
+              </button>
+            </div>
+          )}
+          <div className="bookmark-rail-inner bookmark-rail-inner--tags">
+            <TagFilterBar
+              tags={tags || []}
+              selectedTagIds={selectedTagIds}
+              includeUntagged={includeUntagged}
+              totalCount={totalLinkCount}
+              untaggedCount={untaggedCount}
+              tagCounts={tagCounts}
+              onToggleTag={handleToggleTag}
+              onToggleUntagged={() => setIncludeUntagged((prev) => !prev)}
+              onClear={handleClearTagFilters}
+              bulkAssignMode={bulkAssignActive}
+            />
+          </div>
         </aside>
 
-        <main className="bookmark-main">
-          <div className="bookmark-search-panel">
-            <SearchBar
-              value={activeView === 'links' ? searchQuery : profileSearchQuery}
-              onChange={activeView === 'links' ? setSearchQuery : setProfileSearchQuery}
-              label={activeView === 'links' ? 'SEARCH ALL:' : 'SEARCH PROFILES:'}
-              placeholder={
-                activeView === 'links'
-                  ? 'Search all bookmarks...'
-                  : 'Search profiles...'
-              }
-            />
-
-            {activeView === 'links' && isComposerOpen && (
-              <div className="bookmark-composer">
-                <input
-                  ref={newLinkInputRef}
-                  type="url"
-                  value={newLinkUrl}
-                  onChange={(event) => setNewLinkUrl(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      handleCreateLink();
-                    }
-                    if (event.key === 'Escape') {
-                      setIsComposerOpen(false);
-                      setNewLinkUrl('');
-                    }
-                  }}
-                  placeholder="Paste a URL to add a bookmark..."
-                  className="bookmark-composer-input"
-                />
-                <div className="bookmark-composer-actions">
-                  <button
-                    type="button"
-                    className="bookmark-composer-button is-primary"
-                    onClick={handleCreateLink}
-                    disabled={!newLinkUrl.trim() || createLink.isPending}
-                  >
-                    ADD
-                  </button>
-                  <button
-                    type="button"
-                    className="bookmark-composer-button"
-                    onClick={() => {
-                      setIsComposerOpen(false);
-                      setNewLinkUrl('');
-                    }}
-                  >
-                    CANCEL
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {activeView === 'links' ? (
-            <>
-              <div
-                className={
-                  selectionMode ? 'bookmark-grid-panel is-selection-mode' : 'bookmark-grid-panel'
+        <main className="bookmark-feed-main">
+          {isNarrow && (
+            <div className="bookmark-mobile-rail-tabs" role="toolbar" aria-label="Open side panels">
+              <button
+                type="button"
+                className="bookmark-mobile-rail-tab"
+                onClick={() =>
+                  setMobileRail((r) => (r === 'tags' ? 'none' : 'tags'))
                 }
               >
-                <LinksGrid
+                Tags
+              </button>
+              <button
+                type="button"
+                className="bookmark-mobile-rail-tab"
+                onClick={() =>
+                  setMobileRail((r) =>
+                    r === 'profiles' ? 'none' : 'profiles',
+                  )
+                }
+              >
+                Profiles
+              </button>
+            </div>
+          )}
+
+          <div className="bookmark-search-panel">
+            <BookmarkOmnibar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              showAdd={showOmnibarAdd}
+              onAdd={handleOmnibarAdd}
+              addPending={createLink.isPending}
+              placeholder={`Search ${totalLinkCount} bookmarks…`}
+            />
+          </div>
+
+          {bulkActionToast !== null && (
+            <div
+              className="bookmark-bulk-feedback"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="bookmark-bulk-feedback-mark" aria-hidden="true">
+                OK
+              </span>
+              <span className="bookmark-bulk-feedback-text">
+                {bulkActionToast}
+              </span>
+            </div>
+          )}
+
+          <div className="bookmark-feed-main-inner">
+            <div className="bookmark-list-panel-stack">
+              <div
+                className={
+                  selectionMode
+                    ? 'bookmark-list-panel is-selection-mode'
+                    : 'bookmark-list-panel'
+                }
+              >
+                <LinksList
                   links={filteredLinks}
                   scrapedDataMap={scrapedDataMap}
-                  onDeleteLink={handleDeleteLink}
                   onOpenLink={handleOpenLink}
-                  onUpdateLinkTags={handleUpdateLinkTags}
-                  onBulkTagDelta={handleBulkLinkTagDelta}
-                  availableTags={tags || []}
-                  onCreateTag={handleCreateTag}
-                  onDeleteTag={handleDeleteTag}
+                  onOpenLinkDetails={handleOpenLinkDetails}
+                  activeDetailsLinkId={detailLinkId}
                   onVisibleLinksChange={handleVisibleLinksChange}
                   selectedLinkIds={selectedLinkIds}
                   emptyTitle={emptyTitle}
                   emptySubtitle={emptySubtitle}
                   onToggleSelect={handleToggleSelection}
                   selectionMode={selectionMode}
-                  density={gridDensity}
                 />
               </div>
+              {detailLink ? (
+                <div
+                  className="bookmark-link-details-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Link details"
+                >
+                  <div className="bookmark-link-details-scroll">
+                    <LinkDetailsPanel
+                      link={detailLink}
+                      scrapedData={scrapedDataMap[detailLink.url]}
+                      membershipRows={membershipRows ?? []}
+                      profiles={profiles ?? []}
+                      availableTags={tags ?? []}
+                      onBack={() => setDetailLinkId(null)}
+                      onUpdateUrl={handleDetailUpdateUrl}
+                      onToggleSuperFavorite={handleDetailToggleSuper}
+                      onUpdateTags={async (tagIds) => {
+                        if (!detailLinkId) return;
+                        await setLinkTags.mutateAsync({
+                          linkId: detailLinkId,
+                          tagIds,
+                        });
+                      }}
+                      onCreateTag={handleCreateTag}
+                      onDeleteTag={handleDeleteTag}
+                      onDeleteLink={handleDeleteLinkFromDetail}
+                      urlPending={updateLink.isPending}
+                      superFavoritePending={updateLink.isPending}
+                      deletePending={deleteLink.isPending}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </main>
 
+        <aside
+          className={`bookmark-rail bookmark-rail--profiles ${
+            isNarrow && mobileRail === 'profiles' ? 'is-mobile-open' : ''
+          }`}
+        >
+          {isNarrow && (
+            <div className="bookmark-rail-mobile-header">
+              <span className="bookmark-rail-mobile-title">Profiles</span>
               <button
                 type="button"
-                className="bookmark-selection-fab is-right-flush"
-                onClick={selectionMode ? handleFinishSelection : handleToggleSelectionMode}
+                className="bookmark-rail-mobile-close"
+                onClick={() => setMobileRail('none')}
               >
-                <span className="bookmark-selection-fab-icon" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    {selectionMode ? (
-                      <>
-                        <path d="M4 8.25 6.5 10.75 12 5.25" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M3.25 3.25h4.5" />
-                        <path d="M3.25 3.25v4.5" />
-                        <path d="M12.75 12.75h-4.5" />
-                        <path d="M12.75 12.75v-4.5" />
-                      </>
-                    )}
-                  </svg>
-                </span>
-                <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
+                Close
               </button>
-            </>
-          ) : (
-            <ProfilesPane
-              selectedLinkIds={selectedLinkIds}
-              selectionMode={selectionMode}
-              searchQuery={profileSearchQuery}
-              selectedTagIds={selectedTagIds}
-              includeUntagged={includeUntagged}
-              scrapedDataMap={scrapedDataMap}
-            />
+            </div>
           )}
-        </main>
+          <div className="bookmark-rail-inner bookmark-rail-inner--profiles">
+            <ProfileFilterBar
+              profiles={profiles ?? []}
+              profileCounts={profileCountsForBar}
+              totalLinkCount={totalLinkCount}
+              selectedProfileId={selectedProfileId}
+              onClearProfile={handleClearProfileFilter}
+              onToggleProfile={handleToggleProfileFilter}
+              bulkAssignMode={bulkAssignActive}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );

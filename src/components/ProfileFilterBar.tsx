@@ -1,21 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Tag } from '../types/database';
-import { useCreateTag, TAG_COLORS } from '../hooks/useTags';
+import { useCreateProfile } from '../hooks/useProfiles';
+import { Profile } from '../types/database';
 
-interface TagFilterBarProps {
-  tags: Tag[];
-  selectedTagIds: string[];
-  includeUntagged: boolean;
-  totalCount: number;
-  untaggedCount: number;
-  tagCounts: Record<string, number>;
-  onToggleTag: (tagId: string) => void;
-  onToggleUntagged: () => void;
-  onClear: () => void;
+interface ProfileFilterBarProps {
+  profiles: Profile[];
+  profileCounts: Record<string, number>;
+  totalLinkCount: number;
+  selectedProfileId: string | null;
+  onClearProfile: () => void;
+  onToggleProfile: (profileId: string) => void;
   bulkAssignMode?: boolean;
 }
 
-interface TagChipProps {
+interface ProfileChipProps {
   active: boolean;
   label: string;
   count: number;
@@ -25,7 +22,7 @@ interface TagChipProps {
   bulkTarget?: boolean;
 }
 
-const TagChip = ({
+const ProfileChip = ({
   active,
   label,
   count,
@@ -33,34 +30,31 @@ const TagChip = ({
   disabled,
   title,
   bulkTarget,
-}: TagChipProps) => (
+}: ProfileChipProps) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
     title={title}
-    className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
+    className={`bookmark-profile-chip ${active ? 'is-active' : ''}${
       bulkTarget ? ' is-bulk-target' : ''
     }`}
   >
-    <span className="bookmark-tag-chip-label">{label}</span>
-    <span className="bookmark-tag-chip-count">{count}</span>
+    <span className="bookmark-profile-chip-label">{label}</span>
+    <span className="bookmark-profile-chip-count">{count}</span>
   </button>
 );
 
-const TagFilterBar = ({
-  tags,
-  selectedTagIds,
-  includeUntagged,
-  totalCount,
-  untaggedCount,
-  tagCounts,
-  onToggleTag,
-  onToggleUntagged,
-  onClear,
+const ProfileFilterBar = ({
+  profiles,
+  profileCounts,
+  totalLinkCount,
+  selectedProfileId,
+  onClearProfile,
+  onToggleProfile,
   bulkAssignMode = false,
-}: TagFilterBarProps) => {
-  const createTag = useCreateTag();
+}: ProfileFilterBarProps) => {
+  const createProfile = useCreateProfile();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,57 +76,47 @@ const TagFilterBar = ({
     }
 
     try {
-      await createTag.mutateAsync({
-        name,
-        color: TAG_COLORS[0],
-      });
+      await createProfile.mutateAsync({ name });
       setNewName('');
       setIsCreating(false);
     } catch (error) {
-      console.error('Failed to create tag:', error);
+      console.error('Failed to create profile:', error);
     }
   };
-
-  const hasFilters = selectedTagIds.length > 0 || includeUntagged;
 
   const filterLockedHint =
     'Filters are locked while links are selected. Use CLEAR in the header or tap DONE first.';
 
   return (
-    <div className="bookmark-tag-filter">
-      <div className="bookmark-tag-filter-inner">
-        <TagChip
-          active={!bulkAssignMode && !hasFilters}
+    <div className="bookmark-profile-filter">
+      <div className="bookmark-profile-filter-inner">
+        <ProfileChip
+          active={!bulkAssignMode && selectedProfileId === null}
           label="All"
-          count={totalCount}
-          onClick={onClear}
+          count={totalLinkCount}
+          onClick={onClearProfile}
           disabled={bulkAssignMode}
-          title={bulkAssignMode ? filterLockedHint : 'Show all bookmarks'}
+          title={bulkAssignMode ? filterLockedHint : 'Show bookmarks from all profiles'}
         />
 
-        {tags.map((tag) => (
-          <TagChip
-            key={tag.id}
-            active={!bulkAssignMode && selectedTagIds.includes(tag.id)}
-            label={tag.name}
-            count={tagCounts[tag.id] ?? 0}
-            onClick={() => onToggleTag(tag.id)}
+        {profiles.map((profile) => (
+          <ProfileChip
+            key={profile.id}
+            active={!bulkAssignMode && selectedProfileId === profile.id}
+            label={profile.name}
+            count={profileCounts[profile.id] ?? 0}
+            onClick={() => onToggleProfile(profile.id)}
             bulkTarget={bulkAssignMode}
-            title={bulkAssignMode ? `Add “${tag.name}” to selected bookmarks` : undefined}
+            title={
+              bulkAssignMode
+                ? `Add selection to “${profile.name}”`
+                : `Filter by “${profile.name}”`
+            }
           />
         ))}
-
-        {!bulkAssignMode && untaggedCount > 0 && (
-          <TagChip
-            active={includeUntagged}
-            label="Untagged"
-            count={untaggedCount}
-            onClick={onToggleUntagged}
-          />
-        )}
       </div>
 
-      <div className="bookmark-tag-filter-footer">
+      <div className="bookmark-profile-filter-footer">
         {isCreating ? (
           <div className="bookmark-profile-create">
             <input
@@ -149,16 +133,16 @@ const TagFilterBar = ({
                   setNewName('');
                 }
               }}
-              placeholder="Tag name"
+              placeholder="Profile name"
               className="bookmark-profile-create-input"
-              disabled={createTag.isPending}
+              disabled={createProfile.isPending}
             />
             <div className="bookmark-profile-create-actions">
               <button
                 type="button"
                 className="bookmark-profile-create-button is-primary"
                 onClick={() => void handleCreate()}
-                disabled={!newName.trim() || createTag.isPending}
+                disabled={!newName.trim() || createProfile.isPending}
               >
                 Add
               </button>
@@ -177,10 +161,10 @@ const TagFilterBar = ({
         ) : (
           <button
             type="button"
-            className="bookmark-tag-new"
+            className="bookmark-profile-new"
             onClick={() => setIsCreating(true)}
           >
-            New tag
+            New profile
           </button>
         )}
       </div>
@@ -188,4 +172,4 @@ const TagFilterBar = ({
   );
 };
 
-export default TagFilterBar;
+export default ProfileFilterBar;

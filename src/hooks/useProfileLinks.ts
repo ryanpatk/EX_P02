@@ -8,9 +8,28 @@ export const profileLinkKeys = {
   lists: () => [...profileLinkKeys.all, 'list'] as const,
   list: (filters: Record<string, unknown>) => [...profileLinkKeys.lists(), { filters }] as const,
   byProfile: (profileId: string) => [...profileLinkKeys.lists(), { profileId }] as const,
+  membership: () => [...profileLinkKeys.lists(), 'membership'] as const,
 }
 
 export const profileLinksApi = {
+  /** All profile ↔ link pairs for the current user (RLS). Lightweight filter + counts. */
+  listMembership: async (): Promise<{ profile_id: string; link_id: string }[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('profile_links')
+        .select('profile_id, link_id')
+
+      if (error) throw error
+      return data || []
+    } catch (error: unknown) {
+      const message = getErrorMessage(error)
+      if (message.includes('profile_links') && message.includes('does not exist')) {
+        return []
+      }
+      throw error
+    }
+  },
+
   getByProfile: async (profileId: string): Promise<ProfileLinkWithLink[]> => {
     try {
       const { data, error } = await supabase
@@ -106,6 +125,13 @@ export const useProfileLinks = (profileId: string) => {
   })
 }
 
+export const useProfileLinkMembership = () => {
+  return useQuery({
+    queryKey: profileLinkKeys.membership(),
+    queryFn: () => profileLinksApi.listMembership(),
+  })
+}
+
 export const useAddLinksToProfile = () => {
   const queryClient = useQueryClient()
 
@@ -114,6 +140,7 @@ export const useAddLinksToProfile = () => {
       profileLinksApi.addLinks(profileId, linkIds),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: profileLinkKeys.byProfile(variables.profileId) })
+      queryClient.invalidateQueries({ queryKey: profileLinkKeys.membership() })
     },
   })
 }
@@ -126,6 +153,7 @@ export const useRemoveLinkFromProfile = () => {
       profileLinksApi.removeLink(profileId, linkId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: profileLinkKeys.byProfile(variables.profileId) })
+      queryClient.invalidateQueries({ queryKey: profileLinkKeys.membership() })
     },
   })
 }

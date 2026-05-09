@@ -46,6 +46,7 @@ export interface Link {
   favicon_url?: string
   preview_image_url?: string
   tag_id?: string
+  is_super_favorite?: boolean
   created_at: string
   updated_at: string
   order_index: number
@@ -133,6 +134,7 @@ export interface UpdateLinkData {
   preview_image_url?: string
   tag_id?: string
   order_index?: number
+  is_super_favorite?: boolean
 }
 
 // Supabase database schema type

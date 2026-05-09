@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
 import { Profile, CreateProfileData, UpdateProfileData } from '../types/database'
 import { getErrorMessage } from '../utils/errors'
+import { profileLinkKeys } from './useProfileLinks'
 
 export const profileKeys = {
   all: ['profiles'] as const,
@@ -134,6 +135,7 @@ export const useDeleteProfile = () => {
     mutationFn: profilesApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: profileKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: profileLinkKeys.membership() })
     },
   })
 }

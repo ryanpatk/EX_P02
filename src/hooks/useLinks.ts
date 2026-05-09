@@ -375,6 +375,7 @@ export const useCreateLink = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         order_index: linkData.order_index || 0,
+        is_super_favorite: false,
         tag: undefined,
         project: undefined,
       }

@@ -1,101 +1,26 @@
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
-import { useDarkMode } from '../hooks/useDarkMode';
-import type { Profile } from '../types/database';
+import type { LinkWithTag } from '../types/database';
+import type { ScrapedUrlData } from '../hooks/useUrlScraper';
 import supabase from '../supabase';
-import ProfilePickerPopover from './ProfilePickerPopover';
-
-type DashboardView = 'links' | 'profiles';
 
 interface AppHeaderProps {
   user: User | null;
-  showLinks: boolean;
-  showProfiles: boolean;
-  summaryLabel: string;
   selectedCount: number;
   selectionMode: boolean;
-  profiles?: Profile[];
-  onAddSelectedToProfile?: (profileId: string) => Promise<void>;
-  addToProfilePending?: boolean;
-  onToggleView: (view: DashboardView) => void;
   onToggleSelectionMode: () => void;
   onClearSelection: () => void;
+  superFavoriteLinks?: LinkWithTag[];
+  scrapedDataMap?: Record<string, ScrapedUrlData>;
+  onSuperFavoriteOpen?: (link: LinkWithTag) => void;
 }
-
-interface ToolbarIconButtonProps {
-  active?: boolean;
-  title: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-
-interface ViewTabProps {
-  active: boolean;
-  label: string;
-  title: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-
-const ToolbarIconButton = ({
-  active = false,
-  title,
-  onClick,
-  children,
-}: ToolbarIconButtonProps) => (
-  <button
-    type="button"
-    className={`bookmark-tool-button ${active ? 'is-active' : ''}`}
-    onClick={onClick}
-    title={title}
-    aria-label={title}
-  >
-    {children}
-  </button>
-);
-
-const ViewTab = ({ active, label, title, onClick, children }: ViewTabProps) => (
-  <button
-    type="button"
-    className={`bookmark-view-tab ${active ? 'is-active' : ''}`}
-    onClick={onClick}
-    title={title}
-    aria-pressed={active}
-  >
-    <span className="bookmark-view-tab-icon" aria-hidden="true">
-      {children}
-    </span>
-    <span>{label}</span>
-  </button>
-);
 
 const SelectIcon = () => (
   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M3 3.25h6.5v1.5H4.5v5H3v-6.5Z" />
     <path d="M13 12.75H6.5v-1.5h5v-5H13v6.5Z" />
-  </svg>
-);
-
-const MoonIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M11.8 10.14A5.6 5.6 0 1 1 5.86 4.2a4.45 4.45 0 0 0 5.94 5.94Z" />
-  </svg>
-);
-
-const LinkViewIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M6.2 9.8 4.6 11.4a2.1 2.1 0 1 1-2.97-2.97L3.9 6.16" />
-    <path d="M9.8 6.2 11.4 4.6a2.1 2.1 0 0 1 2.97 2.97L12.1 9.84" />
-    <path d="m5.5 10.5 5-5" />
-  </svg>
-);
-
-const ProfileViewIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M2.5 4.5h3l1 1h7v6.75H2.5z" />
   </svg>
 );
 
@@ -112,34 +37,66 @@ const DoneIcon = () => (
   </svg>
 );
 
-const PROFILE_PICKER_WIDTH = 308;
-const PROFILE_PICKER_VIEWPORT_PADDING = 12;
-const PROFILE_PICKER_OFFSET_Y = 8;
+const faviconInitials = (link: LinkWithTag, scraped?: ScrapedUrlData) => {
+  const label =
+    scraped?.title?.trim() ||
+    link.title?.trim() ||
+    link.url.replace(/^https?:\/\//, '').split('/')[0] ||
+    '?';
+  return label
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('') || '◆';
+};
+
+const SuperFavoriteButton = ({
+  link,
+  scraped,
+  onOpen,
+}: {
+  link: LinkWithTag;
+  scraped?: ScrapedUrlData;
+  onOpen: (link: LinkWithTag) => void;
+}) => {
+  const [failed, setFailed] = useState(false);
+  const favicon = scraped?.logo ?? link.favicon_url;
+  const label = link.title?.trim() || link.url;
+
+  return (
+    <button
+      type="button"
+      className="bookmark-toolbar-super-fav"
+      onClick={() => onOpen(link)}
+      title={label}
+      aria-label={`Open ${label}`}
+    >
+      {favicon && !failed ? (
+        <img src={favicon} alt="" onError={() => setFailed(true)} />
+      ) : (
+        <span className="bookmark-toolbar-super-fav-initials">
+          {faviconInitials(link, scraped)}
+        </span>
+      )}
+    </button>
+  );
+};
 
 const AppHeader = ({
   user,
-  showLinks,
-  showProfiles,
-  summaryLabel,
   selectedCount,
   selectionMode,
-  profiles = [],
-  onAddSelectedToProfile,
-  addToProfilePending = false,
-  onToggleView,
   onToggleSelectionMode,
   onClearSelection,
+  superFavoriteLinks = [],
+  scrapedDataMap = {},
+  onSuperFavoriteOpen,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
-  const [profilePickerPosition, setProfilePickerPosition] = useState({
-    top: 0,
-    left: 0,
-  });
   const menuRef = useRef<HTMLDivElement>(null);
-  const profilePickerButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
-  const { isDark, toggleDarkMode } = useDarkMode();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -157,64 +114,6 @@ const AppHeader = ({
     };
   }, [isMenuOpen]);
 
-  useEffect(() => {
-    if (!selectionMode || !showLinks || showProfiles) {
-      setIsProfilePickerOpen(false);
-    }
-  }, [selectionMode, showLinks, showProfiles]);
-
-  const updateProfilePickerPosition = () => {
-    if (!profilePickerButtonRef.current) {
-      return;
-    }
-    const rect = profilePickerButtonRef.current.getBoundingClientRect();
-    const nextLeft = Math.min(
-      Math.max(
-        PROFILE_PICKER_VIEWPORT_PADDING,
-        rect.right - PROFILE_PICKER_WIDTH,
-      ),
-      window.innerWidth -
-        PROFILE_PICKER_WIDTH -
-        PROFILE_PICKER_VIEWPORT_PADDING,
-    );
-    setProfilePickerPosition({
-      top: rect.bottom + PROFILE_PICKER_OFFSET_Y,
-      left: nextLeft,
-    });
-  };
-
-  useEffect(() => {
-    if (!isProfilePickerOpen) {
-      return;
-    }
-
-    const run = () => {
-      updateProfilePickerPosition();
-    };
-
-    run();
-    const raf = requestAnimationFrame(run);
-    window.addEventListener('resize', run);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', run);
-    };
-  }, [isProfilePickerOpen]);
-
-  const handleProfilePickerToggle = () => {
-    setIsProfilePickerOpen((prev) => !prev);
-  };
-
-  const handlePickProfile = async (profileId: string) => {
-    if (!onAddSelectedToProfile || selectedCount === 0) return;
-    try {
-      await onAddSelectedToProfile(profileId);
-      setIsProfilePickerOpen(false);
-    } catch {
-      // Keep popover open on failure
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -230,15 +129,15 @@ const AppHeader = ({
     user?.email ||
     'Signed in';
 
-  const showSelectionCta = showLinks;
-  const showClearCta = showSelectionCta && selectionMode;
+  const showSelectionCta = true;
+  const showClearCta = selectionMode;
   const canClearSelection = selectedCount > 0;
-  const showProfilePickerButton =
-    showSelectionCta &&
-    !showProfiles &&
-    selectionMode &&
-    Boolean(onAddSelectedToProfile);
-  const canAddToProfile = selectedCount > 0;
+
+  const handleSuperFav = (link: LinkWithTag) => {
+    if (onSuperFavoriteOpen) {
+      onSuperFavoriteOpen(link);
+    }
+  };
 
   return (
     <header className="bookmark-toolbar">
@@ -249,8 +148,8 @@ const AppHeader = ({
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-label="Open account menu"
         >
-          <span className="bookmark-view-tab-icon" aria-hidden="true">
-            <LinkViewIcon />
+          <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
+            🌸
           </span>
           <span>SuperLinks</span>
         </button>
@@ -278,73 +177,20 @@ const AppHeader = ({
         )}
       </div>
 
-      <div className="bookmark-toolbar-center" aria-label="Dashboard controls">
-        <div className="bookmark-view-switch">
-          <ViewTab
-            active={showLinks}
-            label="LINKS"
-            title={showLinks ? 'Hide links view' : 'Show links view'}
-            onClick={() => onToggleView('links')}
-          >
-            <LinkViewIcon />
-          </ViewTab>
-          <ViewTab
-            active={showProfiles}
-            label="PROFILES"
-            title={showProfiles ? 'Hide profiles view' : 'Show profiles view'}
-            onClick={() => onToggleView('profiles')}
-          >
-            <ProfileViewIcon />
-          </ViewTab>
-        </div>
-
-        <div className="bookmark-toolbar-tools">
-          <ToolbarIconButton
-            active={isDark}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            onClick={toggleDarkMode}
-          >
-            <MoonIcon />
-          </ToolbarIconButton>
+      <div className="bookmark-toolbar-center" aria-label="Super favorites">
+        <div className="bookmark-toolbar-super-favorites">
+          {superFavoriteLinks.map((link) => (
+            <SuperFavoriteButton
+              key={link.id}
+              link={link}
+              scraped={scrapedDataMap[link.url]}
+              onOpen={handleSuperFav}
+            />
+          ))}
         </div>
       </div>
 
       <div className="bookmark-toolbar-status">
-        <span className="bookmark-toolbar-summary">{summaryLabel}</span>
-        {showProfilePickerButton && (
-          <>
-            <button
-              ref={profilePickerButtonRef}
-              type="button"
-              className={`bookmark-toolbar-cta bookmark-toolbar-profile-cta is-secondary ${
-                isProfilePickerOpen ? 'is-open' : ''
-              }`}
-              onClick={handleProfilePickerToggle}
-              disabled={!canAddToProfile || addToProfilePending}
-              title="Add selected bookmarks to a profile"
-              aria-label="Add selected bookmarks to a profile"
-              aria-expanded={isProfilePickerOpen}
-            >
-              <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
-                <ProfileViewIcon />
-              </span>
-              <span>PROFILE</span>
-            </button>
-            {isProfilePickerOpen &&
-              createPortal(
-                <ProfilePickerPopover
-                  profiles={profiles}
-                  selectedCount={selectedCount}
-                  onPickProfile={handlePickProfile}
-                  onClose={() => setIsProfilePickerOpen(false)}
-                  position={profilePickerPosition}
-                  anchorRef={profilePickerButtonRef}
-                  isBusy={addToProfilePending}
-                />,
-                document.body,
-              )}
-          </>
-        )}
         {showClearCta && (
           <button
             type="button"

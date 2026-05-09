@@ -8,7 +8,6 @@ import type { Profile } from '../types/database';
 import supabase from '../supabase';
 import ProfilePickerPopover from './ProfilePickerPopover';
 
-type GridDensity = 'compact' | 'comfortable';
 type DashboardView = 'links' | 'profiles';
 
 interface AppHeaderProps {
@@ -18,12 +17,10 @@ interface AppHeaderProps {
   summaryLabel: string;
   selectedCount: number;
   selectionMode: boolean;
-  density: GridDensity;
   profiles?: Profile[];
   onAddSelectedToProfile?: (profileId: string) => Promise<void>;
   addToProfilePending?: boolean;
   onToggleView: (view: DashboardView) => void;
-  onSetDensity: (density: GridDensity) => void;
   onToggleSelectionMode: () => void;
   onClearSelection: () => void;
 }
@@ -73,23 +70,6 @@ const ViewTab = ({ active, label, title, onClick, children }: ViewTabProps) => (
     </span>
     <span>{label}</span>
   </button>
-);
-
-const CompactGridIcon = () => (
-  <svg viewBox="0 0 16 16" aria-hidden="true">
-    <rect x="2" y="2" width="4" height="4" />
-    <rect x="10" y="2" width="4" height="4" />
-    <rect x="2" y="10" width="4" height="4" />
-    <rect x="10" y="10" width="4" height="4" />
-  </svg>
-);
-
-const ComfortableGridIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <rect x="2.5" y="3" width="11" height="2.25" rx="0.5" />
-    <rect x="2.5" y="7" width="11" height="2.25" rx="0.5" />
-    <rect x="2.5" y="11" width="11" height="2.25" rx="0.5" />
-  </svg>
 );
 
 const SelectIcon = () => (
@@ -143,12 +123,10 @@ const AppHeader = ({
   summaryLabel,
   selectedCount,
   selectionMode,
-  density,
   profiles = [],
   onAddSelectedToProfile,
   addToProfilePending = false,
   onToggleView,
-  onSetDensity,
   onToggleSelectionMode,
   onClearSelection,
 }: AppHeaderProps) => {
@@ -321,23 +299,6 @@ const AppHeader = ({
         </div>
 
         <div className="bookmark-toolbar-tools">
-          <div className="bookmark-tool-group">
-            <ToolbarIconButton
-              active={density === 'compact'}
-              title="Compact grid"
-              onClick={() => onSetDensity('compact')}
-            >
-              <CompactGridIcon />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              active={density === 'comfortable'}
-              title="Comfortable grid"
-              onClick={() => onSetDensity('comfortable')}
-            >
-              <ComfortableGridIcon />
-            </ToolbarIconButton>
-          </div>
-
           <ToolbarIconButton
             active={isDark}
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}

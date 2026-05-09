@@ -11,7 +11,7 @@ const TAG_SELECTOR_OFFSET_Y = 8;
 
 type ScrollParent = HTMLElement | Window;
 
-interface LinkCardProps {
+interface LinkListRowProps {
   link: LinkWithTag;
   index: number;
   scrapedData?: ScrapedUrlData;
@@ -101,7 +101,7 @@ const getScrollParents = (element: HTMLElement | null): ScrollParent[] => {
   return parents;
 };
 
-const LinkCard = ({
+const LinkListRow = ({
   link,
   index,
   scrapedData,
@@ -119,7 +119,7 @@ const LinkCard = ({
   onDeleteTag,
   isSelected = false,
   selectionMode = false,
-}: LinkCardProps) => {
+}: LinkListRowProps) => {
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
   const [localTagIds, setLocalTagIds] = useState<string[] | null>(null);
@@ -129,7 +129,6 @@ const LinkCard = ({
   const initialBulkUnionRef = useRef<string[] | null>(null);
 
   const mergedTags = useMemo(() => getTagsForLink(link), [link]);
-
   const selectedTagIds = mergedTags.map((tag) => tag.id);
   const isBulkTagEdit =
     !!bulkTagEditTargetIds &&
@@ -193,7 +192,7 @@ const LinkCard = ({
     };
   }, [isTagSelectorOpen]);
 
-  const handleCardActivate = () => {
+  const handleRowActivate = () => {
     if (selectionMode) {
       onToggleSelect(link.id, index);
       return;
@@ -239,109 +238,110 @@ const LinkCard = ({
 
   return (
     <article
-      className={`bookmark-card ${isSelected ? 'is-selected' : ''}`}
+      className={`bookmark-list-row ${isSelected ? 'is-selected' : ''}`}
       role="button"
       tabIndex={0}
-      onClick={handleCardActivate}
+      onClick={handleRowActivate}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          handleCardActivate();
+          handleRowActivate();
         }
       }}
     >
-      <div className={`bookmark-card-preview ${isSelected ? 'is-selected' : ''}`}>
-        {onOpenPreview && (
-          <div className="bookmark-card-actions-left">
-            <button
-              ref={previewButtonRef}
-              type="button"
-              className={`bookmark-card-action ${isPreviewOpen ? 'is-open' : ''}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (previewButtonRef.current) {
-                  onOpenPreview(previewButtonRef.current);
-                }
-              }}
-              aria-label="Preview page in floating window"
-              title="Preview page"
-              aria-expanded={isPreviewOpen}
-            >
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="3.75" />
-                <path d="m10.1 10.1 3.4 3.4" />
-              </svg>
-            </button>
-          </div>
-        )}
-        <div className="bookmark-card-actions">
-          {onUpdateTags && onCreateTag && (
-            <button
-              ref={tagButtonRef}
-              type="button"
-              className="bookmark-card-action"
-              onClick={handleTagButtonClick}
-              aria-label={
-                isBulkTagEdit
-                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
-                  : 'Edit tags'
-              }
-              title={
-                isBulkTagEdit
-                  ? `Edit tags for ${bulkTagEditTargetIds?.length ?? 0} bookmarks`
-                  : 'Edit tags'
-              }
-            >
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 3v10" />
-                <path d="M3 8h10" />
-              </svg>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="bookmark-card-action"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(link.id);
-            }}
-            aria-label="Delete link"
-            title="Delete link"
-          >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4 4l8 8" />
-              <path d="M12 4 4 12" />
-            </svg>
-          </button>
-        </div>
-
+      <div className={`bookmark-list-row-media ${isSelected ? 'is-selected' : ''}`}>
         {faviconUrl && !imageFailed ? (
           <img
             src={faviconUrl}
             alt=""
-            className="bookmark-card-favicon"
+            className="bookmark-list-row-favicon"
             onError={(event) => {
               event.currentTarget.style.display = 'none';
               setImageFailed(true);
             }}
           />
         ) : (
-          <span className="bookmark-card-placeholder">{placeholderLabel}</span>
-        )}
-
-        {mergedTags.length > 0 && (
-          <span className="bookmark-card-tag-indicator">{mergedTags.length}</span>
+          <span className="bookmark-list-row-placeholder">{placeholderLabel}</span>
         )}
       </div>
 
-      <div className="bookmark-card-meta">
-        <p className="bookmark-card-title" title={title}>
+      <div className="bookmark-list-row-body">
+        <p className="bookmark-list-row-title" title={title}>
           {title}
         </p>
-        <p className="bookmark-card-subtitle" title={secondaryLabel}>
+        <p className="bookmark-list-row-subtitle" title={secondaryLabel}>
           {secondaryLabel}
         </p>
+        {mergedTags.length > 0 && (
+          <div className="bookmark-list-row-tags">
+            {mergedTags.slice(0, 3).map((tag) => (
+              <span
+                key={tag.id}
+                className="bookmark-list-row-tag"
+                style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
+              >
+                {tag.name}
+              </span>
+            ))}
+            {mergedTags.length > 3 && (
+              <span className="bookmark-list-row-tag is-more">+{mergedTags.length - 3}</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="bookmark-list-row-actions">
+        {onOpenPreview && (
+          <button
+            ref={previewButtonRef}
+            type="button"
+            className={`bookmark-list-row-action ${isPreviewOpen ? 'is-open' : ''}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (previewButtonRef.current) {
+                onOpenPreview(previewButtonRef.current);
+              }
+            }}
+            aria-label="Preview page"
+            title="Preview page"
+            aria-expanded={isPreviewOpen}
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="3.75" />
+              <path d="m10.1 10.1 3.4 3.4" />
+            </svg>
+          </button>
+        )}
+        {onUpdateTags && onCreateTag && (
+          <button
+            ref={tagButtonRef}
+            type="button"
+            className="bookmark-list-row-action"
+            onClick={handleTagButtonClick}
+            aria-label="Edit tags"
+            title="Edit tags"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10" />
+              <path d="M3 8h10" />
+            </svg>
+          </button>
+        )}
+        <button
+          type="button"
+          className="bookmark-list-row-action"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(link.id);
+          }}
+          aria-label="Delete link"
+          title="Delete link"
+        >
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 4l8 8" />
+            <path d="M12 4 4 12" />
+          </svg>
+        </button>
       </div>
 
       {isTagSelectorOpen &&
@@ -367,4 +367,4 @@ const LinkCard = ({
   );
 };
 
-export default LinkCard;
+export default LinkListRow;

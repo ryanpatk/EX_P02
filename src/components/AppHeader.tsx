@@ -18,12 +18,12 @@ interface AppHeaderProps {
   onSuperFavoriteOpen?: (link: LinkWithTag) => void;
 }
 
-const SelectIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3 3.25h6.5v1.5H4.5v5H3v-6.5Z" />
-    <path d="M13 12.75H6.5v-1.5h5v-5H13v6.5Z" />
-  </svg>
-);
+// const SelectIcon = () => (
+//   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+//     <path d="M3 3.25h6.5v1.5H4.5v5H3v-6.5Z" />
+//     <path d="M13 12.75H6.5v-1.5h5v-5H13v6.5Z" />
+//   </svg>
+// );
 
 const CloseIcon = () => (
   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -32,11 +32,11 @@ const CloseIcon = () => (
   </svg>
 );
 
-const DoneIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M4 8.25 6.5 10.75 12 5.25" />
-  </svg>
-);
+// const DoneIcon = () => (
+//   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+//     <path d="M4 8.25 6.5 10.75 12 5.25" />
+//   </svg>
+// );
 
 const faviconInitials = (link: LinkWithTag, scraped?: ScrapedUrlData) => {
   const label =
@@ -210,13 +210,10 @@ const AppHeader = ({
         {showSelectionCta && (
           <button
             type="button"
-            className="bookmark-toolbar-cta is-accent"
+            className="bookmark-toolbar-cta is-accent is-chip"
             onClick={onToggleSelectionMode}
           >
-            <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
-              {selectionMode ? <DoneIcon /> : <SelectIcon />}
-            </span>
-            <span>{selectionMode ? 'DONE' : 'SELECT'}</span>
+            <span>{selectionMode ? 'Done' : 'Select'}</span>
           </button>
         )}
       </div>

@@ -2,8 +2,10 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { LinkWithTag } from '../types/database';
@@ -31,6 +33,15 @@ export interface LinksListRef {
 
 const ROW_HEIGHT = 92;
 const ROW_GAP = 10;
+const STAGGER_MAX_INDEX = 14;
+const STAGGER_STEP_MS = 70;
+const STAGGER_DURATION_MS = 520;
+const STAGGER_COMPLETE_MS =
+  STAGGER_MAX_INDEX * STAGGER_STEP_MS + STAGGER_DURATION_MS + 50;
+
+function linksFingerprint(links: LinkWithTag[]): string {
+  return links.map((link) => link.id).join('\u0001');
+}
 
 const LinksList = forwardRef<LinksListRef, LinksListProps>(
   (
@@ -51,6 +62,48 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
     ref,
   ) => {
     const parentRef = useRef<HTMLDivElement>(null);
+    const [staggerTick, setStaggerTick] = useState(0);
+    const prevLinksFingerprintRef = useRef('');
+
+    const currentLinksFingerprint = useMemo(
+      () => linksFingerprint(links),
+      [links],
+    );
+
+    useEffect(() => {
+      if (prevLinksFingerprintRef.current === currentLinksFingerprint) return;
+      prevLinksFingerprintRef.current = currentLinksFingerprint;
+      if (parentRef.current) {
+        parentRef.current.scrollTop = 0;
+      }
+      setStaggerTick((tick) => tick + 1);
+    }, [currentLinksFingerprint]);
+
+    useLayoutEffect(() => {
+      const scrollEl = parentRef.current;
+      if (!scrollEl || staggerTick === 0) return;
+
+      const prefersReducedMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+      if (prefersReducedMotion) return;
+
+      scrollEl.classList.remove('bookmark-list-scroll--stagger');
+      void scrollEl.offsetWidth;
+      scrollEl.classList.add('bookmark-list-scroll--stagger');
+
+      const endStagger = () => {
+        scrollEl.classList.remove('bookmark-list-scroll--stagger');
+      };
+
+      const completeTimer = window.setTimeout(endStagger, STAGGER_COMPLETE_MS);
+      scrollEl.addEventListener('scroll', endStagger, { passive: true, once: true });
+
+      return () => {
+        window.clearTimeout(completeTimer);
+        scrollEl.removeEventListener('scroll', endStagger);
+      };
+    }, [staggerTick]);
 
     const virtualizer = useVirtualizer({
       count: links.length,
@@ -116,19 +169,23 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
         >
           {virtualItems.map((vi) => {
             const link = links[vi.index];
+            const staggerIndex = Math.min(vi.index, STAGGER_MAX_INDEX);
             return (
               <div
                 key={vi.key}
                 data-index={vi.index}
                 ref={virtualizer.measureElement}
                 className="bookmark-list-virtual-row"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${vi.start}px)`,
-                }}
+                style={
+                  {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${vi.start}px)`,
+                    '--stagger-i': staggerIndex,
+                  } as React.CSSProperties
+                }
               >
                 <LinkListRow
                   link={link}

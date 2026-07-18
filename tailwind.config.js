@@ -4,15 +4,19 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        sans: [
+          'Two Weekend Go',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'sans-serif',
+        ],
         mono: [
-          'JetBrains Mono',
-          'SF Mono',
-          'Monaco',
-          'Cascadia Code',
-          'Roboto Mono',
-          'Consolas',
-          'Courier New',
-          'monospace',
+          'Two Weekend Go',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'sans-serif',
         ],
       },
       colors: {

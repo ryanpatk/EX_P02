@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react';
 import { useCanvasColor } from '../hooks/useCanvasColor';
+import { buildCanvasGradient } from '../utils/canvasColor';
 
 const CanvasColorPicker = () => {
-  const { colorId, setColorId, options } = useCanvasColor();
+  const { colorId, setColorId, options, darkMode } = useCanvasColor();
 
   return (
     <div className="canvas-color-picker">
@@ -25,7 +26,12 @@ const CanvasColorPicker = () => {
               title={option.label}
               className={`canvas-color-swatch${isSelected ? ' is-selected' : ''}`}
               style={
-                { '--swatch-color': option.light } as CSSProperties
+                {
+                  '--swatch-color': buildCanvasGradient(
+                    darkMode ? option.dark : option.light,
+                    darkMode,
+                  ),
+                } as CSSProperties
               }
               onClick={() => setColorId(option.id)}
             />

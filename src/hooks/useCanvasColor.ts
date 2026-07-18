@@ -6,6 +6,7 @@ import {
 import {
   applyCanvasColor,
   getStoredCanvasColorId,
+  isDarkTheme,
   persistCanvasColor,
 } from '../utils/canvasColor';
 
@@ -13,6 +14,7 @@ export function useCanvasColor() {
   const [colorId, setColorIdState] = useState<CanvasColorId>(() =>
     getStoredCanvasColorId(),
   );
+  const [darkMode, setDarkMode] = useState(() => isDarkTheme());
 
   useEffect(() => {
     applyCanvasColor(colorId);
@@ -22,6 +24,7 @@ export function useCanvasColor() {
   useEffect(() => {
     const root = document.documentElement;
     const observer = new MutationObserver(() => {
+      setDarkMode(isDarkTheme());
       applyCanvasColor(colorId);
     });
 
@@ -41,5 +44,6 @@ export function useCanvasColor() {
     colorId,
     setColorId,
     options: CANVAS_COLOR_OPTIONS,
+    darkMode,
   };
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom';
 import { LinkWithTag } from '../types/database';
 import { ScrapedUrlData } from '../hooks/useUrlScraper';
+import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 
 type ScrollParent = HTMLElement | Window;
 
@@ -196,7 +197,7 @@ const LinkPreviewPopover = ({
           <button
             type="button"
             className="bookmark-link-preview-header-button"
-            onClick={() => window.open(iframeSrc, '_blank', 'noopener,noreferrer')}
+            onClick={() => openUrlInBackgroundTab(iframeSrc)}
           >
             OPEN
           </button>

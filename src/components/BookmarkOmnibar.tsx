@@ -32,9 +32,11 @@ const BookmarkOmnibar = ({
     }
   };
 
-  return (
+  const renderOmnibar = () => (
     <div className="bookmark-omnibar">
-      <div className="bookmark-omnibar-row">
+      <div
+        className={`bookmark-omnibar-row${showAdd ? ' bookmark-omnibar-row--with-add' : ''}`}
+      >
         <input
           id="bookmark-omnibar-input"
           type="text"
@@ -60,6 +62,8 @@ const BookmarkOmnibar = ({
       </div>
     </div>
   );
+
+  return renderOmnibar();
 };
 
 export default BookmarkOmnibar;

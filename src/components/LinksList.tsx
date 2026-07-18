@@ -29,7 +29,7 @@ export interface LinksListRef {
   scrollToIndex: (index: number) => void;
 }
 
-const ROW_HEIGHT = 84;
+const ROW_HEIGHT = 92;
 const ROW_GAP = 10;
 
 const LinksList = forwardRef<LinksListRef, LinksListProps>(
@@ -101,7 +101,7 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
       );
     }
 
-    return (
+    const renderListScroll = () => (
       <div
         ref={parentRef}
         className="bookmark-list-scroll"
@@ -148,6 +148,8 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
         </div>
       </div>
     );
+
+    return renderListScroll();
   },
 );
 

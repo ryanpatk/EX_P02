@@ -44,8 +44,8 @@ const ProjectCard = ({
     isHeaderVariant || className.includes('flex-shrink-0') ? '' : 'w-full';
 
   const baseClasses = isHeaderVariant
-    ? 'text-left px-4 border border-medium-grey flex items-center justify-between group cursor-pointer bg-orange border-l-4 text-white rounded-none flex-shrink-0 transition-all duration-300'
-    : `${widthClass} text-left px-4 border-b border-project-card transition-all duration-300 flex items-center justify-between group cursor-pointer bg-project-card hover:border-l-2 hover:border-project-card hover:shadow-sm`;
+    ? 'text-left px-4 border border-medium-grey flex items-center justify-between group cursor-pointer bg-orange border-l-4 text-white rounded-none flex-shrink-0 transition-[background-color,border-color,transform] duration-300 active:scale-[0.96]'
+    : `${widthClass} text-left px-4 border-b border-project-card transition-[background-color,border-color,box-shadow,transform] duration-300 flex items-center justify-between group cursor-pointer bg-project-card hover:border-l-2 hover:border-project-card hover:shadow-sm active:scale-[0.96]`;
 
   const starButtonClasses = isHeaderVariant
     ? 'ml-2 opacity-100 transition-opacity flex-shrink-0 text-white'

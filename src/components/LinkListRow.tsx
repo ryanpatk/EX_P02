@@ -136,22 +136,26 @@ const LinkListRow = ({
         <p className="bookmark-list-row-subtitle" title={secondaryLabel}>
           {secondaryLabel}
         </p>
-        {mergedTags.length > 0 && (
-          <div className="bookmark-list-row-tags">
-            {mergedTags.slice(0, 3).map((tag) => (
-              <span
-                key={tag.id}
-                className="bookmark-list-row-tag"
-                style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
-              >
-                {tag.name}
-              </span>
-            ))}
-            {mergedTags.length > 3 && (
-              <span className="bookmark-list-row-tag is-more">+{mergedTags.length - 3}</span>
-            )}
-          </div>
-        )}
+        <div
+          className={`bookmark-list-row-tags${
+            mergedTags.length === 0 ? ' is-empty' : ''
+          }`}
+          aria-hidden={mergedTags.length === 0}
+        >
+          {mergedTags.slice(0, 3).map((tag) => (
+            <span
+              key={tag.id}
+              className="bookmark-list-row-tag"
+              style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
+              title={tag.name}
+            >
+              {tag.name}
+            </span>
+          ))}
+          {mergedTags.length > 3 && (
+            <span className="bookmark-list-row-tag is-more">+{mergedTags.length - 3}</span>
+          )}
+        </div>
       </div>
 
       {!hideActions && (

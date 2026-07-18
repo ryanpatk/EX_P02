@@ -1,40 +1,55 @@
-import { useState, useEffect } from 'react'
-import { LinkWithTag } from '../types/database'
-import { useProjects } from '../hooks/useProjects'
-import { useTags, useCreateTag, TAG_COLORS } from '../hooks/useTags'
-import { useUpdateLink } from '../hooks/useLinks'
+import { useEffect, useRef, useState } from 'react';
+import { LinkWithTag } from '../types/database';
+import { useProjects } from '../hooks/useProjects';
+import { useTags, useCreateTag, TAG_COLORS } from '../hooks/useTags';
+import { useUpdateLink } from '../hooks/useLinks';
 
 interface LinkEditModalProps {
-  link: LinkWithTag
-  isOpen: boolean
-  onClose: () => void
-  onDelete: () => void
+  link: LinkWithTag;
+  isOpen: boolean;
+  onClose: () => void;
+  onDelete: () => void;
 }
 
-const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) => {
-  const [editUrl, setEditUrl] = useState(link.url)
-  const [editTitle, setEditTitle] = useState(link.title || '')
-  const [editDescription, setEditDescription] = useState(link.description || '')
-  const [selectedTagId, setSelectedTagId] = useState(link.tag_id || '')
-  const [selectedProjectId, setSelectedProjectId] = useState(link.project_id)
-  const [showNewTagForm, setShowNewTagForm] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
-  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0])
+const LinkEditModal = ({
+  link,
+  isOpen,
+  onClose,
+  onDelete,
+}: LinkEditModalProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [editUrl, setEditUrl] = useState(link.url);
+  const [editTitle, setEditTitle] = useState(link.title || '');
+  const [editDescription, setEditDescription] = useState(link.description || '');
+  const [selectedTagId, setSelectedTagId] = useState(link.tag_id || '');
+  const [selectedProjectId, setSelectedProjectId] = useState(link.project_id);
+  const [showNewTagForm, setShowNewTagForm] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
 
-  const { data: projects } = useProjects()
-  const { data: tags } = useTags()
-  const updateLink = useUpdateLink()
-  const createTag = useCreateTag()
+  const { data: projects } = useProjects();
+  const { data: tags } = useTags();
+  const updateLink = useUpdateLink();
+  const createTag = useCreateTag();
 
-  // Reset form when link changes
   useEffect(() => {
-    setEditUrl(link.url)
-    setEditTitle(link.title || '')
-    setEditDescription(link.description || '')
-    setSelectedTagId(link.tag_id || '')
-    setSelectedProjectId(link.project_id)
-  }, [link])
+    setEditUrl(link.url);
+    setEditTitle(link.title || '');
+    setEditDescription(link.description || '');
+    setSelectedTagId(link.tag_id || '');
+    setSelectedProjectId(link.project_id);
+  }, [link]);
 
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+    } else if (!isOpen && dialog.open) {
+      dialog.close();
+    }
+  }, [isOpen]);
 
   const handleSave = async () => {
     const updates = {
@@ -43,256 +58,255 @@ const LinkEditModal = ({ link, isOpen, onClose, onDelete }: LinkEditModalProps) 
       description: editDescription.trim() || undefined,
       tag_id: selectedTagId || undefined,
       project_id: selectedProjectId,
-    }
+    };
 
-    const oldProjectId = link.project_id !== selectedProjectId ? link.project_id : undefined
+    const oldProjectId =
+      link.project_id !== selectedProjectId ? link.project_id : undefined;
 
     try {
       await updateLink.mutateAsync({
         id: link.id,
         updates,
-        oldProjectId
-      })
-      onClose()
+        oldProjectId,
+      });
+      onClose();
     } catch (error) {
-      console.error('Failed to update link:', error)
+      console.error('Failed to update link:', error);
     }
-  }
+  };
 
   const handleCreateTag = async () => {
-    if (!newTagName.trim()) return
+    if (!newTagName.trim()) return;
 
     try {
       const newTag = await createTag.mutateAsync({
         name: newTagName.trim(),
-        color: newTagColor
-      })
-      setSelectedTagId(newTag.id)
-      setNewTagName('')
-      setShowNewTagForm(false)
+        color: newTagColor,
+      });
+      setSelectedTagId(newTag.id);
+      setNewTagName('');
+      setShowNewTagForm(false);
     } catch (error) {
-      console.error('Failed to create tag:', error)
+      console.error('Failed to create tag:', error);
     }
-  }
+  };
 
-  const currentProject = projects?.find(p => p.id === selectedProjectId)
+  const currentProject = projects?.find((p) => p.id === selectedProjectId);
   const hasChanges =
     editUrl !== link.url ||
     editTitle !== (link.title || '') ||
     editDescription !== (link.description || '') ||
     selectedTagId !== (link.tag_id || '') ||
-    selectedProjectId !== link.project_id
-
-  if (!isOpen) {
-    return null
-  }
+    selectedProjectId !== link.project_id;
 
   return (
-    <div className="h-full flex flex-col bg-white border-2 border-medium-grey mx-5">
-      {/* Header */}
-      <div className="border-b-2 border-medium-grey p-4 bg-light-grey">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {link.favicon_url && (
-              <img
-                src={link.favicon_url}
-                alt=""
-                className="w-5 h-5 flex-shrink-0"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            )}
-            <h2 className="text-lg font-black uppercase tracking-tight">Edit Link</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-xl font-black hover:text-orange transition-colors"
-          >
-            ×
-          </button>
+    <dialog
+      ref={dialogRef}
+      className="app-modal"
+      aria-labelledby="link-edit-title"
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === dialogRef.current) {
+          onClose();
+        }
+      }}
+    >
+      <header className="app-modal-header">
+        <div className="app-modal-title-wrap">
+          {link.favicon_url && (
+            <img
+              src={link.favicon_url}
+              alt=""
+              width={20}
+              height={20}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+          <h2 id="link-edit-title" className="app-modal-title">
+            Edit link
+          </h2>
         </div>
-      </div>
+        <button
+          type="button"
+          className="app-modal-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </header>
 
-      {/* Content */}
-      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-        {/* URL */}
-        <div className="space-y-2">
-          <label className="block text-sm font-bold uppercase tracking-wide text-black">
+      <div className="app-modal-body">
+        <div className="app-field">
+          <label className="app-field-label" htmlFor="edit-link-url">
             URL
           </label>
           <input
+            id="edit-link-url"
             type="url"
             value={editUrl}
             onChange={(e) => setEditUrl(e.target.value)}
-            className="input-field w-full font-mono text-sm"
+            className="input-field"
             placeholder="https://example.com"
           />
         </div>
 
-        {/* Title */}
-        <div className="space-y-2">
-          <label className="block text-sm font-bold uppercase tracking-wide text-black">
+        <div className="app-field">
+          <label className="app-field-label" htmlFor="edit-link-title">
             Title
           </label>
           <input
+            id="edit-link-title"
             type="text"
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
-            className="input-field w-full font-bold"
-            placeholder="Link title (optional)"
+            className="input-field"
+            placeholder="Optional title"
           />
         </div>
 
-        {/* Description */}
-        <div className="space-y-2">
-          <label className="block text-sm font-bold uppercase tracking-wide text-black">
+        <div className="app-field">
+          <label className="app-field-label" htmlFor="edit-link-description">
             Description
           </label>
           <textarea
+            id="edit-link-description"
             value={editDescription}
             onChange={(e) => setEditDescription(e.target.value)}
-            className="input-field w-full font-medium resize-none"
+            className="input-field"
             rows={3}
-            placeholder="Link description (optional)"
+            placeholder="Optional description"
           />
         </div>
 
-        {/* Tag Selection */}
-        <div className="space-y-2">
-          <label className="block text-sm font-bold uppercase tracking-wide text-black">
+        <div className="app-field">
+          <label className="app-field-label" htmlFor="edit-link-tag">
             Tag
           </label>
-          <div className="space-y-3">
-            <select
-              value={selectedTagId}
-              onChange={(e) => setSelectedTagId(e.target.value)}
-              className="input-field w-full font-medium"
-            >
-              <option value="">No tag</option>
-              {tags?.map(tag => (
-                <option key={tag.id} value={tag.id}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
+          <select
+            id="edit-link-tag"
+            value={selectedTagId}
+            onChange={(e) => setSelectedTagId(e.target.value)}
+            className="input-field"
+          >
+            <option value="">No tag</option>
+            {tags?.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
 
-            {!showNewTagForm ? (
-              <button
-                onClick={() => setShowNewTagForm(true)}
-                className="text-sm font-bold text-orange hover:text-orange-muted transition-colors"
-              >
-                + Create New Tag
-              </button>
-            ) : (
-              <div className="border border-medium-grey p-3 bg-gray-50 space-y-3">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={newTagName}
-                    onChange={(e) => setNewTagName(e.target.value)}
-                    className="input-field flex-1 text-sm font-medium"
-                    placeholder="Tag name"
-                    autoFocus
-                  />
-                  <div className="flex items-center space-x-1">
-                    <div
-                      className="w-6 h-6 border-2 border-medium-grey flex-shrink-0"
-                      style={{
-                        backgroundColor: newTagColor,
-                        minWidth: '24px',
-                        minHeight: '24px'
-                      }}
-                      title={`Selected color: ${newTagColor}`}
-                    />
-                    <select
-                      value={newTagColor}
-                      onChange={(e) => setNewTagColor(e.target.value)}
-                      className="input-field text-sm w-20"
-                      style={{ fontSize: '11px' }}
-                    >
-                      {TAG_COLORS.map(color => (
-                        <option key={color} value={color}>
-                          {color.replace('#', '')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={handleCreateTag}
-                    disabled={createTag.isPending || !newTagName.trim()}
-                    className="btn-primary text-xs disabled:opacity-50"
-                  >
-                    {createTag.isPending ? 'Creating...' : 'Create'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowNewTagForm(false)
-                      setNewTagName('')
-                    }}
-                    className="btn-secondary text-xs"
-                  >
-                    Cancel
-                  </button>
-                </div>
+          {!showNewTagForm ? (
+            <button
+              type="button"
+              onClick={() => setShowNewTagForm(true)}
+              className="btn-secondary btn-compact"
+            >
+              Create new tag
+            </button>
+          ) : (
+            <div className="app-modal-panel">
+              <div className="app-field">
+                <label className="app-field-label" htmlFor="new-tag-name">
+                  Tag name
+                </label>
+                <input
+                  id="new-tag-name"
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  className="input-field"
+                  autoFocus
+                />
               </div>
-            )}
-          </div>
+              <div className="app-field">
+                <label className="app-field-label" htmlFor="new-tag-color">
+                  Color
+                </label>
+                <select
+                  id="new-tag-color"
+                  value={newTagColor}
+                  onChange={(e) => setNewTagColor(e.target.value)}
+                  className="input-field"
+                >
+                  {TAG_COLORS.map((color) => (
+                    <option key={color} value={color}>
+                      {color.replace('#', '').toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="app-modal-footer-actions">
+                <button
+                  type="button"
+                  onClick={handleCreateTag}
+                  disabled={createTag.isPending || !newTagName.trim()}
+                  className="btn-primary btn-compact"
+                >
+                  {createTag.isPending ? 'Creating…' : 'Create tag'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewTagForm(false);
+                    setNewTagName('');
+                  }}
+                  className="btn-secondary btn-compact"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Project Selection */}
-        <div className="space-y-2">
-          <label className="block text-sm font-bold uppercase tracking-wide text-black">
+        <div className="app-field">
+          <label className="app-field-label" htmlFor="edit-link-project">
             Project
           </label>
           <select
+            id="edit-link-project"
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="input-field w-full font-bold"
+            className="input-field"
           >
-            {projects?.map(project => (
+            {projects?.map((project) => (
               <option key={project.id} value={project.id}>
                 {project.name}
               </option>
             ))}
           </select>
           {selectedProjectId !== link.project_id && currentProject && (
-            <p className="text-xs text-orange font-medium">
-              ⚠ This will move the link to "{currentProject.name}"
+            <p className="app-modal-hint">
+              This will move the link to “{currentProject.name}”.
             </p>
           )}
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t-2 border-medium-grey p-4 bg-light-grey flex items-center justify-between">
-        <button
-          onClick={onDelete}
-          className="btn-secondary text-red-500 border-red-500 hover:bg-red-50 font-bold"
-        >
-          Delete Link
+      <footer className="app-modal-footer">
+        <button type="button" onClick={onDelete} className="btn-danger">
+          Delete link
         </button>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={onClose}
-            className="btn-secondary font-bold"
-          >
+        <div className="app-modal-footer-actions">
+          <button type="button" onClick={onClose} className="btn-secondary">
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={updateLink.isPending || !editUrl.trim() || !hasChanges}
-            className="btn-primary font-bold disabled:opacity-50"
+            className="btn-primary"
           >
-            {updateLink.isPending ? 'Saving...' : 'Save Changes'}
+            {updateLink.isPending ? 'Saving…' : 'Save changes'}
           </button>
         </div>
-      </div>
-    </div>
-  )
-}
+      </footer>
+    </dialog>
+  );
+};
 
-export default LinkEditModal
+export default LinkEditModal;

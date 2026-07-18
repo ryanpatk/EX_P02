@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-18T16:10:00.000Z",
+  "title": "Design System: Superlinks",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "#f3f5f9",
+        "tonalRamp": ["#1c2433", "#2a3344", "#3d4659", "#5c6679", "#8b949e", "#c5cad4", "#e4e8f0", "#f3f5f9"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1c2433", "#2a3344", "#3d4659", "#5c6679", "#8b949e", "#d0d7e2", "#f8f9fc", "#ffffff"]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#3d5eff",
+        "tonalRamp": ["#0a1a66", "#142a99", "#2f4ae6", "#3d5eff", "#6b85ff", "#99adff", "#ccd6ff", "#eef1ff"]
+      },
+      "active-bg": {
+        "role": "primary",
+        "displayName": "Operator Ink",
+        "canonical": "#1c2433",
+        "tonalRamp": ["#070b12", "#0d121c", "#1c2433", "#2a3344", "#3d4659", "#5c6679", "#8b949e", "#c5cad4"]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#5c6679",
+        "tonalRamp": ["#1c2433", "#2a3344", "#3d4659", "#5c6679", "#6b7588", "#8b949e", "#b8bec8", "#e4e8f0"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Header / Brand",
+        "purpose": "Toolbar brand, page titles, modal titles."
+      },
+      "body": {
+        "displayName": "UI Body",
+        "purpose": "Default dashboard and form copy at 13px."
+      },
+      "label": {
+        "displayName": "UI Label",
+        "purpose": "Form labels, button text, chip labels at 12px."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-fast",
+        "value": "150ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Default hover/focus transitions on controls."
+      },
+      {
+        "name": "ease-medium",
+        "value": "180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Rail sheet slide, grid column changes."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "899px" },
+      { "name": "desktop", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main commit actions: sign in, save, add link.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Sign in</button>",
+      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border: 1px solid var(--bookmark-active-bg, #1c2433); border-radius: 999px; background: var(--bookmark-active-bg, #1c2433); color: var(--bookmark-active-fg, #fff); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-primary:hover { background: var(--bookmark-text, #1c2433); } .ds-btn-primary:focus-visible { outline: 2px solid var(--bookmark-accent, #3d5eff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary actions: GitHub auth, cancel, filters.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Continue with GitHub</button>",
+      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 16px; border: 1px solid var(--bookmark-control-border, #dce2ee); border-radius: 999px; background: var(--bookmark-control-bg, #f1f4fa); color: var(--bookmark-text, #1c2433); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-secondary:hover { border-color: var(--bookmark-border-strong, #d0d7e2); background: var(--bookmark-surface-muted, #f8f9fc); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--bookmark-accent, #3d5eff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Omnibar, auth fields, modal inputs.",
+      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"Email\" />",
+      "css": ".ds-input { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--bookmark-control-border, #dce2ee); border-radius: 12px; background: var(--bookmark-surface, #fff); color: var(--bookmark-text, #1c2433); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; transition: border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-input::placeholder { color: var(--bookmark-muted, #5c6679); } .ds-input:focus { outline: none; border-color: var(--bookmark-accent, #3d5eff); } .ds-input:focus-visible { outline: 2px solid var(--bookmark-accent, #3d5eff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Tag Chip",
+      "kind": "chip",
+      "refersTo": "tag-chip",
+      "description": "Tag rail filter chip; neutral default, color on hover/active.",
+      "html": "<button class=\"ds-tag-chip\" type=\"button\">Research <span>12</span></button>",
+      "css": ".ds-tag-chip { border: 0; border-radius: 999px; margin: 0; padding: 6px 12px; background: transparent; color: var(--bookmark-text, #1c2433); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; transition: background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-tag-chip:hover { background: var(--bookmark-control-bg, #f1f4fa); } .ds-tag-chip.is-active { background: var(--bookmark-active-bg, #1c2433); color: var(--bookmark-active-fg, #fff); } .ds-tag-chip:focus-visible { outline: 2px solid var(--bookmark-accent, #3d5eff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Link List Row",
+      "kind": "card",
+      "refersTo": "bookmark-list-row",
+      "description": "Primary bookmark list item in the feed column.",
+      "html": "<article class=\"ds-list-row\"><div class=\"ds-list-row-media\"></div><div class=\"ds-list-row-body\"><h3>Example link</h3><p>example.com</p></div></article>",
+      "css": ".ds-list-row { display: flex; align-items: flex-start; gap: 12px; min-height: 88px; padding: 12px 14px; border: 1px solid var(--bookmark-border, #e4e8f0); border-radius: 14px; background: var(--bookmark-surface, #fff); cursor: pointer; transition: border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-list-row:hover { border-color: var(--bookmark-border-strong, #d0d7e2); } .ds-list-row.is-selected { border-color: var(--bookmark-accent, #3d5eff); box-shadow: 0 0 0 2px rgba(61, 94, 255, 0.2); } .ds-list-row-media { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--bookmark-border, #e4e8f0); background: var(--bookmark-surface-muted, #f8f9fc); flex-shrink: 0; } .ds-list-row-body h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--bookmark-text, #1c2433); } .ds-list-row-body p { margin: 4px 0 0; font-size: 12px; color: var(--bookmark-muted, #5c6679); }"
+    },
+    {
+      "name": "App Modal",
+      "kind": "custom",
+      "refersTo": "app-modal",
+      "description": "Native dialog shell for edit flows.",
+      "html": "<dialog class=\"ds-modal\" open><header class=\"ds-modal-header\"><h2>Edit link</h2></header><div class=\"ds-modal-body\"><p>Form content</p></div></dialog>",
+      "css": ".ds-modal { width: min(520px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--bookmark-border, #e4e8f0); border-radius: 14px; background: var(--bookmark-surface, #fff); color: var(--bookmark-text, #1c2433); overflow: hidden; } .ds-modal::backdrop { background: rgba(15, 23, 42, 0.35); } .ds-modal-header { padding: 16px 18px; border-bottom: 1px solid var(--bookmark-border, #e4e8f0); background: var(--bookmark-surface-muted, #f8f9fc); } .ds-modal-header h2 { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; } .ds-modal-body { padding: 16px 18px; font-size: 13px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Link Operator's Desk",
+    "overview": "Superlinks looks like a single-purpose workbench: cool neutral surfaces, tight typography, and accent color only where it marks selection or primary action. The bookmark dashboard is the canonical surface—auth, modals, tag selectors, and project views inherit its tokens from :root.",
+    "keyCharacteristics": [
+      "Flat, border-defined panels on a soft canvas",
+      "Inter for header chrome; Plus Jakarta Sans for UI body",
+      "Pill buttons and inputs at 44px touch height on mobile",
+      "Native dialog modals with muted header/footer bars",
+      "Dark theme via data-theme token swap"
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "Accent blue appears on focus, selection, primary links, and bulk-target dashed chips—not as ambient page tint.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Do not pair 1px borders with wide soft drop shadows on cards or buttons.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Fixed UI Scale Rule",
+        "body": "Dashboard UI uses fixed px steps (13/12/14/11), not fluid clamp headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Ghost Card Rule",
+        "body": "List rows and auth cards do not use box-shadow plus border as paired decoration.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use --bookmark-* tokens for any new surface.",
+      "Do keep touch targets at 44px on mobile for rails, toolbar CTAs, and row actions.",
+      "Do use visible form labels and :focus-visible rings on every custom control."
+    ],
+    "donts": [
+      "Don't use rainbow stripe card headers or offset brutalist button shadows on new work.",
+      "Don't pair 1px borders with wide soft shadows (ghost-card pattern).",
+      "Don't use decorative grid overlays or cream magazine backgrounds on product surfaces.",
+      "Don't split component vocabulary between dashboard and auth."
+    ]
+  }
+}

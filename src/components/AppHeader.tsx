@@ -43,13 +43,15 @@ const faviconInitials = (link: LinkWithTag, scraped?: ScrapedUrlData) => {
     link.title?.trim() ||
     link.url.replace(/^https?:\/\//, '').split('/')[0] ||
     '?';
-  return label
-    .replace(/[^a-zA-Z0-9 ]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('') || '◆';
+  return (
+    label
+      .replace(/[^a-zA-Z0-9 ]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join('') || '◆'
+  );
 };
 
 const SuperFavoriteButton = ({
@@ -144,14 +146,13 @@ const AppHeader = ({
       <div className="bookmark-toolbar-brand-wrap" ref={menuRef}>
         <button
           type="button"
-          className="bookmark-toolbar-brand"
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-label="Open account menu"
         >
-          <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
-            🌸
-          </span>
-          <span>SuperLinks</span>
+          {/* <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
+            🌼
+          </span> */}
+          <span className="bookmark-toolbar-brand">superlinks</span>
         </button>
 
         {isMenuOpen && (

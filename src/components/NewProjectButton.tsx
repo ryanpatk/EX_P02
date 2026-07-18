@@ -8,7 +8,7 @@ const NewProjectButton = ({ onClick, disabled }: NewProjectButtonProps) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center justify-center gap-2 px-4 py-2 text-black border border-medium-grey bg-white hover:bg-white transition-all duration-300 text-sm font-medium rounded-sm disabled:opacity-50 disabled:cursor-not-allowed z-10 whitespace-nowrap cursor-pointer"
+      className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-black border border-medium-grey bg-white hover:bg-white transition-[background-color,border-color,transform] duration-300 active:scale-[0.96] text-sm font-medium rounded-sm disabled:opacity-50 disabled:cursor-not-allowed z-10 whitespace-nowrap cursor-pointer"
       style={{
         width: '80%',
       }}

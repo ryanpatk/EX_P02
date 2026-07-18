@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Tag } from '../types/database';
 import { useCreateTag, TAG_COLORS } from '../hooks/useTags';
 
@@ -23,6 +23,7 @@ interface TagChipProps {
   disabled?: boolean;
   title?: string;
   bulkTarget?: boolean;
+  accentColor?: string | null;
 }
 
 const TagChip = ({
@@ -33,20 +34,29 @@ const TagChip = ({
   disabled,
   title,
   bulkTarget,
-}: TagChipProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
-      bulkTarget ? ' is-bulk-target' : ''
-    }`}
-  >
-    <span className="bookmark-tag-chip-label">{label}</span>
-    <span className="bookmark-tag-chip-count">{count}</span>
-  </button>
-);
+  accentColor,
+}: TagChipProps) => {
+  const hasAccent = Boolean(accentColor?.trim()) && !bulkTarget;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
+        bulkTarget ? ' is-bulk-target' : ''
+      }${hasAccent ? ' has-accent' : ''}`}
+      style={
+        hasAccent
+          ? ({ ['--tag-accent' as string]: accentColor } as CSSProperties)
+          : undefined
+      }
+    >
+      <span className="bookmark-tag-chip-label">{label}</span>
+      <span className="bookmark-tag-chip-count">{count}</span>
+    </button>
+  );
+};
 
 const TagFilterBar = ({
   tags,
@@ -119,6 +129,7 @@ const TagFilterBar = ({
             onClick={() => onToggleTag(tag.id)}
             bulkTarget={bulkAssignMode}
             title={bulkAssignMode ? `Add “${tag.name}” to selected bookmarks` : undefined}
+            accentColor={tag.color}
           />
         ))}
 

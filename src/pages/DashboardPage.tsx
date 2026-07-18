@@ -23,6 +23,7 @@ import LinkDetailsPanel from '../components/LinkDetailsPanel';
 import ProfileFilterBar from '../components/ProfileFilterBar';
 import TagFilterBar from '../components/TagFilterBar';
 import { getTagIdsForLink } from '../utils/linkTags';
+import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
 
 type MobileRail = 'none' | 'tags' | 'profiles';
@@ -405,7 +406,7 @@ const DashboardPage = () => {
 
   const handleOpenLink = useCallback((link: LinkWithTag, index: number) => {
     void index;
-    window.open(link.url, '_blank', 'noopener,noreferrer');
+    openUrlInBackgroundTab(link.url);
   }, []);
 
   const handleOpenLinkDetails = useCallback(
@@ -417,7 +418,7 @@ const DashboardPage = () => {
   );
 
   const handleSuperFavoriteHeaderOpen = useCallback((link: LinkWithTag) => {
-    window.open(link.url, '_blank', 'noopener,noreferrer');
+    openUrlInBackgroundTab(link.url);
   }, []);
 
   const handleDetailUpdateUrl = useCallback(
@@ -679,6 +680,68 @@ const DashboardPage = () => {
     setDetailLinkId(null);
   }, [searchQuery, selectedTagIds, includeUntagged, selectedProfileId, clearSelectedLinks]);
 
+  const bookmarkFeedMainInner = () => (
+    <div className="bookmark-feed-main-inner">
+      <div className="bookmark-list-panel-stack">
+        <div
+          className={
+            selectionMode
+              ? 'bookmark-list-panel is-selection-mode'
+              : 'bookmark-list-panel'
+          }
+        >
+          <LinksList
+            links={filteredLinks}
+            scrapedDataMap={scrapedDataMap}
+            onOpenLink={handleOpenLink}
+            onOpenLinkDetails={handleOpenLinkDetails}
+            activeDetailsLinkId={detailLinkId}
+            onVisibleLinksChange={handleVisibleLinksChange}
+            selectedLinkIds={selectedLinkIds}
+            emptyTitle={emptyTitle}
+            emptySubtitle={emptySubtitle}
+            onToggleSelect={handleToggleSelection}
+            selectionMode={selectionMode}
+          />
+        </div>
+        {detailLink ? (
+          <div
+            className="bookmark-link-details-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Link details"
+          >
+            <div className="bookmark-link-details-scroll">
+              <LinkDetailsPanel
+                link={detailLink}
+                scrapedData={scrapedDataMap[detailLink.url]}
+                membershipRows={membershipRows ?? []}
+                profiles={profiles ?? []}
+                availableTags={tags ?? []}
+                onBack={() => setDetailLinkId(null)}
+                onUpdateUrl={handleDetailUpdateUrl}
+                onToggleSuperFavorite={handleDetailToggleSuper}
+                onUpdateTags={async (tagIds) => {
+                  if (!detailLinkId) return;
+                  await setLinkTags.mutateAsync({
+                    linkId: detailLinkId,
+                    tagIds,
+                  });
+                }}
+                onCreateTag={handleCreateTag}
+                onDeleteTag={handleDeleteTag}
+                onDeleteLink={handleDeleteLinkFromDetail}
+                urlPending={updateLink.isPending}
+                superFavoritePending={updateLink.isPending}
+                deletePending={deleteLink.isPending}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <div className="bookmark-dashboard">
       <AppHeader
@@ -787,65 +850,7 @@ const DashboardPage = () => {
             </div>
           )}
 
-          <div className="bookmark-feed-main-inner">
-            <div className="bookmark-list-panel-stack">
-              <div
-                className={
-                  selectionMode
-                    ? 'bookmark-list-panel is-selection-mode'
-                    : 'bookmark-list-panel'
-                }
-              >
-                <LinksList
-                  links={filteredLinks}
-                  scrapedDataMap={scrapedDataMap}
-                  onOpenLink={handleOpenLink}
-                  onOpenLinkDetails={handleOpenLinkDetails}
-                  activeDetailsLinkId={detailLinkId}
-                  onVisibleLinksChange={handleVisibleLinksChange}
-                  selectedLinkIds={selectedLinkIds}
-                  emptyTitle={emptyTitle}
-                  emptySubtitle={emptySubtitle}
-                  onToggleSelect={handleToggleSelection}
-                  selectionMode={selectionMode}
-                />
-              </div>
-              {detailLink ? (
-                <div
-                  className="bookmark-link-details-overlay"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Link details"
-                >
-                  <div className="bookmark-link-details-scroll">
-                    <LinkDetailsPanel
-                      link={detailLink}
-                      scrapedData={scrapedDataMap[detailLink.url]}
-                      membershipRows={membershipRows ?? []}
-                      profiles={profiles ?? []}
-                      availableTags={tags ?? []}
-                      onBack={() => setDetailLinkId(null)}
-                      onUpdateUrl={handleDetailUpdateUrl}
-                      onToggleSuperFavorite={handleDetailToggleSuper}
-                      onUpdateTags={async (tagIds) => {
-                        if (!detailLinkId) return;
-                        await setLinkTags.mutateAsync({
-                          linkId: detailLinkId,
-                          tagIds,
-                        });
-                      }}
-                      onCreateTag={handleCreateTag}
-                      onDeleteTag={handleDeleteTag}
-                      onDeleteLink={handleDeleteLinkFromDetail}
-                      urlPending={updateLink.isPending}
-                      superFavoritePending={updateLink.isPending}
-                      deletePending={deleteLink.isPending}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          {bookmarkFeedMainInner()}
         </main>
 
         <aside

@@ -1,21 +1,27 @@
-import { Link } from "react-router-dom";
-import { useSession } from "../context/SessionContext";
+import { Link } from 'react-router-dom';
+import { useSession } from '../context/SessionContext';
+import AppLogo from '../components/AppLogo';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 const ProtectedPage = () => {
   const { session } = useSession();
   return (
-    <div className="page-shell">
+    <div className="app-surface page-shell">
       <div className="page-center">
         <div className="page-card">
-          <div className="page-card-actions">
-            <Link className="btn-secondary text-sm" to="/">
-              ◄ Home
-            </Link>
-          </div>
-          <div className="page-card-header">
-            <h1 className="text-2xl font-bold text-black">This is a Protected Page</h1>
-            <p className="page-muted">Current User: {session?.user.email || "None"}</p>
-          </div>
+          <header className="page-card-header">
+            <div className="page-card-header-row">
+              <AppLogo />
+              <DarkModeToggle />
+            </div>
+            <h1 className="page-card-title">Protected page</h1>
+            <p className="page-muted">
+              Signed in as {session?.user.email || 'unknown user'}
+            </p>
+          </header>
+          <Link className="btn-secondary w-full" to="/">
+            Back to home
+          </Link>
         </div>
       </div>
     </div>

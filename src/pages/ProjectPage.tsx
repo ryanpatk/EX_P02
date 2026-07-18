@@ -14,6 +14,7 @@ import {
 import { useTags } from '../hooks/useTags';
 import { CreateLinkData, LinkWithTag } from '../types/database';
 import LinkEditModal from '../components/LinkEditModal';
+import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 
 const ProjectPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -146,7 +147,7 @@ const ProjectPage = () => {
   };
 
   const handleOpenLink = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openUrlInBackgroundTab(url);
   };
 
   const handleCloseEditModal = () => {
@@ -186,115 +187,111 @@ const ProjectPage = () => {
 
   if (projectLoading || linksLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400"></div>
+      <div className="app-loading">
+        <div className="app-loading-spinner" aria-label="Loading project" />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-xl text-gray-600 font-mono">Project not found</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="btn-primary"
-          >
-            Back
-          </button>
+      <div className="app-surface page-shell">
+        <div className="page-center">
+          <div className="page-card">
+            <header className="page-card-header">
+              <h1 className="page-card-title">Project not found</h1>
+              <p className="page-muted">This project may have been deleted.</p>
+            </header>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="btn-primary w-full"
+            >
+              Back to dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="app-shell h-screen flex flex-col">
+    <div className="app-surface app-shell h-screen flex flex-col">
       {/* Header - Outside container */}
       <div className="project-topbar flex-shrink-0">
         {!isEditing ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
               <button
+                type="button"
                 onClick={() => navigate('/dashboard')}
-                className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
+                className="project-meta-link"
               >
-                ← Back
+                ← Dashboard
               </button>
-
-              <span className="text-gray-400">•</span>
-
-              <h1 className="text-sm font-black text-black tracking-tight uppercase truncate">
-                {project.name}
-              </h1>
-
+              <span className="project-meta-text">·</span>
+              <h1 className="project-title truncate">{project.name}</h1>
               {project.description && (
                 <>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-xs text-gray-600 font-medium truncate">
+                  <span className="project-meta-text">·</span>
+                  <span className="project-meta-text truncate">
                     {project.description}
                   </span>
                 </>
               )}
             </div>
-
-            <div className="flex items-center space-x-1 flex-shrink-0">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
-              >
-                Edit
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="btn-secondary btn-compact"
+            >
+              Edit
+            </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="project-meta-link"
+              >
+                ← Dashboard
+              </button>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate('/dashboard')}
-                  className="text-xs text-gray-600 hover:text-black transition-colors font-medium"
-                >
-                  ← Back
-                </button>
-                <span className="text-gray-400">•</span>
-                <span className="text-xs font-bold text-black uppercase tracking-wide">
-                  Edit Project
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-1 flex-shrink-0">
-                <button
+                  type="button"
                   onClick={handleDeleteProject}
                   disabled={deleteProject.isPending}
-                  className="px-2 py-1 text-xs font-bold transition-colors border border-red-500 bg-white text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  className="btn-danger btn-compact"
                 >
-                  {deleteProject.isPending ? '...' : 'Delete'}
+                  {deleteProject.isPending ? 'Deleting…' : 'Delete'}
                 </button>
                 <button
+                  type="button"
                   onClick={handleCancelEdit}
-                  className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-white text-black hover:bg-gray-50"
+                  className="btn-secondary btn-compact"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleSaveProject}
                   disabled={updateProject.isPending || !editName.trim()}
-                  className="px-2 py-1 text-xs font-bold transition-colors border border-medium-grey bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+                  className="btn-primary btn-compact"
                 >
-                  {updateProject.isPending ? '...' : 'Save'}
+                  {updateProject.isPending ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </div>
-
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Project name"
-                className="input-field text-sm font-black uppercase tracking-tight flex-shrink-0"
-                style={{ width: '200px' }}
+                className="input-field"
+                style={{ maxWidth: '240px' }}
                 autoFocus
               />
               <input
@@ -302,7 +299,7 @@ const ProjectPage = () => {
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Description (optional)"
-                className="input-field text-xs font-medium flex-1"
+                className="input-field flex-1"
               />
             </div>
           </div>
@@ -311,41 +308,28 @@ const ProjectPage = () => {
 
       {/* Main Content - Inside scrollable container */}
       <div className="project-body">
-        <div className="h-full floating-container flex overflow-hidden">
-          {/* Left Panel - Cards Grid */}
-          <div
-            className={`flex flex-col transition-all duration-300 ${
-              !isDesktop ? 'w-full' : editingLink ? 'w-1/2' : 'w-full'
-            }`}
-          >
-            {/* Controls */}
-            <div className="flex-shrink-0 bg-light-grey border-b border-medium-grey overflow-y-auto">
-              <div className="max-w-6xl mx-auto p-6 space-y-4">
-                {/* Tag Filter */}
+        <div className="h-full floating-container flex flex-col overflow-hidden">
+          <div className="flex flex-col w-full min-h-0 flex-1">
+            <div className="project-controls-bar">
+              <div className="max-w-6xl mx-auto p-6 flex flex-col gap-4">
                 {projectTags.length > 0 && (
-                  <div className="bg-light-grey border border-medium-grey p-3">
-                    <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
-                        Filter:
-                      </span>
+                  <div className="project-panel">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="page-caption">Filter</span>
                       <button
+                        type="button"
                         onClick={() => setSelectedTagFilter('')}
-                        className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                          !selectedTagFilter
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-black hover:bg-gray-50'
-                        }`}
+                        className={`project-chip ${!selectedTagFilter ? 'is-active' : ''}`}
                       >
                         All
                       </button>
                       {projectTags.map((tag) => (
                         <button
                           key={tag.id}
+                          type="button"
                           onClick={() => setSelectedTagFilter(tag.id)}
-                          className={`px-2 py-1 text-xs font-bold transition-colors border border-medium-grey ${
-                            selectedTagFilter === tag.id
-                              ? 'bg-black text-white border-black'
-                              : 'bg-white text-black hover:bg-gray-50'
+                          className={`project-chip ${
+                            selectedTagFilter === tag.id ? 'is-active' : ''
                           }`}
                         >
                           {tag.name}
@@ -355,135 +339,131 @@ const ProjectPage = () => {
                   </div>
                 )}
 
-                {/* Add New Item */}
-                <div className="bg-light-grey border border-medium-grey p-4 flex space-x-2">
+                <div className="project-panel flex gap-2">
                   <input
                     type="text"
-                    placeholder="Add new link (paste URL)..."
+                    placeholder="Paste a URL to add a link…"
                     value={newItemInput}
                     onChange={(e) => setNewItemInput(e.target.value)}
-                    className="input-field flex-1 font-medium h-8"
+                    className="input-field flex-1"
                     onKeyDown={(e) => e.key === 'Enter' && handleCreateItem()}
                   />
                   <button
+                    type="button"
                     onClick={handleCreateItem}
                     disabled={createLink.isPending || !newItemInput.trim()}
-                    className="btn-primary font-bold disabled:opacity-50 h-8"
+                    className="btn-primary btn-compact"
                   >
-                    {createLink.isPending ? '...' : '+'}
+                    {createLink.isPending ? 'Adding…' : 'Add'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Cards Grid */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {filteredCards && filteredCards.length > 0 ? (
-                <div className="h-full overflow-y-auto">
-                  <div className="max-w-6xl mx-auto p-6">
-                    <div
-                      className={`grid gap-4 ${
-                        !isDesktop
-                          ? 'grid-cols-1'
-                          : editingLink
-                          ? 'grid-cols-1 xl:grid-cols-2'
-                          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                      }`}
-                    >
-                      {filteredCards.map((link) => (
-                        <div
-                          key={link.id}
-                          className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                          onClick={() => handleCardClick(link)}
-                        >
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                {link.favicon_url && (
-                                  <img
-                                    src={link.favicon_url}
-                                    alt=""
-                                    className="w-4 h-4 flex-shrink-0"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                <h3 className="font-bold text-base truncate">
-                                  {link.title || new URL(link.url).hostname}
-                                </h3>
-                              </div>
-                            </div>
-
-                            {link.tag && (
-                              <div className="flex items-center">
-                                <span className="inline-block px-2 py-1 text-xs font-bold text-white bg-black border border-medium-grey">
-                                  {link.tag.name}
-                                </span>
-                              </div>
-                            )}
-
-                            {link.description && (
-                              <p className="text-sm text-gray-600 font-medium line-clamp-2 leading-relaxed">
-                                {link.description}
-                              </p>
-                            )}
-
-                            <p className="text-sm text-gray-500 font-medium truncate border-t border-light-grey pt-2">
-                              {link.url}
-                            </p>
-
-                            <div className="flex justify-between items-center pt-2 border-t border-light-grey">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteLink(link.id);
-                                }}
-                                className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-2 border border-red-500 transition-colors"
-                              >
-                                Delete
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenLink(link.url);
-                                }}
-                                className="text-sm btn-primary py-1 px-3 font-bold"
-                              >
-                                Open
-                              </button>
-                            </div>
-                          </div>
+                <div className="max-w-6xl mx-auto p-6">
+                  <div
+                    className={`grid gap-4 ${
+                      !isDesktop
+                        ? 'grid-cols-1'
+                        : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                    }`}
+                  >
+                    {filteredCards.map((link) => (
+                      <div
+                        key={link.id}
+                        className="card project-link-card"
+                        onClick={() => handleCardClick(link)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleCardClick(link);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="flex items-start gap-2 min-w-0">
+                          {link.favicon_url && (
+                            <img
+                              src={link.favicon_url}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="project-link-card-favicon flex-shrink-0"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <h3 className="project-link-card-title">
+                            {link.title || new URL(link.url).hostname}
+                          </h3>
                         </div>
-                      ))}
-                    </div>
+
+                        {link.tag && (
+                          <span className="project-link-card-tag">
+                            {link.tag.name}
+                          </span>
+                        )}
+
+                        {link.description && (
+                          <p className="project-link-card-description">
+                            {link.description}
+                          </p>
+                        )}
+
+                        <p className="project-link-card-url">{link.url}</p>
+
+                        <div className="project-link-card-actions">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLink(link.id);
+                            }}
+                            className="btn-danger btn-compact"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenLink(link.url);
+                            }}
+                            className="btn-primary btn-compact"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center space-y-4 p-8">
+                <div className="h-full flex items-center justify-center p-8">
+                  <div className="text-center flex flex-col gap-3 max-w-sm">
                     {selectedTagFilter ? (
                       <>
-                        <p className="text-lg text-gray-600 font-bold">
-                          No items with this tag
-                        </p>
-                        <p className="text-base text-gray-500 font-medium">
-                          Try selecting a different tag or clear the filter
+                        <p className="page-card-title">No links with this tag</p>
+                        <p className="page-muted">
+                          Try another tag or clear the filter.
                         </p>
                         <button
+                          type="button"
                           onClick={() => setSelectedTagFilter('')}
-                          className="btn-secondary font-bold"
+                          className="btn-secondary"
                         >
-                          Clear Filter
+                          Clear filter
                         </button>
                       </>
                     ) : (
                       <>
-                        <p className="text-lg text-gray-600 font-bold">
-                          No links yet
-                        </p>
-                        <p className="text-base text-gray-500 font-medium">
-                          Add a link above to get started
+                        <p className="page-card-title">No links yet</p>
+                        <p className="page-muted">
+                          Paste a URL above to add your first link.
                         </p>
                       </>
                     )}
@@ -492,30 +472,17 @@ const ProjectPage = () => {
               )}
             </div>
           </div>
-
-          {/* Right Panel - Editor (Desktop) or Full Screen Modal (Mobile) */}
-          {editingLink && (
-            <div
-              className={`
-            ${
-              !isDesktop
-                ? 'fixed inset-0 z-50 bg-light-grey'
-                : 'w-1/2 border-l border-medium-grey'
-            }
-            transition-all duration-300 ease-in-out
-            ${!isDesktop && editingLink ? 'animate-slide-in-right' : ''}
-          `}
-            >
-              <LinkEditModal
-                link={editingLink}
-                isOpen={!!editingLink}
-                onClose={handleCloseEditModal}
-                onDelete={handleDeleteLinkFromModal}
-              />
-            </div>
-          )}
         </div>
       </div>
+
+      {editingLink && (
+        <LinkEditModal
+          link={editingLink}
+          isOpen={!!editingLink}
+          onClose={handleCloseEditModal}
+          onDelete={handleDeleteLinkFromModal}
+        />
+      )}
     </div>
   );
 };

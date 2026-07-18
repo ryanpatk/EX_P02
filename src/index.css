@@ -148,14 +148,14 @@
   --bookmark-feed-stack-inset: 12px;
   --bookmark-experiment-bg: oklch(0.94 0.009 264);
   --bookmark-stack-glass: oklch(1 0 0 / 0.85);
-  --bookmark-stack-shadow:
-    0 1px 2px oklch(0.45 0.03 264 / 0.05),
-    0 4px 14px oklch(0.42 0.035 264 / 0.09),
-    0 16px 36px -10px oklch(0.38 0.04 264 / 0.11);
-  --bookmark-stack-shadow-focus:
-    0 2px 4px oklch(0.45 0.03 264 / 0.06),
-    0 6px 18px oklch(0.42 0.035 264 / 0.1),
-    0 18px 40px -10px oklch(0.38 0.04 264 / 0.12);
+  --bookmark-stack-frosted-bg: oklch(1 0 0 / 0.48);
+  --bookmark-stack-frosted-blur: blur(20px) saturate(180%);
+  --bookmark-stack-frosted-border: oklch(1 0 0 / 0.58);
+  --bookmark-stack-frosted-shadow:
+    0 4px 18px oklch(0 0 0 / 0.07),
+    0 10px 36px 0 oklch(1 0 0 / 0.34),
+    inset 0 1px 0 oklch(1 0 0 / 0.5);
+  --bookmark-stack-frosted-row-hover: oklch(1 0 0 / 0.2);
   --bookmark-focus-ring: oklch(0.562 0.24 268.244 / 0.25);
   --bookmark-focus-ring-strong: oklch(0.562 0.24 268.244 / 0.2);
   --bookmark-on-accent: var(--paper);
@@ -256,14 +256,14 @@
   --bookmark-on-accent: var(--paper);
   --bookmark-experiment-bg: oklch(0.22 0.012 264);
   --bookmark-stack-glass: oklch(1 0 0 / 0.14);
-  --bookmark-stack-shadow:
-    0 2px 6px oklch(0 0 0 / 0.28),
-    0 8px 22px oklch(0 0 0 / 0.32),
-    0 20px 44px -12px oklch(0 0 0 / 0.38);
-  --bookmark-stack-shadow-focus:
-    0 3px 8px oklch(0 0 0 / 0.32),
-    0 10px 26px oklch(0 0 0 / 0.36),
-    0 22px 48px -12px oklch(0 0 0 / 0.42);
+  --bookmark-stack-frosted-bg: oklch(1 0 0 / 0.22);
+  --bookmark-stack-frosted-blur: blur(20px) saturate(160%);
+  --bookmark-stack-frosted-border: oklch(1 0 0 / 0.3);
+  --bookmark-stack-frosted-shadow:
+    0 4px 18px oklch(0 0 0 / 0.42),
+    0 10px 36px 0 oklch(0 0 0 / 0.28),
+    inset 0 1px 0 oklch(1 0 0 / 0.22);
+  --bookmark-stack-frosted-row-hover: oklch(1 0 0 / 0.12);
   --bookmark-shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
   --bookmark-shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.13);
 }
@@ -3503,19 +3503,23 @@ textarea.input-field {
 }
 
 .bookmark-feed-stack {
+  position: relative;
   flex: 1;
   min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid oklch(0 0 0 / 0.06);
+  border: 1px solid var(--bookmark-stack-frosted-border);
   border-radius: var(--bookmark-stack-outer-radius);
-  background: var(--bookmark-stack-glass);
-  box-shadow: var(--bookmark-stack-shadow);
+  background: var(--bookmark-stack-frosted-bg);
+  backdrop-filter: var(--bookmark-stack-frosted-blur);
+  -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
+  box-shadow: var(--bookmark-stack-frosted-shadow);
   overflow: hidden;
   transition:
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    background var(--transition-medium);
 }
 
 .bookmark-feed-stack .bookmark-omnibar-row,
@@ -3525,26 +3529,23 @@ textarea.input-field {
 }
 
 .bookmark-feed-stack .bookmark-list-row:hover {
-  background: oklch(1 0 0 / 0.22);
-}
-
-[data-theme='dark'] .bookmark-feed-stack .bookmark-list-row:hover {
-  background: oklch(1 0 0 / 0.08);
-}
-
-[data-theme='dark'] .bookmark-feed-stack {
-  border-color: oklch(1 0 0 / 0.08);
-  box-shadow: var(--bookmark-stack-shadow);
+  background: var(--bookmark-stack-frosted-row-hover);
 }
 
 .bookmark-feed-stack:focus-within {
-  border-color: var(--bookmark-accent);
-  box-shadow: var(--bookmark-stack-shadow-focus);
+  border-color: color-mix(in oklch, var(--bookmark-accent) 40%, var(--bookmark-stack-frosted-border));
+  box-shadow:
+    var(--bookmark-stack-frosted-shadow),
+    0 0 0 2px color-mix(in oklch, var(--bookmark-accent) 35%, transparent);
 }
 
-[data-theme='dark'] .bookmark-feed-stack:focus-within {
-  border-color: var(--bookmark-accent);
-  box-shadow: var(--bookmark-stack-shadow-focus);
+@media (prefers-reduced-transparency: reduce) {
+  .bookmark-feed-stack {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bookmark-stack-glass);
+    box-shadow: var(--bookmark-shadow-border);
+  }
 }
 
 .bookmark-mobile-rail-tabs {
@@ -7116,4 +7117,12 @@ textarea.input-field {
   .bookmark-toolbar-super-fav:active {
     transform: none;
   }
+}
+
+.frosted {
+  background: var(--bookmark-stack-frosted-bg);
+  backdrop-filter: var(--bookmark-stack-frosted-blur);
+  -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
+  border: 1px solid var(--bookmark-stack-frosted-border);
+  box-shadow: var(--bookmark-stack-frosted-shadow);
 }

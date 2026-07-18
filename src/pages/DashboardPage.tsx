@@ -682,62 +682,74 @@ const DashboardPage = () => {
 
   const bookmarkFeedMainInner = () => (
     <div className="bookmark-feed-main-inner">
-      <div className="bookmark-list-panel-stack">
-        <div
-          className={
-            selectionMode
-              ? 'bookmark-list-panel is-selection-mode'
-              : 'bookmark-list-panel'
-          }
-        >
-          <LinksList
-            links={filteredLinks}
-            scrapedDataMap={scrapedDataMap}
-            onOpenLink={handleOpenLink}
-            onOpenLinkDetails={handleOpenLinkDetails}
-            activeDetailsLinkId={detailLinkId}
-            onVisibleLinksChange={handleVisibleLinksChange}
-            selectedLinkIds={selectedLinkIds}
-            emptyTitle={emptyTitle}
-            emptySubtitle={emptySubtitle}
-            onToggleSelect={handleToggleSelection}
-            selectionMode={selectionMode}
+      <div className="bookmark-feed-stack">
+        <div className="bookmark-search-panel">
+          <BookmarkOmnibar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            showAdd={showOmnibarAdd}
+            onAdd={handleOmnibarAdd}
+            addPending={createLink.isPending}
+            placeholder={`Search ${totalLinkCount} bookmarks…`}
           />
         </div>
-        {detailLink ? (
+        <div className="bookmark-list-panel-stack">
           <div
-            className="bookmark-link-details-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Link details"
+            className={
+              selectionMode
+                ? 'bookmark-list-panel is-selection-mode'
+                : 'bookmark-list-panel'
+            }
           >
-            <div className="bookmark-link-details-scroll">
-              <LinkDetailsPanel
-                link={detailLink}
-                scrapedData={scrapedDataMap[detailLink.url]}
-                membershipRows={membershipRows ?? []}
-                profiles={profiles ?? []}
-                availableTags={tags ?? []}
-                onBack={() => setDetailLinkId(null)}
-                onUpdateUrl={handleDetailUpdateUrl}
-                onToggleSuperFavorite={handleDetailToggleSuper}
-                onUpdateTags={async (tagIds) => {
-                  if (!detailLinkId) return;
-                  await setLinkTags.mutateAsync({
-                    linkId: detailLinkId,
-                    tagIds,
-                  });
-                }}
-                onCreateTag={handleCreateTag}
-                onDeleteTag={handleDeleteTag}
-                onDeleteLink={handleDeleteLinkFromDetail}
-                urlPending={updateLink.isPending}
-                superFavoritePending={updateLink.isPending}
-                deletePending={deleteLink.isPending}
-              />
-            </div>
+            <LinksList
+              links={filteredLinks}
+              scrapedDataMap={scrapedDataMap}
+              onOpenLink={handleOpenLink}
+              onOpenLinkDetails={handleOpenLinkDetails}
+              activeDetailsLinkId={detailLinkId}
+              onVisibleLinksChange={handleVisibleLinksChange}
+              selectedLinkIds={selectedLinkIds}
+              emptyTitle={emptyTitle}
+              emptySubtitle={emptySubtitle}
+              onToggleSelect={handleToggleSelection}
+              selectionMode={selectionMode}
+            />
           </div>
-        ) : null}
+          {detailLink ? (
+            <div
+              className="bookmark-link-details-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Link details"
+            >
+              <div className="bookmark-link-details-scroll">
+                <LinkDetailsPanel
+                  link={detailLink}
+                  scrapedData={scrapedDataMap[detailLink.url]}
+                  membershipRows={membershipRows ?? []}
+                  profiles={profiles ?? []}
+                  availableTags={tags ?? []}
+                  onBack={() => setDetailLinkId(null)}
+                  onUpdateUrl={handleDetailUpdateUrl}
+                  onToggleSuperFavorite={handleDetailToggleSuper}
+                  onUpdateTags={async (tagIds) => {
+                    if (!detailLinkId) return;
+                    await setLinkTags.mutateAsync({
+                      linkId: detailLinkId,
+                      tagIds,
+                    });
+                  }}
+                  onCreateTag={handleCreateTag}
+                  onDeleteTag={handleDeleteTag}
+                  onDeleteLink={handleDeleteLinkFromDetail}
+                  urlPending={updateLink.isPending}
+                  superFavoritePending={updateLink.isPending}
+                  deletePending={deleteLink.isPending}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -823,17 +835,6 @@ const DashboardPage = () => {
               </button>
             </div>
           )}
-
-          <div className="bookmark-search-panel">
-            <BookmarkOmnibar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              showAdd={showOmnibarAdd}
-              onAdd={handleOmnibarAdd}
-              addPending={createLink.isPending}
-              placeholder={`Search ${totalLinkCount} bookmarks…`}
-            />
-          </div>
 
           {bulkActionToast !== null && (
             <div

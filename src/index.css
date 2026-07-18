@@ -146,6 +146,16 @@
   --bookmark-toolbar-height: 52px;
   --bookmark-footer-offset: 0px;
   --bookmark-feed-stack-inset: 12px;
+  --bookmark-experiment-bg: oklch(0.94 0.009 264);
+  --bookmark-stack-glass: oklch(1 0 0 / 0.85);
+  --bookmark-stack-shadow:
+    0 1px 2px oklch(0.45 0.03 264 / 0.05),
+    0 4px 14px oklch(0.42 0.035 264 / 0.09),
+    0 16px 36px -10px oklch(0.38 0.04 264 / 0.11);
+  --bookmark-stack-shadow-focus:
+    0 2px 4px oklch(0.45 0.03 264 / 0.06),
+    0 6px 18px oklch(0.42 0.035 264 / 0.1),
+    0 18px 40px -10px oklch(0.38 0.04 264 / 0.12);
   --bookmark-focus-ring: oklch(0.562 0.24 268.244 / 0.25);
   --bookmark-focus-ring-strong: oklch(0.562 0.24 268.244 / 0.2);
   --bookmark-on-accent: var(--paper);
@@ -244,6 +254,16 @@
   --bookmark-focus-ring: oklch(0.523 0.266 263.081 / 0.32);
   --bookmark-focus-ring-strong: oklch(0.523 0.266 263.081 / 0.24);
   --bookmark-on-accent: var(--paper);
+  --bookmark-experiment-bg: oklch(0.22 0.012 264);
+  --bookmark-stack-glass: oklch(1 0 0 / 0.14);
+  --bookmark-stack-shadow:
+    0 2px 6px oklch(0 0 0 / 0.28),
+    0 8px 22px oklch(0 0 0 / 0.32),
+    0 20px 44px -12px oklch(0 0 0 / 0.38);
+  --bookmark-stack-shadow-focus:
+    0 3px 8px oklch(0 0 0 / 0.32),
+    0 10px 26px oklch(0 0 0 / 0.36),
+    0 22px 48px -12px oklch(0 0 0 / 0.42);
   --bookmark-shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
   --bookmark-shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.13);
 }
@@ -536,9 +556,13 @@ select {
   scrollbar-color: oklch(0.984 0.007 260.732 / 0.22) transparent;
 }
 
-body:has(.app-surface),
-body:has(.bookmark-dashboard) {
+body:has(.app-surface) {
   background: var(--bookmark-bg);
+  color: var(--bookmark-text);
+}
+
+body:has(.bookmark-dashboard) {
+  background: var(--bookmark-experiment-bg);
   color: var(--bookmark-text);
 }
 
@@ -3380,10 +3404,30 @@ textarea.input-field {
   display: flex;
   flex-direction: column;
   padding-bottom: var(--bookmark-footer-offset);
+  --bookmark-bg: var(--bookmark-experiment-bg);
   background: var(--bookmark-bg);
   color: var(--bookmark-text);
   font-family: var(--bookmark-font-sans);
   overflow: hidden;
+}
+
+/* Experimental pink canvas — side rails + header show through to dashboard bg */
+.bookmark-dashboard .bookmark-feed-layout {
+  background: var(--bookmark-experiment-bg);
+}
+
+.bookmark-dashboard .bookmark-rail,
+.bookmark-dashboard .bookmark-toolbar,
+.bookmark-dashboard .bookmark-mobile-rail-tabs,
+.bookmark-dashboard .bookmark-rail-mobile-header {
+  background: transparent;
+}
+
+@media (max-width: 899px) {
+  .bookmark-dashboard .bookmark-rail--tags,
+  .bookmark-dashboard .bookmark-rail--profiles {
+    background: var(--bookmark-experiment-bg);
+  }
 }
 
 /* Three-column feed shell (desktop) + mobile sheets */
@@ -3453,7 +3497,7 @@ textarea.input-field {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bookmark-surface);
+  background: transparent;
   padding-top: var(--bookmark-feed-stack-inset);
   --bookmark-feed-inline-inset: 0;
 }
@@ -3466,31 +3510,41 @@ textarea.input-field {
   flex-direction: column;
   border: 1px solid oklch(0 0 0 / 0.06);
   border-radius: var(--bookmark-stack-outer-radius);
-  background: var(--bookmark-surface);
-  box-shadow:
-    0 1px 2px -1px oklch(0 0 0 / 0.06),
-    0 2px 4px 0 oklch(0 0 0 / 0.04);
+  background: var(--bookmark-stack-glass);
+  box-shadow: var(--bookmark-stack-shadow);
   overflow: hidden;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
+.bookmark-feed-stack .bookmark-omnibar-row,
+.bookmark-feed-stack .bookmark-list-scroll,
+.bookmark-feed-stack .bookmark-list-row {
+  background: transparent;
+}
+
+.bookmark-feed-stack .bookmark-list-row:hover {
+  background: oklch(1 0 0 / 0.22);
+}
+
+[data-theme='dark'] .bookmark-feed-stack .bookmark-list-row:hover {
+  background: oklch(1 0 0 / 0.08);
+}
+
 [data-theme='dark'] .bookmark-feed-stack {
   border-color: oklch(1 0 0 / 0.08);
-  box-shadow: none;
+  box-shadow: var(--bookmark-stack-shadow);
 }
 
 .bookmark-feed-stack:focus-within {
   border-color: var(--bookmark-accent);
-  box-shadow:
-    0 1px 2px -1px oklch(0 0 0 / 0.06),
-    0 2px 4px 0 oklch(0 0 0 / 0.04);
+  box-shadow: var(--bookmark-stack-shadow-focus);
 }
 
 [data-theme='dark'] .bookmark-feed-stack:focus-within {
   border-color: var(--bookmark-accent);
-  box-shadow: none;
+  box-shadow: var(--bookmark-stack-shadow-focus);
 }
 
 .bookmark-mobile-rail-tabs {
@@ -4221,6 +4275,18 @@ textarea.input-field {
   outline: 2px solid var(--bookmark-accent);
   outline-offset: 3px;
   border-radius: 6px;
+}
+
+[data-theme='dark'] .bookmark-toolbar-brand {
+  color: var(--paper);
+}
+
+[data-theme='dark'] .bookmark-toolbar-brand:hover {
+  color: oklch(1 0 0 / 0.82);
+}
+
+[data-theme='dark'] .bookmark-toolbar-brand:focus-visible {
+  outline-color: oklch(1 0 0 / 0.72);
 }
 
 .bookmark-toolbar-brand-emoji {
@@ -6748,6 +6814,65 @@ textarea.input-field {
 
 .bookmark-account-menu .theme-toggle {
   justify-content: space-between;
+}
+
+.canvas-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.canvas-color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.canvas-color-swatch {
+  --swatch-color: oklch(0.94 0.009 264);
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 36px;
+  padding: 0;
+  border: 2px solid oklch(0 0 0 / 0.08);
+  border-radius: max(2px, calc(var(--bookmark-radius-input) - 4px));
+  background: var(--swatch-color);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.35);
+  transition:
+    border-color var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.canvas-color-swatch:hover {
+  border-color: oklch(0 0 0 / 0.16);
+  transform: scale(1.04);
+}
+
+.canvas-color-swatch.is-selected {
+  border-color: var(--bookmark-accent);
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.35),
+    0 0 0 2px var(--bookmark-focus-ring);
+}
+
+.canvas-color-swatch:focus-visible {
+  outline: none;
+  border-color: var(--bookmark-accent);
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.35),
+    0 0 0 2px var(--bookmark-focus-ring);
+}
+
+[data-theme='dark'] .canvas-color-swatch {
+  border-color: oklch(1 0 0 / 0.12);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+[data-theme='dark'] .canvas-color-swatch.is-selected,
+[data-theme='dark'] .canvas-color-swatch:focus-visible {
+  border-color: var(--bookmark-accent);
 }
 
 @media (max-width: 1120px) {

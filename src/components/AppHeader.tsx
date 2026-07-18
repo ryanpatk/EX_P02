@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
+import CanvasColorPicker from './CanvasColorPicker';
 import type { LinkWithTag } from '../types/database';
 import type { ScrapedUrlData } from '../hooks/useUrlScraper';
 import supabase from '../supabase';
@@ -165,6 +166,7 @@ const AppHeader = ({
               )}
             </div>
             <div className="bookmark-account-menu-section">
+              <CanvasColorPicker />
               <DarkModeToggle className="bookmark-account-menu-action" />
               <button
                 type="button"

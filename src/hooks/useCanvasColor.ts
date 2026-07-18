@@ -1,0 +1,45 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  CANVAS_COLOR_OPTIONS,
+  type CanvasColorId,
+} from '../constants/canvasColors';
+import {
+  applyCanvasColor,
+  getStoredCanvasColorId,
+  persistCanvasColor,
+} from '../utils/canvasColor';
+
+export function useCanvasColor() {
+  const [colorId, setColorIdState] = useState<CanvasColorId>(() =>
+    getStoredCanvasColorId(),
+  );
+
+  useEffect(() => {
+    applyCanvasColor(colorId);
+    persistCanvasColor(colorId);
+  }, [colorId]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      applyCanvasColor(colorId);
+    });
+
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, [colorId]);
+
+  const setColorId = useCallback((nextColorId: CanvasColorId) => {
+    setColorIdState(nextColorId);
+  }, []);
+
+  return {
+    colorId,
+    setColorId,
+    options: CANVAS_COLOR_OPTIONS,
+  };
+}

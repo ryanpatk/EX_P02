@@ -9,10 +9,6 @@ import supabase from '../supabase';
 
 interface AppHeaderProps {
   user: User | null;
-  selectedCount: number;
-  selectionMode: boolean;
-  onToggleSelectionMode: () => void;
-  onClearSelection: () => void;
   superFavoriteLinks?: LinkWithTag[];
   scrapedDataMap?: Record<string, ScrapedUrlData>;
   onSuperFavoriteOpen?: (link: LinkWithTag) => void;
@@ -24,13 +20,6 @@ interface AppHeaderProps {
 //     <path d="M13 12.75H6.5v-1.5h5v-5H13v6.5Z" />
 //   </svg>
 // );
-
-const CloseIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M4 4l8 8" />
-    <path d="M12 4 4 12" />
-  </svg>
-);
 
 // const DoneIcon = () => (
 //   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -89,10 +78,6 @@ const SuperFavoriteButton = ({
 
 const AppHeader = ({
   user,
-  selectedCount,
-  selectionMode,
-  onToggleSelectionMode,
-  onClearSelection,
   superFavoriteLinks = [],
   scrapedDataMap = {},
   onSuperFavoriteOpen,
@@ -132,10 +117,6 @@ const AppHeader = ({
     user?.email ||
     'Signed in';
 
-  const showSelectionCta = true;
-  const showClearCta = selectionMode;
-  const canClearSelection = selectedCount > 0;
-
   const handleSuperFav = (link: LinkWithTag) => {
     if (onSuperFavoriteOpen) {
       onSuperFavoriteOpen(link);
@@ -144,16 +125,38 @@ const AppHeader = ({
 
   return (
     <header className="bookmark-toolbar">
-      <div className="bookmark-toolbar-brand-wrap" ref={menuRef}>
-        <button
-          type="button"
-          onClick={() => setIsMenuOpen((prev) => !prev)}
-          aria-label="Open account menu"
-        >
+      <div className="bookmark-toolbar-brand-wrap">
+        <div className="bookmark-toolbar-brand-shell">
           {/* <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
             🌼
           </span> */}
           <span className="bookmark-toolbar-brand">superlinks</span>
+        </div>
+      </div>
+
+      <div className="bookmark-toolbar-center" aria-label="Super favorites">
+        <div className="bookmark-toolbar-super-favorites">
+          {superFavoriteLinks.map((link) => (
+            <SuperFavoriteButton
+              key={link.id}
+              link={link}
+              scraped={scrapedDataMap[link.url]}
+              onOpen={handleSuperFav}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="bookmark-toolbar-status" ref={menuRef}>
+        <button
+          type="button"
+          className="bookmark-toolbar-cta is-secondary is-chip"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          aria-expanded={isMenuOpen}
+          aria-haspopup="true"
+          aria-label="Open settings menu"
+        >
+          Settings
         </button>
 
         {isMenuOpen && (
@@ -177,44 +180,6 @@ const AppHeader = ({
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="bookmark-toolbar-center" aria-label="Super favorites">
-        <div className="bookmark-toolbar-super-favorites">
-          {superFavoriteLinks.map((link) => (
-            <SuperFavoriteButton
-              key={link.id}
-              link={link}
-              scraped={scrapedDataMap[link.url]}
-              onOpen={handleSuperFav}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="bookmark-toolbar-status">
-        {showClearCta && (
-          <button
-            type="button"
-            className="bookmark-toolbar-cta is-secondary"
-            onClick={onClearSelection}
-            disabled={!canClearSelection}
-          >
-            <span className="bookmark-toolbar-cta-icon" aria-hidden="true">
-              <CloseIcon />
-            </span>
-            <span>CLEAR</span>
-          </button>
-        )}
-        {showSelectionCta && (
-          <button
-            type="button"
-            className="bookmark-toolbar-cta is-accent is-chip"
-            onClick={onToggleSelectionMode}
-          >
-            <span>{selectionMode ? 'Done' : 'Select'}</span>
-          </button>
         )}
       </div>
     </header>

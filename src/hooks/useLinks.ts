@@ -227,15 +227,15 @@ export const linksApi = {
 
     const projectId = linkData.project_id || await linksApi.getDefaultProjectId()
 
-    // Get the highest order_index for this project
+    // Place new links at the top of the project's order stack.
     const { data: existingLinks } = await supabase
       .from('links')
       .select('order_index')
       .eq('project_id', projectId)
-      .order('order_index', { ascending: false })
+      .order('order_index', { ascending: true })
       .limit(1)
 
-    const maxOrder = existingLinks?.[0]?.order_index || 0
+    const minOrder = existingLinks?.[0]?.order_index ?? 1
 
     const { data, error } = await supabase
       .from('links')
@@ -243,7 +243,7 @@ export const linksApi = {
         ...linkData,
         user_id: user.id,
         project_id: projectId,
-        order_index: linkData.order_index ?? maxOrder + 1,
+        order_index: linkData.order_index ?? minOrder - 1,
       })
       .select()
       .single()
@@ -361,20 +361,42 @@ export const useCreateLink = () => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: linkKeys.lists() })
 
+      let title = linkData.title
+      let description = linkData.description
+      let favicon_url = linkData.favicon_url
+
+      if (!title || !favicon_url) {
+        const metadata = await linksApi.extractMetadata(linkData.url)
+        title = title || metadata.title
+        description = description || metadata.description
+        favicon_url = favicon_url || metadata.favicon_url
+      }
+
+      let minOrder = 1
+      for (const [, data] of queryClient.getQueriesData<LinkWithTag[]>({
+        queryKey: linkKeys.lists(),
+      })) {
+        for (const link of data ?? []) {
+          if (link.order_index != null) {
+            minOrder = Math.min(minOrder, link.order_index)
+          }
+        }
+      }
+
       // Create optimistic link
       const optimisticLink: LinkWithTag = {
         id: `temp-${Date.now()}`,
         project_id: linkData.project_id || 'pending',
         user_id: '', // Will be set by server
         url: linkData.url,
-        title: linkData.title,
-        description: linkData.description,
-        favicon_url: linkData.favicon_url,
+        title,
+        description,
+        favicon_url,
         preview_image_url: linkData.preview_image_url,
         tag_id: linkData.tag_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        order_index: linkData.order_index || 0,
+        order_index: linkData.order_index ?? minOrder - 1,
         is_super_favorite: false,
         tag: undefined,
         project: undefined,
@@ -395,7 +417,7 @@ export const useCreateLink = () => {
           // For byProjects queries, check if the project_id is in the projectIds array
           // For byProject queries, check if project_id matches
           // For all queries, always add
-          return [...old, optimisticLink]
+          return [optimisticLink, ...old]
         }
       )
 
@@ -428,8 +450,8 @@ export const useCreateLink = () => {
             newData[existingIndex] = linkWithTag
             return newData
           }
-          // Otherwise, add it
-          return [...old, linkWithTag]
+          // Otherwise, add it at the top
+          return [linkWithTag, ...old]
         }
       )
 

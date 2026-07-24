@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tag } from '../types/database';
 import { useCreateTag, TAG_COLORS } from '../hooks/useTags';
 
@@ -6,12 +6,10 @@ interface TagFilterBarProps {
   tags: Tag[];
   selectedTagIds: string[];
   includeUntagged: boolean;
-  totalCount: number;
   untaggedCount: number;
   tagCounts: Record<string, number>;
   onToggleTag: (tagId: string) => void;
   onToggleUntagged: () => void;
-  onClear: () => void;
   bulkAssignMode?: boolean;
 }
 
@@ -23,7 +21,6 @@ interface TagChipProps {
   disabled?: boolean;
   title?: string;
   bulkTarget?: boolean;
-  accentColor?: string | null;
 }
 
 const TagChip = ({
@@ -34,40 +31,30 @@ const TagChip = ({
   disabled,
   title,
   bulkTarget,
-  accentColor,
-}: TagChipProps) => {
-  const hasAccent = Boolean(accentColor?.trim()) && !bulkTarget;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
-        bulkTarget ? ' is-bulk-target' : ''
-      }${hasAccent ? ' has-accent' : ''}`}
-      style={
-        hasAccent
-          ? ({ ['--tag-accent' as string]: accentColor } as CSSProperties)
-          : undefined
-      }
-    >
-      <span className="bookmark-tag-chip-label">{label}</span>
-      <span className="bookmark-tag-chip-count">{count}</span>
-    </button>
-  );
-};
+}: TagChipProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    title={title}
+    data-cuelume-hover="tick"
+    className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
+      bulkTarget ? ' is-bulk-target' : ''
+    }`}
+  >
+    <span className="bookmark-tag-chip-label">{label}</span>
+    <span className="bookmark-tag-chip-count">{count}</span>
+  </button>
+);
 
 const TagFilterBar = ({
   tags,
   selectedTagIds,
   includeUntagged,
-  totalCount,
   untaggedCount,
   tagCounts,
   onToggleTag,
   onToggleUntagged,
-  onClear,
   bulkAssignMode = false,
 }: TagFilterBarProps) => {
   const createTag = useCreateTag();
@@ -103,23 +90,9 @@ const TagFilterBar = ({
     }
   };
 
-  const hasFilters = selectedTagIds.length > 0 || includeUntagged;
-
-  const filterLockedHint =
-    'Filters are locked while links are selected. Use CLEAR in the header or tap DONE first.';
-
   return (
     <div className="bookmark-tag-filter">
       <div className="bookmark-tag-filter-inner">
-        <TagChip
-          active={!bulkAssignMode && !hasFilters}
-          label="All"
-          count={totalCount}
-          onClick={onClear}
-          disabled={bulkAssignMode}
-          title={bulkAssignMode ? filterLockedHint : 'Show all bookmarks'}
-        />
-
         {tags.map((tag) => (
           <TagChip
             key={tag.id}
@@ -129,7 +102,6 @@ const TagFilterBar = ({
             onClick={() => onToggleTag(tag.id)}
             bulkTarget={bulkAssignMode}
             title={bulkAssignMode ? `Add “${tag.name}” to selected bookmarks` : undefined}
-            accentColor={tag.color}
           />
         ))}
 

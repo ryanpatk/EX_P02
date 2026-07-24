@@ -1,196 +1,235 @@
 ---
 name: Superlinks
-description: Focused bookmark workbench for personal link libraries
+description: Personal bookmark workbench — canonical design is the dashboard (`/`)
 colors:
-  canvas: "#f3f5f9"
-  surface: "#ffffff"
-  surface-muted: "#f8f9fc"
-  border: "#e4e8f0"
-  border-strong: "#d0d7e2"
-  text: "#1c2433"
-  text-muted: "#5c6679"
-  accent: "#3d5eff"
-  accent-strong: "#2f4ae6"
-  active-bg: "#1c2433"
-  active-fg: "#ffffff"
-  control-bg: "#f1f4fa"
-  control-border: "#dce2ee"
-  danger: "#c62828"
-  success: "#1b7f4a"
+  canvas: "user-selected OKLCH swatch (default soft grey oklch(0.94 0.009 264))"
+  surface: "var(--bookmark-surface) / frosted white bubble"
+  surface-muted: "var(--bookmark-surface-muted)"
+  border: "var(--bookmark-border) — OKLCH neutral @ ~16% alpha"
+  border-ink: "var(--bookmark-border-ink) — full-strength neutral ink"
+  text: "var(--bookmark-text)"
+  text-muted: "var(--bookmark-muted)"
+  secondary-text: "var(--bookmark-secondary-text) — matches border ink grey"
+  accent: "var(--bookmark-accent) — focus & selection rings only"
+  active-bg: "var(--bookmark-active-bg) — canvas-derived theme chip fill"
+  active-fg: "var(--bookmark-active-fg)"
+  prominent-bg: "var(--bookmark-prominent-bg) — primary CTAs"
+  prominent-fg: "var(--bookmark-prominent-fg)"
 typography:
-  display:
-    fontFamily: "Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-    fontSize: "22px"
-    fontWeight: 800
-    lineHeight: 1.15
+  family: "Two Weekend Go (+ system-ui stack)"
+  brand:
+    fontSize: "clamp(21px, 2.2vw, 24px)"
+    fontWeight: 500
+    fontStyle: italic
     letterSpacing: "-0.03em"
-  body:
-    fontFamily: "Plus Jakarta Sans, IBM Plex Sans, Helvetica Neue, sans-serif"
-    fontSize: "13px"
-    fontWeight: 400
+  ui:
+    fontSize: "13px (var(--bookmark-fs-ui))"
+    fontWeight: "500 default chips/rows; 600 labels"
     lineHeight: 1.45
-  label:
-    fontFamily: "Plus Jakarta Sans, IBM Plex Sans, Helvetica Neue, sans-serif"
-    fontSize: "12px"
-    fontWeight: 600
-    lineHeight: 1.2
+  caption:
+    fontSize: "12px (var(--bookmark-fs-small))"
 rounded:
   pill: "999px"
   card: "14px"
   input: "12px"
-  control: "10px"
+  brand-bubble: "10px"
+  stack-outer: "10px"
 spacing:
-  xs: "6px"
-  sm: "12px"
-  md: "16px"
-  lg: "28px"
+  toolbar-height: "52px"
+  chip-height: "40px"
+  action-chip-width: "6.75rem"
+  feed-stack-inset: "12px"
+  footer-offset-desktop: "28px"
 components:
-  button-primary:
-    backgroundColor: "{colors.active-bg}"
-    textColor: "{colors.active-fg}"
+  button-prominent:
+    backgroundColor: "{colors.prominent-bg}"
+    textColor: "{colors.prominent-fg}"
     rounded: "{rounded.pill}"
-    padding: "0 16px"
-    height: "44px"
-  button-secondary:
+    width: "6.75rem fixed (shared action chips)"
+    minHeight: "40px"
+  button-secondary-chip:
     backgroundColor: "{colors.control-bg}"
     textColor: "{colors.text}"
+    border: "{colors.control-border}"
     rounded: "{rounded.pill}"
-    padding: "0 16px"
-    height: "44px"
-  input-field:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.input}"
-    padding: "0 14px"
-    height: "44px"
-  tag-chip:
-    backgroundColor: "transparent"
-    textColor: "{colors.text}"
-    rounded: "{rounded.pill}"
-    padding: "6px 12px"
+    width: "6.75rem fixed"
+    minHeight: "40px"
+  chip-secondary:
+    default: "transparent bg, grey text (--bookmark-secondary-text)"
+    hover: "soft bubble tint (--bookmark-chip-secondary-bg-soft)"
+    selected: "n/a for tags — see chip-primary"
+  chip-primary:
+    backgroundColor: "{colors.active-bg}"
+    textColor: "{colors.active-fg}"
+    border: "brand bubble border"
+    use: "selected profile/tag filters, active filter state"
 ---
 
 # Design System: Superlinks
 
-## Overview
+**Status:** Current design truth for the project. The live bookmark dashboard is the canonical surface; auth pages, modals, and legacy project views should inherit its `--bookmark-*` tokens from `:root`.
 
-**Creative North Star: "The Link Operator's Desk"**
+## Creative North Star
 
-Superlinks looks like a single-purpose workbench: cool neutral surfaces, tight typography, and accent color only where it marks selection or primary action. The bookmark dashboard is the canonical surface—auth, modals, tag selectors, and project views inherit its `--bookmark-*` tokens from `:root`. The system rejects campaign-page decoration; depth comes from borders and surface steps, not stacked shadows.
+**"The Link Operator's Desk"**
 
-**Key Characteristics:**
+A single-purpose bookmark workbench: a user-tinted canvas gradient behind a frosted-glass omnilist, with lightweight side rails for profiles and tags. Color comes from the selected canvas theme—not ambient blue chrome. Typography is confident but compact (`Two Weekend Go`, italic brand). Depth is frosted translucency and hairline dividers, not stacked card shadows.
 
-- Flat, border-defined panels on a soft canvas (`#f3f5f9`)
-- Inter for header chrome; Plus Jakarta Sans for UI body copy
-- Pill buttons and inputs at 44px touch height on mobile
-- Tag/profile chips with stable dimensions; accent on hover/active only
-- Native `<dialog>` modals with header/body/footer structure
-- Dark theme via `[data-theme='dark']` token swap
+## Layout (Dashboard)
 
-## Colors
+Desktop grid: **profiles rail | omnilist | tags rail**
 
-A restrained product palette: neutrals carry layout; one blue accent marks focus and selection; ink black (`#1c2433`) anchors primary buttons.
+| Zone | Role |
+|------|------|
+| **Header** (`bookmark-toolbar`) | Brand bubble (static), super-favorite shortcuts (center), Settings chip (right) |
+| **Profiles rail** (left) | Profile filter chips, left-aligned toward feed |
+| **Omnilist** (center, max ~640px) | Frosted stack: omnibar + virtualized link list |
+| **Tags rail** (right) | Tag filter chips, right-aligned toward feed |
 
-### Primary
+Mobile (<900px): rails become slide-over sheets with scrim; profile/tag tabs above feed.
 
-- **Operator Ink** (`#1c2433`): Primary button fill, active chip background, primary text on light surfaces.
+**Empty filter = show all.** No permanent "All" chips on profile or tag rails.
 
-### Secondary
+When a profile is selected, the tag rail scopes counts and chip list to links in that profile.
 
-- **Signal Blue** (`#3d5eff` / strong `#2f4ae6`): Focus rings, selection borders, brand wordmark, active link states.
+## Canvas & Theme Color
 
-### Neutral
+User picks a canvas swatch in **Settings** (grey, blush, lavender, lilac, sky, mint, sage, peach, butter). Selection drives:
 
-- **Canvas** (`#f3f5f9`): App and dashboard background.
-- **Surface** (`#ffffff`): Cards, modals, list rows, auth panels.
-- **Surface Muted** (`#f8f9fc`): Toolbars, modal headers/footers, subtle panels.
-- **Border** (`#e4e8f0` / strong `#d0d7e2`): 1px structural edges—preferred over shadow.
-- **Muted Text** (`#5c6679`): Secondary labels, URLs, captions—must stay ≥4.5:1 on white.
+- `--bookmark-experiment-bg` — vertical gradient page background
+- `--bookmark-canvas-base` — swatch base
+- `--bookmark-active-bg` / `--bookmark-active-fg` — selected chip surfaces
+- `--bookmark-prominent-bg` / `--bookmark-prominent-fg` / `--bookmark-prominent-text` — primary CTAs and "new tag/profile" links
+- `--bookmark-row-hover-bg` — list row hover tint (`color-mix` from active bg)
 
-### Named Rules
+Implementation: `src/utils/canvasColor.ts`, `src/constants/canvasColors.ts`.
 
-**The One Accent Rule.** Accent blue appears on focus, selection, primary links, and bulk-target dashed chips—not as ambient page tint.
+Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 
-**The Flat Surface Rule.** Do not pair 1px borders with wide soft drop shadows on cards or buttons. Pick border OR a tight shadow (blur ≤8px), never both as decoration.
+## Color Roles
+
+### Canvas & surfaces
+
+- **Canvas gradient** (`--bookmark-experiment-bg`): Full-viewport background; header and desktop rails are transparent so canvas shows through.
+- **Frosted stack** (`--bookmark-stack-frosted-*`): Omnibar + list container—translucent bubble fill, blur, soft shadow, 10px radius.
+- **Brand bubble** (`--bookmark-brand-bubble-*`): Header wordmark shell, secondary chip fills, stack glass base.
+
+### Text
+
+- **Primary** (`--bookmark-text`): Titles, body.
+- **Muted** (`--bookmark-muted`): Metadata, captions.
+- **Secondary** (`--bookmark-secondary-text`): Unselected tag/profile labels, placeholder-adjacent greys—tied to `--bookmark-border-ink`.
+
+### Accent vs prominent
+
+- **Accent blue** (`--bookmark-accent`): Focus rings, selection outlines, keyboard focus—not primary button fills.
+- **Prominent** (`--bookmark-prominent-*`): Select, Done, Add bookmark, New tag, New profile—mid-tone swatch-derived fills.
+- **Active** (`--bookmark-active-*`): Selected filter chips (profiles/tags).
+
+### Named rules
+
+**Theme-first color.** Interactive emphasis follows the user's canvas pick, not a fixed product blue.
+
+**Grey ink for idle filters.** Unselected chips are text-only or transparent with grey ink; color arrives on selection or soft hover.
+
+**No hover border darkening on list rows.** Row dividers stay constant; hover uses `--bookmark-row-hover-bg` only.
 
 ## Typography
 
-**Display Font:** Inter (with system-ui stack)  
-**Body Font:** Plus Jakarta Sans (with IBM Plex Sans fallback)  
-**Character:** Header italic brand (`superlinks`) is tight and confident; body stays neutral and readable at 13px UI scale.
+**Family:** `Two Weekend Go` for UI, brand, and display (see `src/fonts/two-weekend-go.css`).
 
-### Hierarchy
+| Level | Size | Weight | Use |
+|-------|------|--------|-----|
+| Brand | clamp 21–24px | 500 italic | `superlinks` header bubble |
+| UI | 13px | 500 | Chips, list rows, omnibar |
+| Caption | 12px | 600 | Counts, footer, kickers |
+| Heading sm | 14px | 600–700 | Modal titles, row titles |
 
-- **Display** (800, 22px, -0.03em): Page titles on auth cards, modal titles.
-- **Title** (700, 14px): Section headings, list row titles.
-- **Body** (400–500, 13px, 1.45): Default UI copy, omnibar, list metadata.
-- **Label** (600, 12px): Form labels, filter captions, button text.
-- **Small** (600, 11px): Counts, kickers, footer chrome.
+**Fixed UI scale** on dashboard—no fluid heading clamps in rails or list.
 
-### Named Rules
+## Elevation & Material
 
-**The Fixed UI Scale Rule.** Dashboard UI uses fixed px steps (`13/12/14/11`), not fluid clamp headings—density stays predictable in side rails.
-
-## Elevation
-
-Flat-by-default. Depth is communicated with 1px borders and surface-muted backgrounds, not elevation shadows. Hover states may shift border color; selected rows use accent outline or 2px focus ring—not lift transforms on list cards.
-
-### Named Rules
-
-**The No Ghost Card Rule.** List rows and auth cards do not use `box-shadow: 0 4px 16px` plus border. Selection uses border/ring only.
+- **Frosted omnilist:** `backdrop-filter: blur(20px) saturate(180%)` with bubble background; falls back to opaque glass when `prefers-reduced-transparency`.
+- **List inside stack:** Transparent rows, 1px bottom dividers (`--bookmark-list-row-divider`), no per-row card boxes.
+- **Shadows:** Tight `--bookmark-shadow-border` on frosted stack and toasts—not wide floating card shadows.
+- **Footer:** Fixed 28px bar on desktop (`desktop-footer`); dashboard uses `--bookmark-footer-offset: 28px` for bottom spacing.
 
 ## Components
 
-### Buttons
+### Header
 
-- **Shape:** Full pill (`999px` radius), min-height 44px (36px compact variant).
-- **Primary:** Operator ink fill, white label; hover darkens toward text color.
-- **Secondary:** Control background, control border; hover uses surface-muted.
-- **Danger:** White surface, danger text/border; soft danger background on hover.
-- **Focus:** 2px accent outline, 2px offset—required on all interactive controls.
+- **Brand:** Non-interactive frosted bubble with italic `superlinks`.
+- **Super favorites:** Favicon buttons in toolbar center.
+- **Settings:** Secondary chip (6.75rem), opens account menu—canvas picker, dark mode, logout.
 
-### Chips (tags & profiles)
+### Omnibar
 
-- **Style:** Transparent default; per-tag color on hover/active only; bulk mode uses dashed accent border.
-- **State:** Active neutral chips use ink fill; accent chips keep stable padding (5px/11px vs 6px/12px neutral).
+- Tall single-row search inside frosted stack.
+- **Add bookmark** appears when query is URL-like and no filter matches; uses prominent CTA styling.
+- No blue focus ring on omnibar input—border-led focus.
 
-### Cards / Containers
+### Filter chips (profiles & tags)
 
-- **Corner Style:** 14px card radius.
-- **Background:** Surface on canvas; no gradient fills.
-- **Border:** 1px `bookmark-border`.
-- **Internal Padding:** 12–16px list rows; 28px auth cards.
+- **Unselected:** Transparent, `--bookmark-secondary-text`, soft hover bubble.
+- **Selected:** Primary chip—theme `--bookmark-active-bg` / `--bookmark-active-fg`, brand bubble border.
+- **Bulk assign mode:** Dashed accent border on chips (`is-bulk-target`); toast confirms apply.
+- **New tag / New profile:** Text buttons using `--bookmark-prominent-text`, underline on hover; same vertical metrics as chips (40px min-height).
 
-### Inputs / Fields
+### Link list
 
-- **Style:** 12px radius, control border, surface fill, 13px text.
-- **Focus:** Accent border + `:focus-visible` ring (no inset glow stacks).
-- **Labels:** Always visible on auth/modal forms (`app-field-label`).
+- Virtualized rows (~92px), favicon + title + URL + tag pills.
+- Hover: theme tint background, unchanged divider.
+- Selection mode: theme-tinted row fill (`--bookmark-row-selected-bg`); no outline or side accent.
+- **Select/Done** + **Clear** float bottom-center of stack (prominent + secondary chips, 6.75rem width).
+- New bookmarks prepend to top of list.
 
-### Navigation
+### Feedback toast
 
-- **Toolbar:** 52px height, Inter brand left, compact pill CTAs right.
-- **Rails:** Fixed-width tag/profile columns; mobile sheets slide over scrim.
-- **Omnibar:** Single-row search with flush add button; focus-within accent border.
+- **Position:** Absolute bottom-right of dashboard, above footer (`calc(var(--bookmark-footer-offset) + 12–24px)`).
+- **Motion:** Slide/fade in (~280ms), out (~220ms); instant swap when `prefers-reduced-motion`.
+- **Content:** OK mark + message; non-interactive (`pointer-events: none`).
 
-### Modals
+### Modals & auth
 
-- **Pattern:** Native `<dialog class="app-modal">` with muted header/footer bars.
-- **Backdrop:** Semi-transparent scrim via `::backdrop`.
+- Native `<dialog class="app-modal">` pattern with muted header/footer.
+- All new surfaces use `--bookmark-*` tokens—no legacy brutalist orange/blue campaign styling.
+
+## Motion
+
+- Fast transitions: 150ms; medium: 180ms (`cubic-bezier(0.2, 0.8, 0.2, 1)`).
+- List stagger on filter change (respects reduced motion).
+- Toast enter/exit animations.
 
 ## Do's and Don'ts
 
-### Do:
+### Do
 
-- **Do** use `--bookmark-*` tokens for any new surface (auth, modals, popovers, project pages).
-- **Do** keep touch targets at 44px on mobile for rails, toolbar CTAs, and row actions.
-- **Do** use visible form labels and `:focus-visible` rings on every custom control.
-- **Do** open links in background tabs from list interactions when that matches dashboard behavior.
+- Use `--bookmark-*` tokens for every new UI surface.
+- Derive interactive color from canvas theme via `canvasColor.ts` surfaces.
+- Keep action chips at **6.75rem** fixed width (Settings, Select, Done, Clear).
+- Scope tag rail to selected profile when a profile filter is active.
+- Auto-apply active profile/tag filters when adding a bookmark from the omnibar.
+- Show bulk-action toasts immediately (optimistic), then persist in background.
 
-### Don't:
+### Don't
 
-- **Don't** use rainbow stripe card headers, 3px heavy borders, or offset brutalist button shadows on new work.
-- **Don't** pair 1px borders with wide soft shadows (ghost-card pattern).
-- **Don't** use decorative grid overlays or cream “magazine warm” page backgrounds on product surfaces.
-- **Don't** drop uppercase eyebrow kickers above every section—captions are sparse and functional only.
-- **Don't** split component vocabulary between dashboard and auth (no legacy `btn-primary` brutalist styling).
+- Don't use fixed blue or ink-black as primary CTA fills—use `--bookmark-prominent-*`.
+- Don't add "All" filter chips; empty selection means all.
+- Don't darken list row borders on hover.
+- Don't place inline feedback above the omnilist—use the bottom-right toast.
+- Don't reintroduce decorative watermarks or heavy offset brutalist shadows on dashboard surfaces.
+- Don't split typography between Inter/Jakarta and dashboard—**Two Weekend Go** is the product face.
+
+## Source of Truth in Code
+
+| Concern | Location |
+|---------|----------|
+| Design tokens | `src/index.css` (`:root`, `[data-theme='dark']`, `.bookmark-dashboard`) |
+| Canvas theming | `src/utils/canvasColor.ts`, `src/components/CanvasColorPicker.tsx` |
+| Dashboard layout | `src/pages/DashboardPage.tsx` |
+| Header | `src/components/AppHeader.tsx` |
+| Omnibar | `src/components/BookmarkOmnibar.tsx` |
+| Rails | `src/components/ProfileFilterBar.tsx`, `src/components/TagFilterBar.tsx` |
+| List | `src/components/LinksList.tsx`, `src/components/LinkListRow.tsx` |
+
+When in doubt, match the dashboard implementation—not this document if they diverge; then update this document.

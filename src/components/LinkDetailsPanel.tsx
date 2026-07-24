@@ -17,7 +17,6 @@ interface LinkDetailsPanelProps {
   membershipRows: { profile_id: string; link_id: string }[];
   profiles: Profile[];
   availableTags: Tag[];
-  onBack: () => void;
   onUpdateUrl: (url: string) => Promise<void>;
   onToggleSuperFavorite: (next: boolean) => Promise<void>;
   onUpdateTags: (tagIds: string[]) => Promise<void>;
@@ -29,42 +28,12 @@ interface LinkDetailsPanelProps {
   deletePending?: boolean;
 }
 
-const getHostname = (url: string, removeWww = false): string => {
-  if (!url || typeof url !== 'string') {
-    return 'Unknown';
-  }
-  try {
-    const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
-    let hostname = new URL(urlWithProtocol).hostname;
-    if (removeWww) {
-      hostname = hostname.replace('www.', '');
-    }
-    return hostname;
-  } catch {
-    let cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
-    if (removeWww) {
-      cleaned = cleaned.replace('www.', '');
-    }
-    return cleaned || 'Unknown';
-  }
-};
-
-const getInitials = (value: string) =>
-  value
-    .replace(/[^a-zA-Z0-9 ]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || '::';
-
 const LinkDetailsPanel = ({
   link,
   scrapedData,
   membershipRows,
   profiles,
   availableTags,
-  onBack,
   onUpdateUrl,
   onToggleSuperFavorite,
   onUpdateTags,
@@ -80,7 +49,6 @@ const LinkDetailsPanel = ({
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
   const tagButtonRef = useRef<HTMLButtonElement>(null);
-  const [imageFailed, setImageFailed] = useState(false);
 
   const mergedTags = useMemo(() => getTagsForLink(link), [link]);
   const profileNames = useMemo(() => {
@@ -93,13 +61,6 @@ const LinkDetailsPanel = ({
       .sort((a, b) => a.localeCompare(b));
   }, [link.id, membershipRows, profiles]);
 
-  const faviconUrl = scrapedData?.logo ?? link.favicon_url;
-  const parsedTitle =
-    scrapedData?.title ?? link.title ?? getHostname(link.url, true);
-  const placeholderLabel = useMemo(
-    () => getInitials(getHostname(link.url, true)),
-    [link.url],
-  );
   const isSuper = Boolean(link.is_super_favorite);
   const formattedUpdated = useMemo(
     () =>
@@ -113,7 +74,6 @@ const LinkDetailsPanel = ({
   useEffect(() => {
     setUrlDraft(link.url);
     setUrlDirty(false);
-    setImageFailed(false);
   }, [link.id, link.url]);
 
   const updateSelectorPosition = () => {
@@ -165,16 +125,6 @@ const LinkDetailsPanel = ({
 
   return (
     <div className="bookmark-link-details">
-      <div className="bookmark-link-details-toolbar">
-        <button
-          type="button"
-          className="bookmark-link-details-back"
-          onClick={onBack}
-        >
-          ← Back to links
-        </button>
-      </div>
-
       <div className="bookmark-link-details-card">
         <LinkListRow
           link={link}
@@ -221,29 +171,8 @@ const LinkDetailsPanel = ({
                 normalizeUrlInput(urlDraft.trim()) === link.url
               }
             >
-              Save URL
+              {urlPending ? 'Saving…' : 'Save URL'}
             </button>
-          </div>
-        </section>
-
-        <section className="bookmark-detail-section">
-          <h3 className="bookmark-detail-label">Parsed name & favicon</h3>
-          <div className="bookmark-detail-static">
-            <div className="bookmark-detail-static-media">
-              {faviconUrl && !imageFailed ? (
-                <img
-                  src={faviconUrl}
-                  alt=""
-                  className="bookmark-detail-static-favicon"
-                  onError={() => setImageFailed(true)}
-                />
-              ) : (
-                <span className="bookmark-detail-static-placeholder">
-                  {placeholderLabel}
-                </span>
-              )}
-            </div>
-            <p className="bookmark-detail-static-title">{parsedTitle}</p>
           </div>
         </section>
 

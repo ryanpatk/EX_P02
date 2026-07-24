@@ -76,7 +76,7 @@ export const useAppStore = create<AppState>()(
       setLinks: (links) => set({ links }),
       addLink: (link) =>
         set((state) => ({
-          links: [...state.links, link],
+          links: [link, ...state.links],
         })),
       updateLink: (id, updates) =>
         set((state) => ({

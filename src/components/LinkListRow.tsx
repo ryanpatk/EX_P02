@@ -102,6 +102,7 @@ const LinkListRow = ({
       className={`bookmark-list-row ${isSelected ? 'is-selected' : ''} ${
         readOnly ? 'is-read-only' : ''
       }`}
+      data-cuelume-hover="loading"
       role={readOnly ? undefined : 'button'}
       tabIndex={readOnly ? undefined : 0}
       onClick={handleRowActivate}

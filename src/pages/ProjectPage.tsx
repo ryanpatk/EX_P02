@@ -1,3 +1,4 @@
+import { play } from 'cuelume';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBreakpointValue } from '@chakra-ui/react';
@@ -115,24 +116,27 @@ const ProjectPage = () => {
     }
   };
 
-  const handleCreateItem = async () => {
+  const handleCreateItem = () => {
     const input = newItemInput.trim();
-    if (!input || !projectId) return;
+    if (!input || !projectId || createLink.isPending) return;
 
     if (isValidUrl(input)) {
-      // Create a link
       const url = input.startsWith('http') ? input : `https://${input}`;
       const linkData: CreateLinkData = {
         project_id: projectId,
         url: url,
       };
 
-      try {
-        await createLink.mutateAsync(linkData);
-        setNewItemInput('');
-      } catch (error) {
-        console.error('Failed to create link:', error);
-      }
+      play('sparkle');
+
+      createLink.mutate(linkData, {
+        onSuccess: () => {
+          setNewItemInput('');
+        },
+        onError: (error) => {
+          console.error('Failed to create link:', error);
+        },
+      });
     }
   };
 

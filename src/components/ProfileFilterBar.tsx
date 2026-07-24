@@ -5,9 +5,7 @@ import { Profile } from '../types/database';
 interface ProfileFilterBarProps {
   profiles: Profile[];
   profileCounts: Record<string, number>;
-  totalLinkCount: number;
   selectedProfileId: string | null;
-  onClearProfile: () => void;
   onToggleProfile: (profileId: string) => void;
   bulkAssignMode?: boolean;
 }
@@ -36,6 +34,7 @@ const ProfileChip = ({
     onClick={onClick}
     disabled={disabled}
     title={title}
+    data-cuelume-hover="tick"
     className={`bookmark-profile-chip ${active ? 'is-active' : ''}${
       bulkTarget ? ' is-bulk-target' : ''
     }`}
@@ -48,9 +47,7 @@ const ProfileChip = ({
 const ProfileFilterBar = ({
   profiles,
   profileCounts,
-  totalLinkCount,
   selectedProfileId,
-  onClearProfile,
   onToggleProfile,
   bulkAssignMode = false,
 }: ProfileFilterBarProps) => {
@@ -84,21 +81,9 @@ const ProfileFilterBar = ({
     }
   };
 
-  const filterLockedHint =
-    'Filters are locked while links are selected. Use CLEAR in the header or tap DONE first.';
-
   return (
     <div className="bookmark-profile-filter">
       <div className="bookmark-profile-filter-inner">
-        <ProfileChip
-          active={!bulkAssignMode && selectedProfileId === null}
-          label="All"
-          count={totalLinkCount}
-          onClick={onClearProfile}
-          disabled={bulkAssignMode}
-          title={bulkAssignMode ? filterLockedHint : 'Show bookmarks from all profiles'}
-        />
-
         {profiles.map((profile) => (
           <ProfileChip
             key={profile.id}

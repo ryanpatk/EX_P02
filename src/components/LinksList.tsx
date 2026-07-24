@@ -15,6 +15,8 @@ import LinkListRow from './LinkListRow';
 interface LinksListProps {
   links: LinkWithTag[];
   scrapedDataMap: Record<string, ScrapedUrlData>;
+  presentationKey: string;
+  suppressPresentationStagger?: boolean;
   onDeleteLink?: (linkId: string) => void;
   onOpenLink: (link: LinkWithTag, index: number) => void;
   onOpenLinkDetails?: (link: LinkWithTag, index: number) => void;
@@ -39,15 +41,13 @@ const STAGGER_DURATION_MS = 520;
 const STAGGER_COMPLETE_MS =
   STAGGER_MAX_INDEX * STAGGER_STEP_MS + STAGGER_DURATION_MS + 50;
 
-function linksFingerprint(links: LinkWithTag[]): string {
-  return links.map((link) => link.id).join('\u0001');
-}
-
 const LinksList = forwardRef<LinksListRef, LinksListProps>(
   (
     {
       links,
       scrapedDataMap,
+      presentationKey,
+      suppressPresentationStagger = false,
       onDeleteLink,
       onOpenLink,
       onOpenLinkDetails,
@@ -63,21 +63,21 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
   ) => {
     const parentRef = useRef<HTMLDivElement>(null);
     const [staggerTick, setStaggerTick] = useState(0);
-    const prevLinksFingerprintRef = useRef('');
-
-    const currentLinksFingerprint = useMemo(
-      () => linksFingerprint(links),
-      [links],
-    );
+    const prevPresentationKeyRef = useRef(presentationKey);
 
     useEffect(() => {
-      if (prevLinksFingerprintRef.current === currentLinksFingerprint) return;
-      prevLinksFingerprintRef.current = currentLinksFingerprint;
+      if (suppressPresentationStagger) {
+        prevPresentationKeyRef.current = presentationKey;
+        return;
+      }
+
+      if (prevPresentationKeyRef.current === presentationKey) return;
+      prevPresentationKeyRef.current = presentationKey;
       if (parentRef.current) {
         parentRef.current.scrollTop = 0;
       }
       setStaggerTick((tick) => tick + 1);
-    }, [currentLinksFingerprint]);
+    }, [presentationKey, suppressPresentationStagger]);
 
     useLayoutEffect(() => {
       const scrollEl = parentRef.current;
@@ -110,6 +110,7 @@ const LinksList = forwardRef<LinksListRef, LinksListProps>(
       getScrollElement: () => parentRef.current,
       estimateSize: () => ROW_HEIGHT + ROW_GAP,
       overscan: 6,
+      getItemKey: (index) => links[index]?.url ?? index,
     });
 
     useImperativeHandle(

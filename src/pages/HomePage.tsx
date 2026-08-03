@@ -4,6 +4,7 @@ import supabase from '../supabase';
 import { useSession } from '../context/SessionContext';
 import AppLogo from '../components/AppLogo';
 import DarkModeToggle from '../components/DarkModeToggle';
+import { getLastModulePath } from '../utils/lastModule';
 
 const GitHubIcon = () => (
   <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -21,7 +22,7 @@ const HomePage = () => {
 
   useEffect(() => {
     if (session) {
-      navigate('/dashboard');
+      navigate(getLastModulePath());
     }
   }, [session, navigate]);
 
@@ -81,7 +82,7 @@ const HomePage = () => {
 
           <div className="page-divider">
             <p className="page-caption">
-              Organize links, tags, and profiles in one focused workspace
+              Organize notes, links, and tasks in spaces — one focused workspace
             </p>
           </div>
         </div>

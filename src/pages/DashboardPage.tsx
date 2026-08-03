@@ -23,6 +23,9 @@ import LinksList from '../components/LinksList';
 import LinkDetailsPanel from '../components/LinkDetailsPanel';
 import ProfileFilterBar from '../components/ProfileFilterBar';
 import TagFilterBar from '../components/TagFilterBar';
+import LinkGridCard from '../components/LinkGridCard';
+import { EmptyState, FeedbackToast, ViewToggleFab } from '../components/ui';
+import { useViewMode } from '../hooks/useViewMode';
 import { getTagIdsForLink } from '../utils/linkTags';
 import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
@@ -63,6 +66,7 @@ const DashboardPage = () => {
   const [detailLinkId, setDetailLinkId] = useState<string | null>(null);
   const [pendingOmnibarAdd, setPendingOmnibarAdd] =
     useState<PendingOmnibarAdd | null>(null);
+  const [viewMode, setViewMode] = useViewMode('links');
   const [isNarrow, setIsNarrow] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -405,7 +409,7 @@ const DashboardPage = () => {
 
   const emptyTitle = hasActiveFilters ? 'No links match the current filters' : 'No links yet';
   const emptySubtitle = hasActiveFilters
-    ? 'Adjust search, tags, or profile to broaden the results.'
+    ? 'Adjust search, tags, or space to broaden the results.'
     : 'Search or paste a URL above, then use Add link when it appears.';
 
   const showOmnibarAdd =
@@ -496,7 +500,7 @@ const DashboardPage = () => {
       const inProfile = profileLinkSets.get(profileId) ?? new Set<string>();
       const newlyAdded = selectedLinkIds.filter((id) => !inProfile.has(id));
       try {
-        const name = profile?.name ?? 'profile';
+        const name = profile?.name ?? 'space';
         let message: string;
         if (newlyAdded.length === 0) {
           message = `Selection was already in “${name}”.`;
@@ -512,7 +516,7 @@ const DashboardPage = () => {
           linkIds: [...selectedLinkIds],
         });
       } catch (error) {
-        console.error('Failed to add links to profile:', error);
+        console.error('Failed to add links to space:', error);
       }
     },
     [
@@ -849,7 +853,11 @@ const DashboardPage = () => {
   }, [searchQuery, selectedTagIds, includeUntagged, selectedProfileId, clearSelectedLinks]);
 
   const bookmarkFeedMainInner = () => (
-    <div className="bookmark-feed-main-inner">
+    <div
+      className={`bookmark-feed-main-inner${
+        viewMode === 'grid' && !detailLink ? ' is-grid-view' : ''
+      }`}
+    >
       <div className="bookmark-feed-stack">
         <div className="bookmark-search-panel">
           {detailLink ? (
@@ -876,6 +884,31 @@ const DashboardPage = () => {
           )}
         </div>
         <div className="bookmark-list-panel-stack">
+          {viewMode === 'grid' && !detailLink ? (
+            <div className="memex-grid-view">
+              {filteredLinks.length === 0 ? (
+                <EmptyState title={emptyTitle} subtitle={emptySubtitle} />
+              ) : (
+                <div className="memex-grid">
+                  {filteredLinks.map((link, index) => (
+                    <LinkGridCard
+                      key={link.id}
+                      link={link}
+                      scrapedData={scrapedDataMap[link.url]}
+                      isSelected={selectedLinkIds.includes(link.id)}
+                      isDetailsActive={detailLinkId === link.id}
+                      onActivate={() =>
+                        selectionMode
+                          ? handleToggleSelection(link.id, index)
+                          : handleOpenLink(link, index)
+                      }
+                      onOpenDetails={() => handleOpenLinkDetails(link, index)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
           <div
             className={
               selectionMode
@@ -899,6 +932,7 @@ const DashboardPage = () => {
               selectionMode={selectionMode}
             />
           </div>
+          )}
           {detailLink ? (
             <div
               className="bookmark-link-details-overlay"
@@ -980,7 +1014,11 @@ const DashboardPage = () => {
         onSuperFavoriteOpen={handleSuperFavoriteHeaderOpen}
       />
 
-      <div className="bookmark-feed-layout">
+      <div
+        className={`bookmark-feed-layout${
+          viewMode === 'grid' && !detailLink ? ' is-grid-wide' : ''
+        }`}
+      >
         {isNarrow && mobileRail !== 'none' && (
           <button
             type="button"
@@ -997,7 +1035,7 @@ const DashboardPage = () => {
         >
           {isNarrow && (
             <div className="bookmark-rail-mobile-header">
-              <span className="bookmark-rail-mobile-title">Profiles</span>
+              <span className="bookmark-rail-mobile-title">Spaces</span>
               <button
                 type="button"
                 className="bookmark-rail-mobile-close"
@@ -1030,7 +1068,7 @@ const DashboardPage = () => {
                   )
                 }
               >
-                Profiles
+                Spaces
               </button>
               <button
                 type="button"
@@ -1080,18 +1118,14 @@ const DashboardPage = () => {
       </div>
 
       {bulkToast !== null && (
-        <div
-          className={`bookmark-bulk-feedback is-${bulkToast.phase}`}
-          role="status"
-          aria-live="polite"
+        <FeedbackToast
+          message={bulkToast.message}
+          phase={bulkToast.phase}
           onAnimationEnd={handleBulkToastAnimationEnd}
-        >
-          <span className="bookmark-bulk-feedback-mark" aria-hidden="true">
-            OK
-          </span>
-          <span className="bookmark-bulk-feedback-text">{bulkToast.message}</span>
-        </div>
+        />
       )}
+
+      {!detailLink && <ViewToggleFab mode={viewMode} onChange={setViewMode} />}
     </div>
   );
 };

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useCreateProfile } from '../hooks/useProfiles';
 import { Profile } from '../types/database';
+import { FilterChip, InlineCreateForm } from './ui';
 
 interface ProfileFilterBarProps {
   profiles: Profile[];
@@ -9,40 +10,6 @@ interface ProfileFilterBarProps {
   onToggleProfile: (profileId: string) => void;
   bulkAssignMode?: boolean;
 }
-
-interface ProfileChipProps {
-  active: boolean;
-  label: string;
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  title?: string;
-  bulkTarget?: boolean;
-}
-
-const ProfileChip = ({
-  active,
-  label,
-  count,
-  onClick,
-  disabled,
-  title,
-  bulkTarget,
-}: ProfileChipProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    data-cuelume-hover="tick"
-    className={`bookmark-profile-chip ${active ? 'is-active' : ''}${
-      bulkTarget ? ' is-bulk-target' : ''
-    }`}
-  >
-    <span className="bookmark-profile-chip-label">{label}</span>
-    <span className="bookmark-profile-chip-count">{count}</span>
-  </button>
-);
 
 const ProfileFilterBar = ({
   profiles,
@@ -53,31 +20,13 @@ const ProfileFilterBar = ({
 }: ProfileFilterBarProps) => {
   const createProfile = useCreateProfile();
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isCreating) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-  }, [isCreating]);
-
-  const handleCreate = async () => {
-    const name = newName.trim();
-    if (!name) {
-      return;
-    }
-
+  const handleCreate = async (name: string) => {
     try {
       await createProfile.mutateAsync({ name });
-      setNewName('');
       setIsCreating(false);
     } catch (error) {
-      console.error('Failed to create profile:', error);
+      console.error('Failed to create space:', error);
     }
   };
 
@@ -85,8 +34,9 @@ const ProfileFilterBar = ({
     <div className="bookmark-profile-filter">
       <div className="bookmark-profile-filter-inner">
         {profiles.map((profile) => (
-          <ProfileChip
+          <FilterChip
             key={profile.id}
+            variant="space"
             active={!bulkAssignMode && selectedProfileId === profile.id}
             label={profile.name}
             count={profileCounts[profile.id] ?? 0}
@@ -103,53 +53,19 @@ const ProfileFilterBar = ({
 
       <div className="bookmark-profile-filter-footer">
         {isCreating ? (
-          <div className="bookmark-profile-create">
-            <input
-              ref={inputRef}
-              type="text"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  void handleCreate();
-                }
-                if (event.key === 'Escape') {
-                  setIsCreating(false);
-                  setNewName('');
-                }
-              }}
-              placeholder="Profile name"
-              className="bookmark-profile-create-input"
-              disabled={createProfile.isPending}
-            />
-            <div className="bookmark-profile-create-actions">
-              <button
-                type="button"
-                className="bookmark-profile-create-button is-primary"
-                onClick={() => void handleCreate()}
-                disabled={!newName.trim() || createProfile.isPending}
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                className="bookmark-profile-create-button"
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewName('');
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <InlineCreateForm
+            placeholder="Space name…"
+            pending={createProfile.isPending}
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreating(false)}
+          />
         ) : (
           <button
             type="button"
             className="bookmark-profile-new"
             onClick={() => setIsCreating(true)}
           >
-            New profile
+            New space
           </button>
         )}
       </div>

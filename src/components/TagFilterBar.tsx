@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Tag } from '../types/database';
 import { useCreateTag, TAG_COLORS } from '../hooks/useTags';
+import { FilterChip, InlineCreateForm } from './ui';
 
 interface TagFilterBarProps {
   tags: Tag[];
@@ -12,40 +13,6 @@ interface TagFilterBarProps {
   onToggleUntagged: () => void;
   bulkAssignMode?: boolean;
 }
-
-interface TagChipProps {
-  active: boolean;
-  label: string;
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  title?: string;
-  bulkTarget?: boolean;
-}
-
-const TagChip = ({
-  active,
-  label,
-  count,
-  onClick,
-  disabled,
-  title,
-  bulkTarget,
-}: TagChipProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    data-cuelume-hover="tick"
-    className={`bookmark-tag-chip ${active ? 'is-active' : ''}${
-      bulkTarget ? ' is-bulk-target' : ''
-    }`}
-  >
-    <span className="bookmark-tag-chip-label">{label}</span>
-    <span className="bookmark-tag-chip-count">{count}</span>
-  </button>
-);
 
 const TagFilterBar = ({
   tags,
@@ -59,31 +26,13 @@ const TagFilterBar = ({
 }: TagFilterBarProps) => {
   const createTag = useCreateTag();
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isCreating) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-  }, [isCreating]);
-
-  const handleCreate = async () => {
-    const name = newName.trim();
-    if (!name) {
-      return;
-    }
-
+  const handleCreate = async (name: string) => {
     try {
       await createTag.mutateAsync({
         name,
         color: TAG_COLORS[0],
       });
-      setNewName('');
       setIsCreating(false);
     } catch (error) {
       console.error('Failed to create tag:', error);
@@ -94,19 +43,21 @@ const TagFilterBar = ({
     <div className="bookmark-tag-filter">
       <div className="bookmark-tag-filter-inner">
         {tags.map((tag) => (
-          <TagChip
+          <FilterChip
             key={tag.id}
+            variant="tag"
             active={!bulkAssignMode && selectedTagIds.includes(tag.id)}
             label={tag.name}
             count={tagCounts[tag.id] ?? 0}
             onClick={() => onToggleTag(tag.id)}
             bulkTarget={bulkAssignMode}
-            title={bulkAssignMode ? `Add “${tag.name}” to selected bookmarks` : undefined}
+            title={bulkAssignMode ? `Add “${tag.name}” to selection` : undefined}
           />
         ))}
 
         {!bulkAssignMode && untaggedCount > 0 && (
-          <TagChip
+          <FilterChip
+            variant="tag"
             active={includeUntagged}
             label="Untagged"
             count={untaggedCount}
@@ -117,46 +68,12 @@ const TagFilterBar = ({
 
       <div className="bookmark-tag-filter-footer">
         {isCreating ? (
-          <div className="bookmark-profile-create">
-            <input
-              ref={inputRef}
-              type="text"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  void handleCreate();
-                }
-                if (event.key === 'Escape') {
-                  setIsCreating(false);
-                  setNewName('');
-                }
-              }}
-              placeholder="Tag name"
-              className="bookmark-profile-create-input"
-              disabled={createTag.isPending}
-            />
-            <div className="bookmark-profile-create-actions">
-              <button
-                type="button"
-                className="bookmark-profile-create-button is-primary"
-                onClick={() => void handleCreate()}
-                disabled={!newName.trim() || createTag.isPending}
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                className="bookmark-profile-create-button"
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewName('');
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <InlineCreateForm
+            placeholder="Tag name…"
+            pending={createTag.isPending}
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreating(false)}
+          />
         ) : (
           <button
             type="button"

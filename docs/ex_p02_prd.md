@@ -1,5 +1,7 @@
 # EX_P02 Project Requirements Document
 
+> **Superseded (2026-08):** This original PRD is kept for history. The product is now **memex** — see `VISION.md` for the current production vision (Notes / Links / Tasks / Spaces modules) and `PRODUCT.md` / `DESIGN.md` for current product and design truth.
+
 ## Project Overview
 
 **Project Codename:** EX_P02  

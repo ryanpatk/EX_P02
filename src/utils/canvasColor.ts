@@ -5,6 +5,7 @@ import {
   isCanvasColorId,
   type CanvasColorId,
 } from '../constants/canvasColors';
+import { updateThemeColorMeta, updateThemedFavicon } from './favicon';
 
 const CANVAS_GRADIENT_FADE_END = 0.95;
 const CANVAS_GRADIENT_TOP_DELTA_LIGHT = 0.042;
@@ -151,17 +152,24 @@ export function buildStackSurfaceColor(
   return adjustOklchLightness(baseColor, topDelta + frostLift);
 }
 
+export function getCanvasGradientStops(
+  baseColor: string,
+  darkMode = false,
+): { top: string; base: string } {
+  const topDelta = darkMode
+    ? CANVAS_GRADIENT_TOP_DELTA_DARK
+    : CANVAS_GRADIENT_TOP_DELTA_LIGHT;
+  return { top: adjustOklchLightness(baseColor, topDelta), base: baseColor };
+}
+
 export function buildCanvasGradient(
   baseColor: string,
   darkMode = false,
 ): string {
-  const topDelta = darkMode
-    ? CANVAS_GRADIENT_TOP_DELTA_DARK
-    : CANVAS_GRADIENT_TOP_DELTA_LIGHT;
-  const topColor = adjustOklchLightness(baseColor, topDelta);
+  const { top, base } = getCanvasGradientStops(baseColor, darkMode);
   const fadeEndPercent = Math.round(CANVAS_GRADIENT_FADE_END * 100);
 
-  return `linear-gradient(180deg, ${topColor} 0%, ${baseColor} ${fadeEndPercent}%, ${baseColor} 100%)`;
+  return `linear-gradient(180deg, ${top} 0%, ${base} ${fadeEndPercent}%, ${base} 100%)`;
 }
 
 export function getStoredCanvasColorId(): CanvasColorId {
@@ -199,6 +207,10 @@ export function applyCanvasColor(colorId: CanvasColorId): void {
     buildStackSurfaceColor(baseColor, dark),
   );
   applyThemeSurfaceColors(surfaces);
+
+  const stops = getCanvasGradientStops(baseColor, dark);
+  updateThemedFavicon(stops.top, stops.base, dark);
+  updateThemeColorMeta(baseColor);
 }
 
 export function initCanvasColor(): void {

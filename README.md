@@ -1,52 +1,36 @@
-<p align="center">
-<h1 align="center">React Supabase Auth with Protected Routes</h1>
-</p>
+# memex
 
-<p align="center">
-<img src="remove_me.png" width="450">
-</p>
+**A personal working-memory system.** memex holds the three things you accumulate during knowledge work — **notes** (markdown), **links**, and **tasks** — and organizes them around **spaces**, the contexts your work happens in.
 
-[**`🌐 App Demo`**](https://react-supabase-auth-template.vercel.app/)
+Today the app is its Links module: a fast bookmark workbench / new-tab launchpage with omnibar capture, space and tag filter rails, a frosted-glass list, and user-tinted canvas theming. The full vision grows this into four peer modules behind a shared shell — see [`VISION.md`](VISION.md).
 
-## Features
+## Stack
 
-- 🚀 Protected Routes
-- 🚀 Supabase Session Object in Global Context via `useSession`
-- 🚀 User Authentication
-- 🚀 Routing and Route Guards
+- React 19 + TypeScript + Vite
+- Supabase (PostgreSQL, Auth, RLS)
+- React Query + Zustand
+- React Router v7
+- Custom CSS design system (`--bookmark-*` tokens, Two Weekend Go type)
 
-It's also blazingly fast 🔥 No really, [try it out for yourself.](https://react-supabase-auth-template.vercel.app/)
-
-[We also have a similar template for FIREBASE 🔥](https://github.com/mmvergara/react-firebase-auth-template)
 ## Getting Started
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Create `.env` using the `.env.example` as a template
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
-4. Run the app: `npm run dev`
+1. Install dependencies: `npm install`
+2. Create `.env` from the template:
+   ```
+   VITE_SUPABASE_URL=
+   VITE_SUPABASE_ANON_KEY=
+   ```
+3. Run the app: `npm run dev`
 
-## What you need to know
+Full setup (database schema, OAuth) is in [`SETUP.md`](SETUP.md).
 
-- `/router/index.tsx` is where you declare your routes
-- `/context/SessionContext.tsx` is where you can find the `useSession` hook
-  - This hook gives you access to the `session` object from Supabase globally
-- `/Providers.tsx` is where you can add more `providers` or `wrappers`
+## Documentation
 
-## Other Supabase Templates
-
-- [React ShadCN Supabase Auth Template 🌟](https://github.com/mmvergara/react-supabase-shadcn-auth-template)
-- [NextJs ShadCN Supabase Auth Template 🌟](https://github.com/mmvergara/nextjs-shadcn-supabase-auth-starter)
-
-## More Starter Templates
-
-- [NextJs MongoDB Prisma Auth Template 🌟](https://github.com/mmvergara/nextjs-mongodb-prisma-auth-template)
-- [NextJs Discord Bot Template 🌟](https://github.com/mmvergara/nextjs-discord-bot-boilerplate)
-- [React Firebase🔥 Auth Template 🌟](https://github.com/mmvergara/react-firebase-auth-template)
-- [Golang Postgres Auth Template](https://github.com/mmvergara/golang-postgresql-auth-template)
-- [Vue Golang PostgresSql Auth Template](https://github.com/mmvergara/vue-golang-postgresql-auth-starter-template)
-- [Vue Supabase Auth Template](https://github.com/mmvergara/vue-supabase-auth-starter-template)
-- [Remix Drizzle Auth Template](https://github.com/mmvergara/remix-drizzle-auth-template)
+| Doc | Purpose |
+| --- | --- |
+| [`VISION.md`](VISION.md) | Production vision — modules, primitives, spaces, phasing |
+| [`PRODUCT.md`](PRODUCT.md) | Positioning, users, brand, design principles |
+| [`DESIGN.md`](DESIGN.md) | Design-system truth (the Links dashboard is canonical) |
+| [`SETUP.md`](SETUP.md) | Local development setup |
+| [`CLAUDE.md`](CLAUDE.md) | Guidance for Claude Code sessions |
+| [`docs/`](docs/) | Original PRD (historical), migration workflow, feature notes |

@@ -62,6 +62,60 @@ export interface LinkWithTag extends Link {
   }
 }
 
+export interface Note {
+  id: string
+  user_id: string
+  title?: string
+  body: string
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteTag {
+  id: string
+  note_id: string
+  tag_id: string
+  created_at: string
+}
+
+export interface NoteTagWithTag extends NoteTag {
+  tag?: Tag
+}
+
+export interface NoteWithTags extends Note {
+  note_tags?: NoteTagWithTag[]
+  tags?: Tag[]
+}
+
+export interface Task {
+  id: string
+  user_id: string
+  title: string
+  detail?: string
+  is_done: boolean
+  due_date?: string
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskTag {
+  id: string
+  task_id: string
+  tag_id: string
+  created_at: string
+}
+
+export interface TaskTagWithTag extends TaskTag {
+  tag?: Tag
+}
+
+export interface TaskWithTags extends Task {
+  task_tags?: TaskTagWithTag[]
+  tags?: Tag[]
+}
+
 export interface Profile {
   id: string
   user_id: string
@@ -80,6 +134,22 @@ export interface ProfileLink {
 
 export interface ProfileLinkWithLink extends ProfileLink {
   link?: LinkWithTag
+}
+
+export interface ProfileTask {
+  id: string
+  profile_id: string
+  task_id: string
+  order_index: number
+  created_at: string
+}
+
+export interface ProfileNote {
+  id: string
+  profile_id: string
+  note_id: string
+  order_index: number
+  created_at: string
 }
 
 
@@ -135,6 +205,33 @@ export interface UpdateLinkData {
   tag_id?: string
   order_index?: number
   is_super_favorite?: boolean
+}
+
+export interface CreateNoteData {
+  title?: string
+  body?: string
+  order_index?: number
+}
+
+export interface UpdateNoteData {
+  title?: string | null
+  body?: string
+  order_index?: number
+}
+
+export interface CreateTaskData {
+  title: string
+  detail?: string
+  due_date?: string
+  order_index?: number
+}
+
+export interface UpdateTaskData {
+  title?: string
+  detail?: string
+  is_done?: boolean
+  due_date?: string | null
+  order_index?: number
 }
 
 // Supabase database schema type
@@ -193,6 +290,56 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<ProfileLink, 'id' | 'created_at'>>
+      }
+      notes: {
+        Row: Note
+        Insert: Omit<Note, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+      }
+      note_tags: {
+        Row: NoteTag
+        Insert: Omit<NoteTag, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<NoteTag, 'id' | 'created_at'>>
+      }
+      profile_notes: {
+        Row: ProfileNote
+        Insert: Omit<ProfileNote, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<ProfileNote, 'id' | 'created_at'>>
+      }
+      tasks: {
+        Row: Task
+        Insert: Omit<Task, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+      }
+      task_tags: {
+        Row: TaskTag
+        Insert: Omit<TaskTag, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<TaskTag, 'id' | 'created_at'>>
+      }
+      profile_tasks: {
+        Row: ProfileTask
+        Insert: Omit<ProfileTask, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<ProfileTask, 'id' | 'created_at'>>
       }
     }
   }

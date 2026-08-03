@@ -218,7 +218,7 @@ const LinkDetailsPanel = ({
         </section>
 
         <section className="bookmark-detail-section">
-          <h3 className="bookmark-detail-label">Profiles</h3>
+          <h3 className="bookmark-detail-label">Spaces</h3>
           {profileNames.length > 0 ? (
             <ul className="bookmark-detail-profile-list">
               {profileNames.map((name) => (
@@ -226,7 +226,7 @@ const LinkDetailsPanel = ({
               ))}
             </ul>
           ) : (
-            <p className="bookmark-detail-muted">Not in any profile</p>
+            <p className="bookmark-detail-muted">Not in any space</p>
           )}
         </section>
 

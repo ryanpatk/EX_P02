@@ -151,7 +151,7 @@ const TagSelector = ({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search tags..."
+          placeholder="Search tags…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="tag-selector-input"

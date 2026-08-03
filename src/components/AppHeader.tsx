@@ -12,6 +12,10 @@ interface AppHeaderProps {
   superFavoriteLinks?: LinkWithTag[];
   scrapedDataMap?: Record<string, ScrapedUrlData>;
   onSuperFavoriteOpen?: (link: LinkWithTag) => void;
+  /** Custom toolbar-center content (replaces the super-favorites strip). */
+  center?: React.ReactNode;
+  /** Custom toolbar-right content, rendered before the (mobile-only) settings chip. */
+  right?: React.ReactNode;
 }
 
 // const SelectIcon = () => (
@@ -81,6 +85,8 @@ const AppHeader = ({
   superFavoriteLinks = [],
   scrapedDataMap = {},
   onSuperFavoriteOpen,
+  center,
+  right,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -130,27 +136,36 @@ const AppHeader = ({
           {/* <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
             🌼
           </span> */}
-          <span className="bookmark-toolbar-brand">superlinks</span>
+          <span className="bookmark-toolbar-brand" translate="no">
+            memex
+          </span>
         </div>
       </div>
 
-      <div className="bookmark-toolbar-center" aria-label="Super favorites">
-        <div className="bookmark-toolbar-super-favorites">
-          {superFavoriteLinks.map((link) => (
-            <SuperFavoriteButton
-              key={link.id}
-              link={link}
-              scraped={scrapedDataMap[link.url]}
-              onOpen={handleSuperFav}
-            />
-          ))}
+      {center ? (
+        <div className="bookmark-toolbar-center">{center}</div>
+      ) : (
+        <div className="bookmark-toolbar-center" aria-label="Super favorites">
+          <div className="bookmark-toolbar-super-favorites">
+            {superFavoriteLinks.map((link) => (
+              <SuperFavoriteButton
+                key={link.id}
+                link={link}
+                scraped={scrapedDataMap[link.url]}
+                onOpen={handleSuperFav}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="bookmark-toolbar-status" ref={menuRef}>
+        {right}
+
+        {/* On desktop (≥768px) settings lives in the app footer instead */}
         <button
           type="button"
-          className="bookmark-toolbar-cta is-secondary is-chip"
+          className="bookmark-toolbar-cta is-secondary is-chip bookmark-toolbar-settings-mobile"
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-expanded={isMenuOpen}
           aria-haspopup="true"

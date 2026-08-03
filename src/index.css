@@ -3126,7 +3126,9 @@ textarea.input-field {
   justify-content: flex-start;
   box-sizing: border-box;
   padding: 0 16px;
-  overflow: hidden;
+  /* overflow must stay visible: the settings menu pops upward out of the bar
+     (the text span clips itself via .desktop-footer-text) */
+  overflow: visible;
   background: var(--bookmark-surface-muted);
   color: var(--bookmark-muted);
   border-top: 1px solid var(--bookmark-border);
@@ -3144,6 +3146,8 @@ textarea.input-field {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Fainter than the Settings button so the interactive control reads first */
+  color: color-mix(in srgb, var(--bookmark-muted) 55%, transparent);
 }
 
 .bg-white {
@@ -7535,4 +7539,1535 @@ textarea.input-field {
   -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
   border: 1px solid var(--bookmark-stack-frosted-border);
   box-shadow: var(--bookmark-stack-frosted-shadow);
+}
+
+/* ================================================= */
+/* memex shell: module sidebar + module page scaffold */
+
+.memex-shell {
+  display: flex;
+  height: 100vh;
+  background: var(--bookmark-experiment-bg);
+  color: var(--bookmark-text);
+  font-family: var(--bookmark-font-sans);
+}
+
+.memex-shell-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Sidebar — desktop rail */
+.memex-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 172px;
+  flex-shrink: 0;
+  padding: 10px 12px calc(var(--bookmark-footer-offset, 0px) + 12px);
+  background: transparent;
+}
+
+.memex-sidebar-brand {
+  display: flex;
+  align-items: center;
+  min-height: var(--bookmark-toolbar-height);
+  flex-shrink: 0;
+}
+
+.memex-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memex-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--bookmark-radius-pill);
+  background: transparent;
+  color: var(--bookmark-secondary-text);
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-sidebar-item:hover {
+  background: var(--bookmark-chip-secondary-bg-soft);
+  color: var(--bookmark-text);
+}
+
+.memex-sidebar-item.is-active {
+  background: var(--bookmark-active-bg);
+  border-color: var(--bookmark-brand-bubble-border);
+  color: var(--bookmark-active-fg);
+  font-weight: 600;
+}
+
+.memex-sidebar-item:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.memex-sidebar-item-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.memex-sidebar-item-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The sidebar carries the brand on desktop; keep the header grid but blank its brand cell */
+@media (min-width: 900px) {
+  .memex-shell .bookmark-toolbar-brand-wrap {
+    visibility: hidden;
+  }
+}
+
+/* Sidebar — mobile bottom tab bar */
+@media (max-width: 899px) {
+  .memex-sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 240;
+    width: auto;
+    flex-direction: row;
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--bookmark-stack-frosted-bg);
+    backdrop-filter: var(--bookmark-stack-frosted-blur);
+    -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
+    border-top: 1px solid var(--bookmark-stack-frosted-border);
+  }
+
+  .memex-sidebar-brand {
+    display: none;
+  }
+
+  .memex-sidebar-nav {
+    flex: 1;
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .memex-sidebar-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 4px 6px;
+    border-radius: var(--bookmark-radius-input);
+    font-size: var(--bookmark-fs-small);
+  }
+
+  /* Keep module content clear of the fixed tab bar */
+  .memex-shell .bookmark-dashboard {
+    --bookmark-footer-offset: 68px;
+  }
+}
+
+@media (max-width: 899px) and (prefers-reduced-transparency: reduce) {
+  .memex-sidebar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bookmark-stack-glass);
+  }
+}
+
+/* Placeholder module pages (Notes / Tasks / Spaces skeletons) */
+.memex-module-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  padding: var(--bookmark-feed-stack-inset, 12px);
+}
+
+.memex-module-stack {
+  width: min(640px, 100%);
+  align-items: center;
+  justify-content: center;
+}
+
+.memex-module-hint {
+  margin: 12px 0 0;
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bookmark-muted);
+}
+
+/* ============================================ */
+/* memex styleguide (/styleguide) — design-system reference page */
+
+.memex-styleguide {
+  min-height: 100vh;
+  background: var(--bookmark-experiment-bg);
+  color: var(--bookmark-text);
+  font-family: var(--bookmark-font-sans);
+  padding: 24px 20px calc(var(--bookmark-footer-offset, 0px) + 48px);
+}
+
+.memex-styleguide-inner {
+  width: min(880px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.memex-styleguide-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--bookmark-toolbar-height);
+}
+
+.memex-styleguide-kicker {
+  margin: 0;
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bookmark-muted);
+}
+
+.memex-styleguide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memex-styleguide-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.memex-styleguide-section-title {
+  margin: 0;
+  font-size: var(--bookmark-fs-heading-sm, 14px);
+  font-weight: 700;
+}
+
+.memex-styleguide-section-note {
+  margin: 0;
+  font-size: var(--bookmark-fs-small);
+  color: var(--bookmark-muted);
+  max-width: 60ch;
+}
+
+.memex-styleguide-card {
+  flex: 0 0 auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: visible;
+}
+
+.memex-styleguide-theme-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.memex-styleguide-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.memex-styleguide-swatch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memex-styleguide-swatch-chip {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--bookmark-border-ink);
+}
+
+.memex-styleguide-swatch-label {
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.memex-styleguide-swatch-token {
+  font-size: 11px;
+  color: var(--bookmark-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-styleguide-type-specimens {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memex-styleguide-type-specimens p {
+  margin: 0;
+}
+
+.memex-styleguide-type-heading {
+  font-size: var(--bookmark-fs-heading-sm, 14px);
+  font-weight: 700;
+}
+
+.memex-styleguide-type-ui {
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+}
+
+.memex-styleguide-type-caption {
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--bookmark-muted);
+}
+
+.memex-styleguide-demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.memex-styleguide-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-styleguide .bookmark-list-empty {
+  padding: 24px 12px;
+}
+
+/* ============================== */
+/* memex tasks module */
+
+.memex-task-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-task-row {
+  --bookmark-list-row-divider: color-mix(in srgb, var(--bookmark-border) 55%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bookmark-list-row-divider);
+  background: transparent;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-task-row:hover {
+  background: var(--bookmark-row-hover-bg);
+}
+
+.memex-task-row.is-done .memex-task-title {
+  color: var(--bookmark-muted);
+  text-decoration: line-through;
+}
+
+.memex-task-check {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--bookmark-border-ink);
+  border-radius: 7px;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-task-check svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-task-check:hover {
+  background: var(--bookmark-chip-secondary-bg-soft);
+}
+
+.memex-task-row.is-done .memex-task-check {
+  background: var(--bookmark-active-bg);
+  border-color: var(--bookmark-active-bg);
+  color: var(--bookmark-active-fg);
+}
+
+.memex-task-check:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.memex-task-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memex-task-title {
+  margin: 0;
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+  color: var(--bookmark-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-task-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memex-task-due {
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  color: var(--bookmark-muted);
+}
+
+.memex-task-actions {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-task-row:hover .memex-task-actions,
+.memex-task-actions:focus-within {
+  opacity: 1;
+}
+
+@media (max-width: 899px) {
+  .memex-task-actions {
+    opacity: 1;
+  }
+}
+
+.memex-task-done-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-task-done-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--bookmark-muted);
+  font-family: inherit;
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.memex-task-done-toggle:hover {
+  color: var(--bookmark-text);
+}
+
+.memex-task-done-caret {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition-fast);
+}
+
+.memex-task-done-caret svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-task-done-caret.is-open {
+  transform: rotate(90deg);
+}
+
+/* ============================== */
+/* memex notes module */
+
+.memex-note-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-note-row {
+  --bookmark-list-row-divider: color-mix(in srgb, var(--bookmark-border) 55%, transparent);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bookmark-list-row-divider);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-note-row:hover {
+  background: var(--bookmark-row-hover-bg);
+}
+
+.memex-note-row:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: -2px;
+}
+
+.memex-note-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memex-note-row-title {
+  margin: 0;
+  font-size: var(--bookmark-fs-heading-sm, 14px);
+  font-weight: 600;
+  color: var(--bookmark-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-note-row-excerpt {
+  margin: 0;
+  font-size: var(--bookmark-fs-ui);
+  color: var(--bookmark-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.memex-note-row-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memex-note-row-time {
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  color: var(--bookmark-muted);
+}
+
+.memex-note-row-actions {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-note-row:hover .memex-note-row-actions,
+.memex-note-row-actions:focus-within {
+  opacity: 1;
+}
+
+@media (max-width: 899px) {
+  .memex-note-row-actions {
+    opacity: 1;
+  }
+}
+
+/* Note editor */
+
+.memex-note-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-note-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bookmark-border) 55%, transparent);
+  flex-shrink: 0;
+}
+
+.memex-note-editor-status {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bookmark-muted);
+}
+
+.memex-note-editor-status svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-spinner {
+  animation: memex-spin 0.9s linear infinite;
+}
+
+@keyframes memex-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.memex-note-title-input {
+  border: 0;
+  background: transparent;
+  padding: 16px 20px 4px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bookmark-text);
+  outline: none;
+  flex-shrink: 0;
+}
+
+.memex-note-title-input::placeholder {
+  color: var(--bookmark-muted);
+  opacity: 0.7;
+}
+
+.memex-note-editor-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-markdown-textarea {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: none;
+  outline: none;
+  padding: 12px 20px 20px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--bookmark-text);
+}
+
+.memex-markdown-textarea::placeholder {
+  color: var(--bookmark-muted);
+  opacity: 0.7;
+}
+
+.memex-note-reading {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 20px 24px;
+  cursor: text;
+}
+
+.memex-note-reading:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: -2px;
+}
+
+/* Rendered markdown */
+
+.memex-markdown {
+  font-size: var(--bookmark-fs-ui);
+  /* 500 renders the semibold cut — the app's de facto text weight; the
+     regular (400) cut reads too thin at 13px next to the rest of the UI */
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--bookmark-text);
+  overflow-wrap: break-word;
+}
+
+.memex-markdown > :first-child {
+  margin-top: 0;
+}
+
+.memex-markdown h1,
+.memex-markdown h2,
+.memex-markdown h3,
+.memex-markdown h4,
+.memex-markdown h5,
+.memex-markdown h6 {
+  margin: 0.8em 0 0.3em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.memex-markdown h1 {
+  font-size: 18px;
+}
+
+.memex-markdown h2 {
+  font-size: 16px;
+}
+
+.memex-markdown h3 {
+  font-size: 14px;
+}
+
+.memex-markdown h4,
+.memex-markdown h5,
+.memex-markdown h6 {
+  font-size: var(--bookmark-fs-ui);
+}
+
+.memex-markdown p {
+  margin: 0.6em 0;
+}
+
+/* Tailwind preflight resets list-style — restore markers for rendered notes */
+.memex-markdown ul {
+  list-style: disc;
+}
+
+.memex-markdown ol {
+  list-style: decimal;
+}
+
+.memex-markdown ul ul {
+  list-style: circle;
+}
+
+.memex-markdown ul ul ul {
+  list-style: square;
+}
+
+.memex-markdown ul,
+.memex-markdown ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+
+/* GFM task-list items render a checkbox instead of a marker */
+.memex-markdown li.task-list-item {
+  list-style: none;
+}
+
+.memex-markdown ul:has(> li.task-list-item) {
+  padding-left: 0.25em;
+}
+
+.memex-markdown li {
+  margin: 0;
+}
+
+.memex-markdown li > ul,
+.memex-markdown li > ol {
+  margin: 0;
+}
+
+.memex-markdown input[type='checkbox'] {
+  margin-right: 0.4em;
+  accent-color: var(--bookmark-active-bg);
+}
+
+.memex-markdown code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.92em;
+  background: var(--bookmark-surface-muted);
+  border: 1px solid color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+
+.memex-markdown pre {
+  margin: 0.8em 0;
+  padding: 12px 14px;
+  background: var(--bookmark-surface-muted);
+  border: 1px solid color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.memex-markdown pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.memex-markdown blockquote {
+  margin: 0.8em 0;
+  padding: 0.1em 0 0.1em 14px;
+  border-left: 3px solid var(--bookmark-border-ink);
+  color: var(--bookmark-muted);
+}
+
+.memex-markdown a {
+  color: var(--bookmark-prominent-text, var(--bookmark-text));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.memex-markdown hr {
+  margin: 1.2em 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+}
+
+.memex-markdown table {
+  margin: 0.8em 0;
+  border-collapse: collapse;
+  font-size: var(--bookmark-fs-ui);
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.memex-markdown th,
+.memex-markdown td {
+  border: 1px solid color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.memex-markdown th {
+  font-weight: 700;
+  background: var(--bookmark-surface-muted);
+}
+
+.memex-markdown img {
+  max-width: 100%;
+}
+
+.memex-note-delete {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bookmark-muted);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-note-delete svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-note-delete:hover {
+  background: var(--bookmark-danger-soft, var(--bookmark-chip-secondary-bg-soft));
+  color: var(--bookmark-danger, currentColor);
+}
+
+.memex-note-delete:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+/* ============================== */
+/* memex spaces module — conglomerate item stream */
+
+.memex-space-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Normalize link rows onto the compact note/task rhythm inside the stream:
+   transparent divider rows, smaller media box, shared paddings */
+.memex-space-list .bookmark-list-row {
+  --bookmark-list-row-divider: color-mix(in srgb, var(--bookmark-border) 55%, transparent);
+  min-height: 0;
+  padding: 12px 16px;
+  margin-right: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--bookmark-list-row-divider);
+  align-items: center;
+}
+
+.memex-space-list .bookmark-list-row:hover {
+  background: var(--bookmark-row-hover-bg);
+}
+
+.memex-space-list .bookmark-list-row-media {
+  width: 28px;
+  height: 28px;
+}
+
+.memex-space-list .bookmark-list-row-media img.bookmark-list-row-favicon {
+  width: 20px;
+  height: 20px;
+}
+
+.memex-space-list .bookmark-list-row-tags.is-empty {
+  display: none;
+}
+
+/* List rows must never flex-shrink to fit — overflow into scroll instead */
+.memex-space-list > *,
+.memex-task-list > *,
+.memex-note-list > * {
+  flex-shrink: 0;
+}
+
+/* Header space carousel: ← name → over pagination dots */
+.memex-space-carousel {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.memex-space-carousel-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memex-space-carousel-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 280px;
+}
+
+.memex-space-carousel-dot {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: var(--bookmark-radius-pill);
+  background: color-mix(in srgb, var(--bookmark-muted) 40%, transparent);
+  transition: background-color var(--transition-fast);
+}
+
+.memex-space-carousel-dot.is-active {
+  background: var(--bookmark-text);
+}
+
+.memex-space-carousel-arrow {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bookmark-secondary-text);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-space-carousel-arrow svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-space-carousel-arrow:hover:not(:disabled) {
+  background: var(--bookmark-brand-bubble-bg-hover);
+  color: var(--bookmark-text);
+}
+
+.memex-space-carousel-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.memex-space-carousel-arrow:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.memex-space-carousel-name {
+  /* Fixed width so the arrows never shift as the space name changes */
+  width: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--bookmark-fs-heading-sm, 14px);
+  font-weight: 700;
+  color: var(--bookmark-text);
+  text-align: center;
+}
+
+.memex-space-carousel-empty {
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 500;
+  color: var(--bookmark-muted);
+}
+
+@media (max-width: 899px) {
+  .memex-space-carousel {
+    width: 100%;
+  }
+
+  .memex-space-carousel-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .memex-space-carousel-name {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* Settings chip lives in the header only below the desktop footer breakpoint */
+@media (min-width: 768px) {
+  .bookmark-toolbar-settings-mobile {
+    display: none;
+  }
+}
+
+/* Footer settings (desktop) */
+.desktop-footer {
+  justify-content: space-between;
+}
+
+.desktop-footer-settings-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.desktop-footer-settings {
+  border: 0;
+  background: transparent;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--bookmark-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.desktop-footer-settings:hover {
+  color: var(--bookmark-text);
+}
+
+.desktop-footer-settings:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.desktop-footer-settings-wrap .bookmark-account-menu {
+  position: absolute;
+  top: auto;
+  bottom: calc(100% + 10px);
+  left: auto;
+  right: 0;
+  z-index: 120;
+}
+
+.memex-space-carousel-add {
+  margin-left: 2px;
+}
+
+.memex-space-carousel-input {
+  min-width: 0;
+  width: min(240px, 100%);
+  border: 1px solid var(--bookmark-control-border);
+  border-radius: var(--bookmark-radius-input);
+  background: var(--bookmark-control-bg, transparent);
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 600;
+  color: var(--bookmark-text);
+  outline: none;
+}
+
+.memex-space-carousel-input:focus-visible {
+  border-color: var(--bookmark-border-strong, var(--bookmark-border-ink));
+}
+
+.memex-space-carousel-input::placeholder {
+  color: var(--bookmark-muted);
+  opacity: 0.7;
+}
+
+/* ============================== */
+/* memex grid view: toggle, wide stack, cards */
+
+/* List/grid switcher — frosted corner button, bottom-left of the app,
+   mirroring the feedback toast's bottom-right position */
+.memex-view-fab {
+  position: fixed;
+  left: 18px;
+  bottom: calc(var(--bookmark-footer-offset, 0px) + 18px);
+  z-index: 260;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bookmark-stack-frosted-border);
+  border-radius: 12px;
+  background: var(--bookmark-stack-frosted-bg);
+  backdrop-filter: var(--bookmark-stack-frosted-blur);
+  -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
+  box-shadow: var(--bookmark-stack-frosted-shadow);
+  color: var(--bookmark-text);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.memex-view-fab svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.memex-view-fab:hover {
+  background: var(--bookmark-row-hover-bg);
+}
+
+.memex-view-fab:active {
+  transform: scale(0.96);
+}
+
+.memex-view-fab:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .memex-view-fab {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bookmark-stack-glass);
+  }
+}
+
+/* Styleguide shows the fab inline rather than pinned to the corner */
+.memex-styleguide-fab-demo .memex-view-fab {
+  position: static;
+}
+
+/* Grid mode widens the center stack to ~3× the list width when the viewport
+   allows; the auto-fill grid sheds columns as it narrows */
+.bookmark-feed-main-inner.is-grid-view {
+  max-width: min(1920px, 100%);
+}
+
+/* In grid mode the rails compact to their minimums so the center column can
+   actually get wide; Spaces' decorative empty rails collapse entirely */
+@media (min-width: 900px) {
+  .bookmark-feed-layout.is-grid-wide {
+    grid-template-columns: minmax(200px, 230px) minmax(0, 1fr) minmax(160px, 190px);
+  }
+
+  .bookmark-feed-layout.is-grid-wide.is-empty-rails {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+
+  /* With the rails collapsed nothing separates the stack from the viewport
+     edges — restore breathing room via the feed inline inset */
+  .bookmark-feed-layout.is-grid-wide.is-empty-rails .bookmark-feed-main {
+    --bookmark-feed-inline-inset: 18px;
+  }
+}
+
+/* Scroll container for grid content (cards, done sections) */
+.memex-grid-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.memex-grid-view > * {
+  flex-shrink: 0;
+}
+
+.memex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  align-content: start;
+}
+
+/* Cards */
+.memex-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 112px;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--bookmark-control-border);
+  border-radius: var(--bookmark-radius-card);
+  background: var(--bookmark-brand-bubble-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.memex-card:hover {
+  background: var(--bookmark-row-hover-bg);
+}
+
+.memex-card:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.memex-card.is-selected {
+  background: var(--bookmark-row-selected-bg, var(--bookmark-active-bg));
+  border-color: var(--bookmark-brand-bubble-border);
+}
+
+.memex-card--task {
+  cursor: default;
+}
+
+.memex-card--task.is-done {
+  opacity: 0.65;
+}
+
+.memex-card--task.is-done .memex-card-title {
+  text-decoration: line-through;
+  color: var(--bookmark-muted);
+}
+
+.memex-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memex-card-favicon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bookmark-surface-muted);
+}
+
+.memex-card-favicon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.memex-card-favicon-initials {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bookmark-muted);
+  letter-spacing: 0.02em;
+}
+
+.memex-card-sub {
+  font-size: var(--bookmark-fs-small);
+  font-weight: 500;
+  color: var(--bookmark-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-card-title {
+  margin: 0;
+  font-size: var(--bookmark-fs-heading-sm, 14px);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bookmark-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.memex-card-excerpt {
+  margin: 0;
+  font-size: var(--bookmark-fs-ui);
+  line-height: 1.5;
+  color: var(--bookmark-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.memex-card-footer {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.memex-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-card:hover .memex-card-actions,
+.memex-card-actions:focus-within {
+  opacity: 1;
+}
+
+@media (max-width: 899px) {
+  .memex-card-actions {
+    opacity: 1;
+  }
+
+  .memex-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    padding: 10px;
+  }
+}
+
+/* Omnibar clear (×) — appears whenever the search bar has input */
+.memex-omnibar-clear {
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bookmark-secondary-text);
+  cursor: pointer;
+  padding: 0;
+  margin-right: 4px;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-omnibar-clear svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.memex-omnibar-clear:hover {
+  background: var(--bookmark-chip-secondary-bg-soft);
+  color: var(--bookmark-text);
+}
+
+.memex-omnibar-clear:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+/* ============================== */
+/* Web interface guidelines pass */
+
+/* Touch: no double-tap zoom on controls, tap highlight matches design */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role='button'],
+[role='checkbox'] {
+  touch-action: manipulation;
+}
+
+/* Border-led focus visibility for chrome-less inputs — theme prominent color */
+.bookmark-omnibar-row:focus-within {
+  border-bottom-color: var(--bookmark-prominent-bg);
+}
+
+.memex-note-title-input:focus-visible {
+  box-shadow: inset 0 -2px 0 0 var(--bookmark-prominent-bg);
+}
+
+.memex-space-carousel-input:focus-visible {
+  border-color: var(--bookmark-prominent-bg);
+}
+
+/* iOS: inputs under 16px trigger viewport zoom on focus */
+@media (max-width: 899px) {
+  .memex-markdown-textarea,
+  .memex-space-carousel-input,
+  .memex-omnibar-clear + input {
+    font-size: var(--text-body);
+  }
+}
+
+/* Numbers that get compared line up */
+.bookmark-tag-chip-count,
+.bookmark-profile-chip-count,
+.memex-task-done-toggle,
+.memex-task-due,
+.memex-note-row-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty states read as set copy, not ragged wraps */
+.bookmark-list-empty-title {
+  text-wrap: balance;
+}
+
+.bookmark-list-empty-subtitle {
+  text-wrap: pretty;
+}
+
+/* Scroll containment: overlays and module lists don't chain-scroll the page */
+.app-modal,
+.bookmark-account-menu,
+.bookmark-rail-inner,
+.bookmark-list-scroll,
+.memex-task-list,
+.memex-note-list,
+.memex-space-list,
+.memex-grid-view,
+.memex-note-reading {
+  overscroll-behavior: contain;
+}
+
+/* Bulk selection for notes and tasks (mirrors the links pattern) */
+.memex-task-row.is-selected,
+.memex-note-row.is-selected {
+  background: var(--bookmark-row-selected-bg, var(--bookmark-row-hover-bg));
+}
+
+.memex-task-row.is-selection-mode,
+.memex-note-row.is-selection-mode {
+  cursor: pointer;
+}
+
+/* In selection mode the row itself is the control — inner buttons stand down */
+.memex-task-row.is-selection-mode .memex-task-check,
+.memex-task-row.is-selection-mode .memex-task-actions,
+.memex-note-row.is-selection-mode .memex-note-row-actions,
+.memex-card.is-selection-mode .memex-task-check,
+.memex-card.is-selection-mode .memex-card-actions {
+  pointer-events: none;
+}
+
+.memex-task-row.is-selection-mode:focus-visible,
+.memex-note-row.is-selection-mode:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: -2px;
 }

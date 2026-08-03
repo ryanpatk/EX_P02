@@ -1,5 +1,5 @@
 const AppLogo = () => {
-  return <span className="app-brand">superlinks</span>;
+  return <span className="app-brand">memex</span>;
 };
 
 export default AppLogo;

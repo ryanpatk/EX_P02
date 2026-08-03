@@ -68,7 +68,7 @@ const ProjectSelector = ({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search projects..."
+          placeholder="Search projects…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-2 py-1 text-sm border border-medium-grey rounded-sm focus:outline-none focus:border-orange"

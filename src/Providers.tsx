@@ -43,6 +43,10 @@ const [, restorePromise] = persistQueryClient({
           firstKey === 'tags' ||
           firstKey === 'profiles' ||
           firstKey === 'profile-links' ||
+          firstKey === 'tasks' ||
+          firstKey === 'profile-tasks' ||
+          firstKey === 'notes' ||
+          firstKey === 'profile-notes' ||
           firstKey === 'scraper'
         );
       }

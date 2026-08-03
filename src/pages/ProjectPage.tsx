@@ -1,7 +1,6 @@
 import { play } from 'cuelume';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useBreakpointValue } from '@chakra-ui/react';
 import {
   useProject,
   useUpdateProject,
@@ -28,8 +27,19 @@ const ProjectPage = () => {
   const [editingLink, setEditingLink] = useState<LinkWithTag | null>(null);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('');
 
-  // Responsive detection
-  const isDesktop = useBreakpointValue([false, false, true]); // [mobile, tablet, desktop]
+  // Responsive detection (was Chakra's useBreakpointValue md breakpoint)
+  const [isDesktop, setIsDesktop] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(min-width: 768px)').matches,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   // Data hooks
   const { data: project, isLoading: projectLoading } = useProject(projectId!);

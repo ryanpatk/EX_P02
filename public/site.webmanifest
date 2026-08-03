@@ -1,6 +1,6 @@
 {
-  "name": "superlinks",
-  "short_name": "superlinks",
+  "name": "memex",
+  "short_name": "memex",
   "description": "Personal knowledge management for bookmarks and notes",
   "icons": [
     {

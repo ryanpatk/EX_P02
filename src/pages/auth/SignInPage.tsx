@@ -4,6 +4,7 @@ import { useSession } from '../../context/SessionContext';
 import supabase from '../../supabase';
 import AppLogo from '../../components/AppLogo';
 import DarkModeToggle from '../../components/DarkModeToggle';
+import { getLastModulePath } from '../../utils/lastModule';
 
 const GitHubIcon = () => (
   <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -24,7 +25,7 @@ const SignInPage = () => {
     password: '',
   });
 
-  if (session) return <Navigate to="/dashboard" />;
+  if (session) return <Navigate to={getLastModulePath()} />;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormValues({ ...formValues, [e.target.name]: e.target.value });
@@ -33,7 +34,7 @@ const SignInPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setStatus('Logging in...');
+    setStatus('Logging in…');
     const { error } = await supabase.auth.signInWithPassword({
       email: formValues.email,
       password: formValues.password,
@@ -49,7 +50,7 @@ const SignInPage = () => {
 
   const handleGitHubSignIn = async () => {
     setIsSubmitting(true);
-    setStatus('Redirecting to GitHub...');
+    setStatus('Redirecting to GitHub…');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
@@ -85,7 +86,7 @@ const SignInPage = () => {
               </div>
               <DarkModeToggle />
             </div>
-            <p className="page-muted">Access your bookmarks and profiles</p>
+            <p className="page-muted">Access your notes, links, tasks, and spaces</p>
           </header>
 
           <form onSubmit={handleSubmit} className="page-card-section">

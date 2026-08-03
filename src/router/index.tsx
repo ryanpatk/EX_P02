@@ -1,12 +1,17 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import HomePage from "../pages/HomePage.tsx";
 import SignInPage from "../pages/auth/SignInPage.tsx";
 import SignUpPage from "../pages/auth/SignUpPage.tsx";
 import ProtectedPage from "../pages/ProtectedPage.tsx";
 import DashboardPage from "../pages/DashboardPage.tsx";
+import NotesPage from "../pages/modules/NotesPage.tsx";
+import TasksPage from "../pages/modules/TasksPage.tsx";
+import SpacesPage from "../pages/modules/SpacesPage.tsx";
 import ProjectPage from "../pages/ProjectPage.tsx";
+import StyleguidePage from "../pages/StyleguidePage.tsx";
 import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
+import MemexShell from "../components/MemexShell.tsx";
 import Providers from "../Providers.tsx";
 
 const router = createBrowserRouter([
@@ -33,9 +38,38 @@ const router = createBrowserRouter([
         path: "/",
         element: <AuthProtectedRoute />,
         children: [
+          // memex module shell: sidebar + module layouts
+          {
+            element: <MemexShell />,
+            children: [
+              {
+                path: "/links",
+                element: <DashboardPage />,
+              },
+              {
+                path: "/notes",
+                element: <NotesPage />,
+              },
+              {
+                path: "/tasks",
+                element: <TasksPage />,
+              },
+              {
+                path: "/spaces",
+                element: <SpacesPage />,
+              },
+            ],
+          },
+          // Design-system reference page — deliberately outside the module
+          // shell and not linked from in-app navigation
+          {
+            path: "/styleguide",
+            element: <StyleguidePage />,
+          },
+          // Legacy dashboard URL (OAuth redirects still target it)
           {
             path: "/dashboard",
-            element: <DashboardPage />,
+            element: <Navigate to="/links" replace />,
           },
           {
             path: "/project/:projectId",

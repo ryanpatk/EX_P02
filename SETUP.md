@@ -1,13 +1,13 @@
-# EX_P02 Setup Instructions
+# memex (EX_P02) Setup Instructions
 
 ## Overview
 
-EX_P02 is a personal knowledge management application built with React, Supabase, and a technical brutalist design aesthetic. This document provides setup instructions for local development.
+memex is a personal working-memory system built with React and Supabase. The app currently ships its **Links module** — a bookmark workbench / new-tab launchpage — with Notes, Tasks, and Spaces modules to follow per `VISION.md`. This document covers local development setup.
 
 ## Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18+
+- npm
 - A Supabase account and project
 
 ## Initial Setup
@@ -25,12 +25,12 @@ EX_P02 is a personal knowledge management application built with React, Supabase
    ```
 
 3. **Database Setup**
-   Run the SQL schema in your Supabase SQL editor:
-   ```bash
-   # Copy and execute the contents of supabase-schema.sql in your Supabase SQL editor
-   ```
+   Apply the schema via Supabase CLI migrations — see `docs/database-migrations.md`. (The legacy `supabase-schema.sql` bootstrap is superseded by the migrations workflow.)
 
-4. **Development Server**
+4. **GitHub OAuth (optional)**
+   Follow `docs/GITHUB_OAUTH_SETUP.md` to enable GitHub sign-in.
+
+5. **Development Server**
    ```bash
    npm run dev
    ```
@@ -39,90 +39,63 @@ EX_P02 is a personal knowledge management application built with React, Supabase
 
 ```
 src/
-├── components/          # Reusable UI components (to be added)
-├── context/            # React contexts (SessionContext)
-├── hooks/              # Custom React hooks (useProjects, useNotes, useLinks)
+├── components/         # UI components (omnibar, rails, list rows, modals)
+├── constants/          # Canvas color swatches
+├── context/            # SessionContext (Supabase session)
+├── hooks/              # Data hooks (useLinks, useProfiles, useTags, ...)
 ├── pages/              # Page components
-│   ├── auth/          # Authentication pages
-│   ├── DashboardPage.tsx
-│   ├── ProjectPage.tsx
-│   └── HomePage.tsx
-├── router/             # React Router configuration
-├── store/              # Zustand state management
-├── supabase/           # Supabase client configuration
-└── types/              # TypeScript type definitions
+│   ├── auth/           # Sign in / sign up
+│   └── DashboardPage.tsx   # Links module — canonical surface
+├── router/             # React Router config + AuthProtectedRoute
+├── store/              # Zustand state
+├── supabase/           # Supabase client
+├── types/              # Database + app types
+└── utils/              # Canvas theming, URL parsing, helpers
 ```
 
-## Key Features Implemented
+## What's Implemented
 
-### ✅ Phase 1 (MVP) - COMPLETED
-- **Authentication System**: Email/password sign-in with Supabase Auth
-- **Project Management**: Full CRUD operations for projects with starring functionality
-- **Note Management**: Basic text editing with auto-save and carousel navigation
-- **Link Management**: URL storage with basic metadata extraction
-- **Dual-Pane Layout**: Desktop interface with expandable left (notes) and right (links) panes
-- **Search Functionality**: Real-time project search in dashboard
-- **Responsive Design**: Mobile-friendly layouts
-- **Technical Brutalist Design**: Monospace fonts, minimal borders, high contrast
+- **Authentication**: Email/password and GitHub OAuth via Supabase Auth, protected routes
+- **Links module**: Omnibar search + URL-detecting capture, virtualized frosted-glass list, open-in-background-tab
+- **Filtering**: Profile (→ space) rail and tag rail; bulk tag/profile assignment with optimistic toasts
+- **Super favorites**: Favicon shortcuts in the header toolbar
+- **Theming**: User-selected canvas swatch drives interactive color; first-class dark mode (`data-theme`)
+- **Responsive**: Desktop three-column grid; mobile slide-over rails
 
-### Key Technical Implementations
+## Database Schema (current)
 
-1. **State Management**: Zustand store for global application state
-2. **Data Fetching**: React Query for server state management with optimistic updates
-3. **Database**: PostgreSQL via Supabase with Row Level Security
-4. **Authentication**: Supabase Auth with session management
-5. **Routing**: React Router v7 with protected routes
-6. **Styling**: CSS-in-JS with design system variables
+All tables user-scoped with Row Level Security:
 
-### Database Schema
+- **links** — URLs with metadata (title, description, favicon, preview image), ordering, super-favorite flag
+- **tags** / **link_tags** — shared tag vocabulary, many-to-many
+- **profiles** / **profile_links** — link groupings (become **spaces** in the memex vision)
+- **projects** — legacy, slated for retirement
 
-- **Projects**: User workspaces with metadata and starring
-- **Notes**: Encrypted content with project association and ordering
-- **Links**: URLs with metadata and project association
-
-### Security Features
-
-- Row Level Security (RLS) policies on all tables
-- User-scoped data access
-- Prepared for client-side encryption (placeholder implemented)
+Planned additions (per `VISION.md`): **notes** (markdown body), **tasks**, and per-primitive space/tag join tables.
 
 ## Development Commands
 
 ```bash
 npm run dev         # Start development server
-npm run build       # Build for production
+npm run build       # Build for production (TypeScript check + Vite build)
 npm run lint        # Run ESLint
 npm run preview     # Preview production build
 ```
 
-## Next Steps (Phase 2)
+## Next Steps (per VISION.md phasing)
 
-- GitHub OAuth integration
-- Rich link previews with metadata parsing
-- Advanced search with filters
-- Mobile-optimized layouts
-- Drag-and-drop functionality
-- Client-side note encryption
-- Real-time collaboration
-
-## Architecture Notes
-
-- The application follows a clean architecture pattern with separation of concerns
-- Business logic is extracted from components into custom hooks
-- The design system is implemented with CSS custom properties
-- Type safety is enforced throughout with TypeScript
-- The codebase is prepared for future scaling with modular architecture
-
-## Configuration
-
-The application uses environment variables for configuration. See `src/config.ts` for the configuration setup.
+1. App shell (left sidebar) + profiles → spaces rename
+2. Tasks module
+3. Notes module (markdown editing with auto-save)
+4. Spaces module (composes notes, links, tasks); retire legacy projects
+5. Cross-primitive search, note encryption, mobile polish
 
 ## Troubleshooting
 
-1. **Build Issues**: Ensure all environment variables are set correctly
-2. **Database Errors**: Verify Supabase credentials and schema setup
-3. **Authentication Issues**: Check Supabase Auth configuration and RLS policies
+1. **Build issues**: Ensure all environment variables are set correctly
+2. **Database errors**: Verify Supabase credentials and that migrations have been applied
+3. **Auth issues**: Check Supabase Auth configuration and RLS policies
 
 ## Contributing
 
-Follow the existing code patterns and ensure TypeScript compliance. The project uses ESLint for code quality enforcement.
+Follow existing code patterns and TypeScript compliance (ESLint enforced). Every new UI surface uses the `--bookmark-*` design tokens and the component vocabulary documented in `DESIGN.md`.

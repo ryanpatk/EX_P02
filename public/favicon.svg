@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .shell {
+      fill: #f7f7f9;
+      stroke: #62667a;
+      stroke-opacity: 0.42;
+    }
+    @media (prefers-color-scheme: dark) {
+      .shell {
+        fill: #26272e;
+        stroke: #ffffff;
+        stroke-opacity: 0.34;
+      }
+    }
+  </style>
+  <!-- The brand bubble, squared: 23% corner radius ≈ the shell's 10px/44px -->
+  <rect class="shell" x="3.5" y="3.5" width="57" height="57" rx="13.5" stroke-width="3" />
+</svg>

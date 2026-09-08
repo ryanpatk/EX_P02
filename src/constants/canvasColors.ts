@@ -1,13 +1,13 @@
 export type CanvasColorId =
   | 'grey'
-  | 'blush'
-  | 'lavender'
-  | 'lilac'
-  | 'sky'
-  | 'mint'
-  | 'sage'
-  | 'peach'
-  | 'butter';
+  | 'blue'
+  | 'cyan'
+  | 'green'
+  | 'gold'
+  | 'orange'
+  | 'coral'
+  | 'violet'
+  | 'pink';
 
 export interface CanvasColorOption {
   id: CanvasColorId;
@@ -15,12 +15,22 @@ export interface CanvasColorOption {
   light: string;
   dark: string;
   shadowHue: number;
+  /**
+   * The JOYFUL_SYSTEMS palette color this swatch is keyed to, at full
+   * strength. Interactive fills (primary buttons, active chips) derive from
+   * it so they read as the palette hue rather than a darkened tint.
+   * Omitted for neutral swatches, which fall back to a slate fill.
+   */
+  source?: string;
 }
 
 export const CANVAS_COLOR_STORAGE_KEY = 'canvasColor';
 
 export const DEFAULT_CANVAS_COLOR_ID: CanvasColorId = 'grey';
 
+// Swatch hues are anchored to the JOYFUL_SYSTEMS palette (see JOYFUL_SYSTEMS.md):
+// blue #5077FF, cyan #00C4FF, green #00C500, gold #FFD700, orange #FFA422,
+// coral #FF5A6F, violet #B38CFD, pink #FF98D0.
 export const CANVAS_COLOR_OPTIONS: CanvasColorOption[] = [
   {
     id: 'grey',
@@ -30,60 +40,68 @@ export const CANVAS_COLOR_OPTIONS: CanvasColorOption[] = [
     shadowHue: 264,
   },
   {
-    id: 'blush',
-    label: 'Blush',
-    light: 'oklch(0.935 0.042 355)',
-    dark: 'oklch(0.24 0.035 355)',
-    shadowHue: 355,
+    id: 'blue',
+    label: 'Blue',
+    light: 'oklch(0.938 0.048 268)',
+    dark: 'oklch(0.23 0.036 268)',
+    shadowHue: 268,
+    source: 'oklch(0.62 0.21 268)',
   },
   {
-    id: 'lavender',
-    label: 'Lavender',
-    light: 'oklch(0.94 0.04 290)',
-    dark: 'oklch(0.24 0.032 290)',
-    shadowHue: 290,
+    id: 'cyan',
+    label: 'Cyan',
+    light: 'oklch(0.942 0.046 229)',
+    dark: 'oklch(0.23 0.034 229)',
+    shadowHue: 229,
+    source: 'oklch(0.77 0.15 229)',
   },
   {
-    id: 'lilac',
-    label: 'Lilac',
-    light: 'oklch(0.938 0.045 305)',
-    dark: 'oklch(0.23 0.036 305)',
-    shadowHue: 305,
+    id: 'green',
+    label: 'Green',
+    light: 'oklch(0.942 0.048 143)',
+    dark: 'oklch(0.23 0.034 143)',
+    shadowHue: 143,
+    source: 'oklch(0.71 0.24 143)',
   },
   {
-    id: 'sky',
-    label: 'Sky',
-    light: 'oklch(0.942 0.038 235)',
-    dark: 'oklch(0.23 0.03 235)',
-    shadowHue: 235,
-  },
-  {
-    id: 'mint',
-    label: 'Mint',
-    light: 'oklch(0.944 0.042 165)',
-    dark: 'oklch(0.23 0.034 165)',
-    shadowHue: 165,
-  },
-  {
-    id: 'sage',
-    label: 'Sage',
-    light: 'oklch(0.936 0.034 145)',
-    dark: 'oklch(0.23 0.028 145)',
-    shadowHue: 145,
-  },
-  {
-    id: 'peach',
-    label: 'Peach',
-    light: 'oklch(0.94 0.045 45)',
-    dark: 'oklch(0.24 0.034 45)',
-    shadowHue: 45,
-  },
-  {
-    id: 'butter',
-    label: 'Butter',
-    light: 'oklch(0.952 0.048 95)',
+    id: 'gold',
+    label: 'Gold',
+    light: 'oklch(0.95 0.05 95)',
     dark: 'oklch(0.24 0.036 95)',
     shadowHue: 95,
+    source: 'oklch(0.89 0.18 95)',
+  },
+  {
+    id: 'orange',
+    label: 'Orange',
+    light: 'oklch(0.944 0.048 68)',
+    dark: 'oklch(0.24 0.034 68)',
+    shadowHue: 68,
+    source: 'oklch(0.79 0.17 68)',
+  },
+  {
+    id: 'coral',
+    label: 'Coral',
+    light: 'oklch(0.936 0.046 17)',
+    dark: 'oklch(0.24 0.035 17)',
+    shadowHue: 17,
+    source: 'oklch(0.69 0.20 17)',
+  },
+  {
+    id: 'violet',
+    label: 'Violet',
+    light: 'oklch(0.94 0.046 298)',
+    dark: 'oklch(0.23 0.035 298)',
+    shadowHue: 298,
+    source: 'oklch(0.72 0.16 298)',
+  },
+  {
+    id: 'pink',
+    label: 'Pink',
+    light: 'oklch(0.938 0.044 347)',
+    dark: 'oklch(0.24 0.034 347)',
+    shadowHue: 347,
+    source: 'oklch(0.80 0.14 347)',
   },
 ];
 

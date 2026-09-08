@@ -6,6 +6,8 @@ export interface OmnibarAction {
   show: boolean;
   pending?: boolean;
   disabled?: boolean;
+  /** Visual weight; the first shown action defaults to primary. */
+  variant?: 'primary' | 'secondary';
   onRun: () => void | Promise<void>;
 }
 
@@ -14,43 +16,51 @@ interface OmnibarProps {
   onChange: (value: string) => void;
   placeholder?: string;
   ariaLabel?: string;
+  /** Single capture action (kept for existing callers). */
   action?: OmnibarAction;
-  /** Trailing controls rendered at the right end of the bar (e.g. a view toggle). */
+  /** Several capture actions ("Add link" / "New note" / "New task"). Enter runs the first runnable one. */
+  actions?: OmnibarAction[];
+  /** Trailing controls rendered at the right end of the bar. */
   trailing?: React.ReactNode;
 }
 
 /**
- * The module search + capture bar: a tall single-row input at the top of the
- * frosted stack, with an optional prominent capture action ("Add bookmark",
- * "New task", …). Enter triggers the action when it is shown and runnable.
- * A clear (×) control appears at the right edge whenever there is input.
+ * The stream search + capture bar: a tall single-row input at the top of the
+ * frosted stack, with optional prominent capture actions. Enter triggers the
+ * first runnable action. A clear (×) control appears whenever there is input.
  */
-const Omnibar = ({ value, onChange, placeholder, ariaLabel, action, trailing }: OmnibarProps) => {
+const Omnibar = ({
+  value,
+  onChange,
+  placeholder,
+  ariaLabel,
+  action,
+  actions,
+  trailing,
+}: OmnibarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const canRun = !!action && action.show && !action.disabled && !action.pending;
+
+  const allActions = (actions ?? (action ? [action] : [])).filter((a) => a.show);
+  const isRunnable = (a: OmnibarAction) => !a.disabled && !a.pending;
+  const primary = allActions.find(isRunnable);
 
   const clear = () => {
     onChange('');
     inputRef.current?.focus();
   };
 
-  const runAction = () => {
-    if (!canRun) return;
-    void action.onRun();
-  };
-
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return;
-    if (canRun) {
+    if (primary) {
       event.preventDefault();
-      runAction();
+      void primary.onRun();
     }
   };
 
   return (
     <div className="bookmark-omnibar">
       <div
-        className={`bookmark-omnibar-row${action?.show ? ' bookmark-omnibar-row--with-add' : ''}`}
+        className={`bookmark-omnibar-row${allActions.length > 0 ? ' bookmark-omnibar-row--with-add' : ''}`}
       >
         <input
           ref={inputRef}
@@ -78,16 +88,20 @@ const Omnibar = ({ value, onChange, placeholder, ariaLabel, action, trailing }: 
             </svg>
           </button>
         )}
-        {action?.show && (
-          <button
-            type="button"
-            className="bookmark-omnibar-add"
-            onClick={runAction}
-            disabled={action.disabled || action.pending}
-          >
-            {action.pending ? action.pendingLabel ?? action.label : action.label}
-          </button>
-        )}
+        {allActions.map((a, index) => {
+          const variant = a.variant ?? (index === 0 ? 'primary' : 'secondary');
+          return (
+            <button
+              key={a.label}
+              type="button"
+              className={`bookmark-omnibar-add${variant === 'secondary' ? ' is-secondary' : ''}`}
+              onClick={() => void a.onRun()}
+              disabled={a.disabled || a.pending}
+            >
+              {a.pending ? a.pendingLabel ?? a.label : a.label}
+            </button>
+          );
+        })}
         {trailing}
       </div>
     </div>

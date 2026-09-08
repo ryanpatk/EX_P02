@@ -10,7 +10,7 @@ interface FeedbackToastProps {
 
 /**
  * Bottom-right feedback toast. Presentational only — the caller owns timing
- * and phase transitions (see DashboardPage's flashBulkSuccess).
+ * and phase transitions (see useFeedbackToast).
  */
 const FeedbackToast = ({ message, phase, onAnimationEnd }: FeedbackToastProps) => (
   <div

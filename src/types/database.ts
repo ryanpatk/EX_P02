@@ -25,6 +25,15 @@ export interface Tag {
   updated_at: string
 }
 
+export interface ApiToken {
+  id: string
+  user_id: string
+  name: string
+  token_hash: string
+  created_at: string
+  last_used_at: string | null
+}
+
 export interface LinkTag {
   id: string
   link_id: string
@@ -124,12 +133,37 @@ export interface Profile {
   updated_at: string
 }
 
+/** One "Notes to Self" message. profile_id null = the Home (general) feed. */
+export interface SelfMessage {
+  id: string
+  user_id: string
+  profile_id: string | null
+  body: string
+  legacy_id?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateSelfMessageData {
+  body: string
+  profile_id: string | null
+}
+
 export interface ProfileLink {
   id: string
   profile_id: string
   link_id: string
   order_index: number
+  /** Pinned to the header while standing in this space (per-space super favorite). */
+  is_super_favorite?: boolean
   created_at: string
+}
+
+/** Lightweight profile ↔ link membership row used for filtering and counts. */
+export interface ProfileLinkMembership {
+  profile_id: string
+  link_id: string
+  is_super_favorite?: boolean
 }
 
 export interface ProfileLinkWithLink extends ProfileLink {
@@ -340,6 +374,24 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<ProfileTask, 'id' | 'created_at'>>
+      }
+      self_messages: {
+        Row: SelfMessage
+        Insert: Omit<SelfMessage, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<SelfMessage, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+      }
+      api_tokens: {
+        Row: ApiToken
+        Insert: Omit<ApiToken, 'id' | 'created_at' | 'last_used_at'> & {
+          id?: string
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Update: Partial<Omit<ApiToken, 'id' | 'user_id' | 'created_at'>>
       }
     }
   }

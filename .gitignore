@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.dev.vars
+.env.*
+
+# Cloudflare Wrangler local dev state (miniflare caches, KV/D1/R2 sqlite, traces)
+.wrangler/

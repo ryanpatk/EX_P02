@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Save to memex</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <div id="state-setup" class="state" hidden>
+      <p class="headline">almost there</p>
+      <p class="detail">memex capture needs your API address and an access token.</p>
+      <button id="open-options" class="btn btn-primary" type="button">Open settings…</button>
+    </div>
+
+    <div id="state-saving" class="state" hidden>
+      <p class="headline"><span class="pulse-dot" aria-hidden="true"></span> saving…</p>
+      <p class="detail" id="saving-url"></p>
+    </div>
+
+    <div id="state-saved" class="state" hidden>
+      <p class="headline saved">saved <span aria-hidden="true">✓</span></p>
+      <p class="detail" id="saved-title"></p>
+      <div class="row">
+        <button id="undo" class="btn" type="button">Undo</button>
+      </div>
+    </div>
+
+    <div id="state-error" class="state" hidden>
+      <p class="headline error">couldn't save</p>
+      <p class="detail" id="error-detail"></p>
+      <div class="row">
+        <button id="retry" class="btn btn-primary" type="button">Retry</button>
+        <button id="open-options-error" class="btn" type="button">Settings…</button>
+      </div>
+    </div>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

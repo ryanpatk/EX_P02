@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
-import { NoteWithTags, Tag } from '../types/database';
+import { NoteWithTags } from '../types/database';
 import { markdownExcerpt, noteDisplayTitle } from '../utils/markdown';
+import { mergeTags } from '../utils/streamItems';
+import StreamCard from './StreamCard';
+import { NoteGlyph } from './StreamGlyphs';
 
 interface NoteGridCardProps {
   note: NoteWithTags;
@@ -12,19 +15,7 @@ interface NoteGridCardProps {
   onToggleSelect?: (noteId: string) => void;
 }
 
-const getTagsForNote = (note: NoteWithTags): Tag[] => {
-  if (note.tags && note.tags.length > 0) {
-    return note.tags;
-  }
-  const map = new Map<string, Tag>();
-  (note.note_tags ?? []).forEach((noteTag) => {
-    if (noteTag.tag) {
-      map.set(noteTag.tag.id, noteTag.tag);
-    }
-  });
-  return Array.from(map.values());
-};
-
+/** Note as a stream card: note glyph, title, excerpt, tags. */
 const NoteGridCard = ({
   note,
   onOpen,
@@ -34,9 +25,9 @@ const NoteGridCard = ({
   isSelected = false,
   onToggleSelect,
 }: NoteGridCardProps) => {
-  const tags = useMemo(() => getTagsForNote(note), [note]);
+  const tags = useMemo(() => mergeTags(note.note_tags, note.tags), [note]);
   const title = noteDisplayTitle(note);
-  const excerpt = useMemo(() => markdownExcerpt(note.body, 220), [note.body]);
+  const excerpt = useMemo(() => markdownExcerpt(note.body, 160), [note.body]);
 
   const activate = () => {
     if (selectionMode) {
@@ -47,45 +38,17 @@ const NoteGridCard = ({
   };
 
   return (
-    <article
-      className={`memex-card memex-card--note${isSelected ? ' is-selected' : ''}${
-        selectionMode ? ' is-selection-mode' : ''
-      }`}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selectionMode ? isSelected : undefined}
-      onClick={activate}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          activate();
-        }
-      }}
-    >
-      <p className="memex-card-title" title={title}>
-        {title}
-      </p>
-
-      {excerpt && <p className="memex-card-excerpt">{excerpt}</p>}
-
-      <div className="memex-card-footer">
-        {tags.slice(0, 3).map((tag) => (
-          <span
-            key={tag.id}
-            className="bookmark-list-row-tag"
-            style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
-            title={tag.name}
-          >
-            {tag.name}
-          </span>
-        ))}
-        {tags.length > 3 && (
-          <span className="bookmark-list-row-tag is-more">+{tags.length - 3}</span>
-        )}
-      </div>
-
-      {!hideActions && onDelete && (
-        <div className="memex-card-actions">
+    <StreamCard
+      type="note"
+      leading={<NoteGlyph />}
+      title={title}
+      excerpt={excerpt || undefined}
+      tags={tags}
+      onActivate={activate}
+      isSelected={isSelected}
+      selectionMode={selectionMode}
+      actions={
+        !hideActions && onDelete ? (
           <button
             type="button"
             className="bookmark-list-row-action"
@@ -106,9 +69,9 @@ const NoteGridCard = ({
               <path d="M12 4 4 12" />
             </svg>
           </button>
-        </div>
-      )}
-    </article>
+        ) : undefined
+      }
+    />
   );
 };
 

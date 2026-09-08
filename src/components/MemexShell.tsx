@@ -1,21 +1,22 @@
 import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import MemexSidebar from './MemexSidebar';
-import { MODULES } from '../constants/modules';
+import { useProfiles } from '../hooks/useProfiles';
 import { rememberModulePath } from '../utils/lastModule';
 
 const MemexShell = () => {
   const location = useLocation();
+  const { spaceId } = useParams<{ spaceId?: string }>();
+  const { data: profiles } = useProfiles();
 
   useEffect(() => {
     rememberModulePath(location.pathname);
-
-    const module = MODULES.find(
-      (m) =>
-        location.pathname === m.path || location.pathname.startsWith(`${m.path}/`),
-    );
-    document.title = module ? `${module.label} · memex` : 'memex';
   }, [location.pathname]);
+
+  useEffect(() => {
+    const space = spaceId ? profiles?.find((p) => p.id === spaceId) : undefined;
+    document.title = space ? `${space.name} · memex` : 'memex';
+  }, [profiles, spaceId]);
 
   return (
     <div className="memex-shell">

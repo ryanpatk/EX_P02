@@ -76,13 +76,46 @@ function adjustOklchLightness(oklch: string, deltaL: number): string {
   return formatOklch(parsed.l + deltaL, parsed.c, parsed.h);
 }
 
+/**
+ * Light-mode interactive family keyed to a palette source color: the fill is
+ * the source itself (lightness held inside a usable band), and the label is
+ * white on the deeper hues or near-black ink on the brighter ones, per the
+ * JOYFUL_SYSTEMS rule that bold color lives in the interactive layer.
+ */
+function buildSourceSurfaceColors(source: ParsedOklch): ThemeSurfaceColors {
+  const { h } = source;
+  const l = clamp(source.l, 0.6, 0.84);
+  const c = clamp(source.c * 0.94, 0.08, 0.24);
+  const inkOnFill = l >= 0.66;
+
+  const activeBg = formatOklch(l, c, h);
+  const activeFg = inkOnFill ? formatOklch(0.2, clamp(c * 0.18, 0.01, 0.04), h) : formatOklch(0.985, 0.004, h);
+  const prominentBg = formatOklch(l - 0.02, clamp(c * 1.02, c, 0.25), h);
+
+  return {
+    activeBg,
+    activeFg,
+    prominentBg,
+    prominentBgStrong: formatOklch(l - 0.06, clamp(c * 1.04, c, 0.26), h),
+    prominentFg: activeFg,
+    // Palette hue used as text on paper must be darkened to meet contrast
+    prominentText: formatOklch(Math.min(0.5, l - 0.16), clamp(c * 0.8, 0.06, 0.18), h),
+  };
+}
+
 export function buildThemeSurfaceColors(
   baseColor: string,
   darkMode = false,
+  sourceColor?: string,
 ): ThemeSurfaceColors {
   const parsed = parseOklch(baseColor);
   if (!parsed) {
     return darkMode ? DARK_SURFACE_FALLBACK : LIGHT_SURFACE_FALLBACK;
+  }
+
+  if (!darkMode && sourceColor) {
+    const source = parseOklch(sourceColor);
+    if (source) return buildSourceSurfaceColors(source);
   }
 
   const { c, h } = parsed;
@@ -195,17 +228,16 @@ export function applyCanvasColor(colorId: CanvasColorId): void {
   const option = getCanvasColorOption(colorId);
   const dark = isDarkTheme();
   const baseColor = dark ? option.dark : option.light;
-  const surfaces = buildThemeSurfaceColors(baseColor, dark);
+  const surfaces = buildThemeSurfaceColors(baseColor, dark, option.source);
+  const root = document.documentElement.style;
 
-  document.documentElement.style.setProperty(
-    '--bookmark-experiment-bg',
-    buildCanvasGradient(baseColor, dark),
-  );
-  document.documentElement.style.setProperty('--bookmark-canvas-base', baseColor);
-  document.documentElement.style.setProperty(
+  root.setProperty('--bookmark-experiment-bg', buildCanvasGradient(baseColor, dark));
+  root.setProperty('--bookmark-canvas-base', baseColor);
+  root.setProperty(
     '--bookmark-stack-surface',
     buildStackSurfaceColor(baseColor, dark),
   );
+  root.removeProperty('--bookmark-stack-frosted-bg');
   applyThemeSurfaceColors(surfaces);
 
   const stops = getCanvasGradientStops(baseColor, dark);

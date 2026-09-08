@@ -2,7 +2,7 @@
 name: memex
 description: Personal working-memory system — canonical design is the Links dashboard (`/`), the template for all memex modules
 colors:
-  canvas: 'user-selected OKLCH swatch (default soft grey oklch(0.94 0.009 264))'
+  canvas: 'user-selected OKLCH swatch gradient (default soft grey oklch(0.94 0.009 264)); swatch hues from the JOYFUL_SYSTEMS palette (see JOYFUL_SYSTEMS.md)'
   surface: 'var(--bookmark-surface) / frosted white bubble'
   surface-muted: 'var(--bookmark-surface-muted)'
   border: 'var(--bookmark-border) — OKLCH neutral @ ~16% alpha'
@@ -100,9 +100,9 @@ The memex shell adds a persistent **left sidebar** on desktop — module navigat
 
 ## Canvas & Theme Color
 
-User picks a canvas swatch in **Settings** (grey, blush, lavender, lilac, sky, mint, sage, peach, butter). Selection drives:
+User picks a canvas swatch in **Settings** (grey, blue, cyan, green, gold, orange, coral, violet, pink — hues anchored to the JOYFUL_SYSTEMS palette, see `JOYFUL_SYSTEMS.md`). Selection drives:
 
-- `--bookmark-experiment-bg` — vertical gradient page background
+- `--bookmark-experiment-bg` — vertical gradient page background (swatch-tinted, light and dark)
 - `--bookmark-canvas-base` — swatch base
 - `--bookmark-active-bg` / `--bookmark-active-fg` — selected chip surfaces
 - `--bookmark-prominent-bg` / `--bookmark-prominent-fg` / `--bookmark-prominent-text` — primary CTAs and "new tag/profile" links
@@ -142,7 +142,7 @@ Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 
 ## Typography
 
-**Family:** `Two Weekend Go` for UI, brand, and display (see `src/fonts/two-weekend-go.css`).
+**Families:** `Two Weekend Go` for app chrome — brand, sidebar, filter chips, buttons, headers (see `src/fonts/two-weekend-go.css`). `Inter` (variable, self-hosted via `@fontsource-variable/inter`, token `--bookmark-font-content`) for content — stream cards, the link details panel, and the note editor. Rule of thumb: if the user wrote or saved it, it's Inter; if the app is speaking, it's Two Weekend Go. Code inside notes uses the system monospace stack (`--font-code`).
 
 | Level      | Size          | Weight     | Use                       |
 | ---------- | ------------- | ---------- | ------------------------- |
@@ -225,7 +225,7 @@ Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 - Don't darken list row borders on hover.
 - Don't place inline feedback above the omnilist—use the bottom-right toast.
 - Don't reintroduce decorative watermarks or heavy offset brutalist shadows on dashboard surfaces.
-- Don't split typography between Inter/Jakarta and dashboard—**Two Weekend Go** is the product face.
+- Don't add a third face or move chrome to Inter—**Two Weekend Go** is the product voice, **Inter** is reserved for content surfaces (cards, details, editor).
 
 ## Component Library
 

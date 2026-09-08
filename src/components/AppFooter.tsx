@@ -2,11 +2,13 @@ import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
 import CanvasColorPicker from './CanvasColorPicker';
 import DarkModeToggle from './DarkModeToggle';
+import ApiTokensModal from './ApiTokensModal';
 import supabase from '../supabase';
 
 const AppFooter = () => {
-  const text = 'memex v1.0.0 - produced by Extension Systems, LLC © 2026';
+  const text = 'memex v1.0.0 - produced by Joyful Systems, LLC © 2026';
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isTokensOpen, setIsTokensOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,18 @@ const AppFooter = () => {
                 <button
                   type="button"
                   className="bookmark-account-menu-action"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsTokensOpen(true);
+                  }}
+                >
+                  ACCESS TOKENS…
+                </button>
+              )}
+              {user && (
+                <button
+                  type="button"
+                  className="bookmark-account-menu-action"
                   onClick={handleLogout}
                 >
                   LOG OUT
@@ -106,6 +120,8 @@ const AppFooter = () => {
           </div>
         )}
       </div>
+
+      <ApiTokensModal isOpen={isTokensOpen} onClose={() => setIsTokensOpen(false)} />
     </footer>
   );
 };

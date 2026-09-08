@@ -3,16 +3,15 @@ import HomePage from "../pages/HomePage.tsx";
 import SignInPage from "../pages/auth/SignInPage.tsx";
 import SignUpPage from "../pages/auth/SignUpPage.tsx";
 import ProtectedPage from "../pages/ProtectedPage.tsx";
-import DashboardPage from "../pages/DashboardPage.tsx";
-import NotesPage from "../pages/modules/NotesPage.tsx";
-import TasksPage from "../pages/modules/TasksPage.tsx";
-import SpacesPage from "../pages/modules/SpacesPage.tsx";
+import StreamPage from "../pages/StreamPage.tsx";
 import ProjectPage from "../pages/ProjectPage.tsx";
 import StyleguidePage from "../pages/StyleguidePage.tsx";
 import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
+import LegacyModuleRedirect from "./LegacyModuleRedirect.tsx";
 import MemexShell from "../components/MemexShell.tsx";
 import Providers from "../Providers.tsx";
+import { HOME_PATH } from "../constants/modules.ts";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -38,30 +37,39 @@ const router = createBrowserRouter([
         path: "/",
         element: <AuthProtectedRoute />,
         children: [
-          // memex module shell: sidebar + module layouts
+          // memex shell: sidebar (Home + spaces) around the mixed stream
           {
             element: <MemexShell />,
             children: [
               {
-                path: "/links",
-                element: <DashboardPage />,
+                path: HOME_PATH,
+                element: <StreamPage />,
               },
               {
-                path: "/notes",
-                element: <NotesPage />,
-              },
-              {
-                path: "/tasks",
-                element: <TasksPage />,
-              },
-              {
-                path: "/spaces",
-                element: <SpacesPage />,
+                path: "/spaces/:spaceId",
+                element: <StreamPage />,
               },
             ],
           },
-          // Design-system reference page — deliberately outside the module
-          // shell and not linked from in-app navigation
+          // Former per-primitive module routes → Home with a type filter
+          {
+            path: "/links",
+            element: <LegacyModuleRedirect type="link" />,
+          },
+          {
+            path: "/notes",
+            element: <LegacyModuleRedirect type="note" />,
+          },
+          {
+            path: "/tasks",
+            element: <LegacyModuleRedirect type="task" />,
+          },
+          {
+            path: "/spaces",
+            element: <LegacyModuleRedirect />,
+          },
+          // Design-system reference page — deliberately outside the shell
+          // and not linked from in-app navigation
           {
             path: "/styleguide",
             element: <StyleguidePage />,
@@ -69,7 +77,7 @@ const router = createBrowserRouter([
           // Legacy dashboard URL (OAuth redirects still target it)
           {
             path: "/dashboard",
-            element: <Navigate to="/links" replace />,
+            element: <Navigate to={HOME_PATH} replace />,
           },
           {
             path: "/project/:projectId",

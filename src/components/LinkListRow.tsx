@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { LinkWithTag } from '../types/database';
-import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import { getTagsForLink } from '../utils/linkTags';
+import { getHostname, getLinkTitle, getUrlLabel } from '../utils/linkDisplay';
 
 interface LinkListRowProps {
   link: LinkWithTag;
   index: number;
-  scrapedData?: ScrapedUrlData;
   onDelete?: (linkId: string) => void;
   onOpen: (link: LinkWithTag, index: number) => void;
   onToggleSelect: (linkId: string, index: number) => void;
@@ -17,43 +16,6 @@ interface LinkListRowProps {
   isSelected?: boolean;
   selectionMode?: boolean;
 }
-
-const getHostname = (url: string, removeWww = false): string => {
-  if (!url || typeof url !== 'string') {
-    return 'Unknown';
-  }
-
-  try {
-    const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
-    let hostname = new URL(urlWithProtocol).hostname;
-    if (removeWww) {
-      hostname = hostname.replace('www.', '');
-    }
-    return hostname;
-  } catch {
-    let cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
-    if (removeWww) {
-      cleaned = cleaned.replace('www.', '');
-    }
-    return cleaned || 'Unknown';
-  }
-};
-
-const getPathLabel = (url: string) => {
-  try {
-    const urlWithProtocol = url.includes('://') ? url : `https://${url}`;
-    const parsed = new URL(urlWithProtocol);
-    const value = `${parsed.pathname}${parsed.search}`.trim();
-    if (!value || value === '/') {
-      return parsed.hostname.replace('www.', '');
-    }
-    return value;
-  } catch {
-    const withoutOrigin = url.replace(/^https?:\/\//, '');
-    const slashIndex = withoutOrigin.indexOf('/');
-    return slashIndex >= 0 ? withoutOrigin.slice(slashIndex) : withoutOrigin;
-  }
-};
 
 const getInitials = (value: string) =>
   value
@@ -67,7 +29,6 @@ const getInitials = (value: string) =>
 const LinkListRow = ({
   link,
   index,
-  scrapedData,
   onDelete,
   onOpen,
   onToggleSelect,
@@ -81,10 +42,11 @@ const LinkListRow = ({
   const [imageFailed, setImageFailed] = useState(false);
 
   const mergedTags = useMemo(() => getTagsForLink(link), [link]);
-  const faviconUrl = scrapedData?.logo || link.favicon_url;
-  const title = scrapedData?.title || link.title || getHostname(link.url, true);
-  const secondaryLabel = getPathLabel(link.url);
-  const placeholderLabel = getInitials(getHostname(link.url, true));
+  const faviconUrl = link.favicon_url;
+  const title = getLinkTitle(link);
+  const urlLabel = getUrlLabel(link.url);
+  const secondaryLabel = urlLabel === title ? getHostname(link.url) : urlLabel;
+  const placeholderLabel = getInitials(getHostname(link.url));
 
   const handleRowActivate = () => {
     if (readOnly) {

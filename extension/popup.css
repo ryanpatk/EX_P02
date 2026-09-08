@@ -1,0 +1,134 @@
+/* JOYFUL_SYSTEMS: near-white ground, bold palette accents, soft type, 4px scale */
+:root {
+  --blue: #5077ff;
+  --green: #00c500;
+  --coral: #ff5a6f;
+  --bg: oklch(0.988 0.002 264);
+  --text: oklch(0.28 0.01 264);
+  --muted: oklch(0.55 0.012 264);
+  --border: oklch(0.88 0.006 264);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.22 0.012 264);
+    --text: oklch(0.94 0.005 264);
+    --muted: oklch(0.68 0.01 264);
+    --border: oklch(0.34 0.012 264);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 280px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+}
+
+#app {
+  padding: 16px;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.headline {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headline.saved {
+  color: var(--green);
+}
+
+.headline.error {
+  color: var(--coral);
+}
+
+.detail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: break-word;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  appearance: none;
+  min-height: 32px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out,
+    transform 90ms ease-out;
+}
+
+.btn:hover {
+  border-color: var(--blue);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--blue);
+  animation: pulse 900ms ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+  .btn {
+    transition: none;
+  }
+}

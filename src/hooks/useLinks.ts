@@ -3,6 +3,8 @@ import supabase from '../supabase'
 import { useAppStore } from '../store'
 import { Link, LinkWithTag, CreateLinkData, UpdateLinkData } from '../types/database'
 import { getErrorMessage } from '../utils/errors'
+import { getUrlTitle } from '../utils/linkDisplay'
+import { urlScraperApi } from './useUrlScraper'
 
 // Query keys
 export const linkKeys = {
@@ -292,12 +294,11 @@ export const linksApi = {
   // Utility function to extract metadata from URL (basic implementation)
   extractMetadata: async (url: string): Promise<Partial<Pick<Link, 'title' | 'description' | 'favicon_url'>>> => {
     try {
-      // For now, just extract domain for title and favicon
       const urlObj = new URL(url)
       const domain = urlObj.hostname.replace('www.', '')
 
       return {
-        title: domain,
+        title: getUrlTitle(url),
         favicon_url: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
       }
     } catch {
@@ -345,14 +346,20 @@ export const useCreateLink = () => {
 
   return useMutation({
     mutationFn: async (linkData: CreateLinkData) => {
-      // Extract metadata if not provided
-      if (!linkData.title || !linkData.favicon_url) {
-        const metadata = await linksApi.extractMetadata(linkData.url)
+      // Fill missing metadata: real page metadata from the scraper worker when
+      // available, URL-derived fallbacks otherwise. Stored once at capture so
+      // display never needs live scraping.
+      if (!linkData.title || !linkData.favicon_url || !linkData.preview_image_url) {
+        const [metadata, scraped] = await Promise.all([
+          linksApi.extractMetadata(linkData.url),
+          urlScraperApi.tryScrape(linkData.url),
+        ])
         return linksApi.create({
           ...linkData,
-          title: linkData.title || metadata.title,
-          description: linkData.description || metadata.description,
-          favicon_url: linkData.favicon_url || metadata.favicon_url,
+          title: linkData.title || scraped.title || metadata.title,
+          description: linkData.description || scraped.description || metadata.description,
+          favicon_url: linkData.favicon_url || scraped.logo || metadata.favicon_url,
+          preview_image_url: linkData.preview_image_url || scraped.image,
         })
       }
       return linksApi.create(linkData)

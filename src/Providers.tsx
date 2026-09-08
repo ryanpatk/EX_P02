@@ -12,13 +12,17 @@ const persister = createSyncStoragePersister({
   key: 'EX_P02_REACT_QUERY_OFFLINE_CACHE',
 });
 
-// Create a client instance
+// Create a client instance.
+// The persisted cache exists for instant paint on load — not as a source of
+// truth. Keep staleTime short and revalidate on focus so a tab (or another
+// device) never sits on old data: restored/hydrated queries refetch right
+// away, and switching back to a memex tab picks up writes made elsewhere.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 30 * 1000, // 30 seconds — dedupes rapid remounts only
       gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
     },
   },
 });
@@ -30,10 +34,13 @@ const [, restorePromise] = persistQueryClient({
   queryClient: queryClient as any,
   persister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-  buster: '2026-02-04-links-v2',
+  // Bumped 2026-09-07: discard old snapshots that included the retired
+  // 'scraper' display cache (it overlaid stale titles on re-scraped links).
+  buster: '2026-09-07-fresh-reads',
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => {
-      // Persist links, projects, tags, and scraped URL data
+      // Persist stored data only — scraped metadata lives on the link rows
+      // now, so the legacy 'scraper' cache is deliberately not persisted.
       const queryKey = query.queryKey;
       if (Array.isArray(queryKey)) {
         const firstKey = queryKey[0];
@@ -46,8 +53,7 @@ const [, restorePromise] = persistQueryClient({
           firstKey === 'tasks' ||
           firstKey === 'profile-tasks' ||
           firstKey === 'notes' ||
-          firstKey === 'profile-notes' ||
-          firstKey === 'scraper'
+          firstKey === 'profile-notes'
         );
       }
       return false;

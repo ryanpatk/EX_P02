@@ -3,14 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
 import CanvasColorPicker from './CanvasColorPicker';
+import ApiTokensModal from './ApiTokensModal';
 import type { LinkWithTag } from '../types/database';
-import type { ScrapedUrlData } from '../hooks/useUrlScraper';
 import supabase from '../supabase';
 
 interface AppHeaderProps {
   user: User | null;
   superFavoriteLinks?: LinkWithTag[];
-  scrapedDataMap?: Record<string, ScrapedUrlData>;
   onSuperFavoriteOpen?: (link: LinkWithTag) => void;
   /** Custom toolbar-center content (replaces the super-favorites strip). */
   center?: React.ReactNode;
@@ -31,9 +30,8 @@ interface AppHeaderProps {
 //   </svg>
 // );
 
-const faviconInitials = (link: LinkWithTag, scraped?: ScrapedUrlData) => {
+const faviconInitials = (link: LinkWithTag) => {
   const label =
-    scraped?.title?.trim() ||
     link.title?.trim() ||
     link.url.replace(/^https?:\/\//, '').split('/')[0] ||
     '?';
@@ -50,15 +48,13 @@ const faviconInitials = (link: LinkWithTag, scraped?: ScrapedUrlData) => {
 
 const SuperFavoriteButton = ({
   link,
-  scraped,
   onOpen,
 }: {
   link: LinkWithTag;
-  scraped?: ScrapedUrlData;
   onOpen: (link: LinkWithTag) => void;
 }) => {
   const [failed, setFailed] = useState(false);
-  const favicon = scraped?.logo ?? link.favicon_url;
+  const favicon = link.favicon_url;
   const label = link.title?.trim() || link.url;
 
   return (
@@ -73,7 +69,7 @@ const SuperFavoriteButton = ({
         <img src={favicon} alt="" onError={() => setFailed(true)} />
       ) : (
         <span className="bookmark-toolbar-super-fav-initials">
-          {faviconInitials(link, scraped)}
+          {faviconInitials(link)}
         </span>
       )}
     </button>
@@ -83,12 +79,12 @@ const SuperFavoriteButton = ({
 const AppHeader = ({
   user,
   superFavoriteLinks = [],
-  scrapedDataMap = {},
   onSuperFavoriteOpen,
   center,
   right,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isTokensOpen, setIsTokensOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -151,7 +147,6 @@ const AppHeader = ({
               <SuperFavoriteButton
                 key={link.id}
                 link={link}
-                scraped={scrapedDataMap[link.url]}
                 onOpen={handleSuperFav}
               />
             ))}
@@ -189,6 +184,16 @@ const AppHeader = ({
               <button
                 type="button"
                 className="bookmark-account-menu-action"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsTokensOpen(true);
+                }}
+              >
+                ACCESS TOKENS…
+              </button>
+              <button
+                type="button"
+                className="bookmark-account-menu-action"
                 onClick={handleLogout}
               >
                 LOG OUT
@@ -197,6 +202,11 @@ const AppHeader = ({
           </div>
         )}
       </div>
+
+      <ApiTokensModal
+        isOpen={isTokensOpen}
+        onClose={() => setIsTokensOpen(false)}
+      />
     </header>
   );
 };

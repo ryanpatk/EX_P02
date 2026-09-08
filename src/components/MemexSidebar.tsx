@@ -1,6 +1,14 @@
-import type { ReactElement } from 'react';
-import { NavLink } from 'react-router-dom';
-import { MODULES, ModuleKey } from '../constants/modules';
+import { useCallback, useMemo, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { HOME_PATH, spacePath } from '../constants/modules';
+import { useFeedbackToast } from '../hooks/useFeedbackToast';
+import { useAddLinksToProfile, useProfileLinkMembership } from '../hooks/useProfileLinks';
+import { useAddNotesToProfile, useProfileNoteMembership } from '../hooks/useProfileNotes';
+import { useAddTasksToProfile, useProfileTaskMembership } from '../hooks/useProfileTasks';
+import { useCreateProfile, useProfiles } from '../hooks/useProfiles';
+import { useAppStore } from '../store';
+import { parseItemKey } from '../utils/streamItems';
+import { FeedbackToast, InlineCreateForm } from './ui';
 
 const ICON_PROPS = {
   viewBox: '0 0 16 16',
@@ -12,49 +20,146 @@ const ICON_PROPS = {
   'aria-hidden': true,
 } as const;
 
-const NotesIcon = () => (
+const HomeIcon = () => (
   <svg {...ICON_PROPS}>
-    <path d="M4 2.75h8a.75.75 0 0 1 .75.75v9a.75.75 0 0 1-.75.75H4a.75.75 0 0 1-.75-.75v-9A.75.75 0 0 1 4 2.75Z" />
-    <path d="M5.75 6h4.5" />
-    <path d="M5.75 8.5h4.5" />
-    <path d="M5.75 11h2.5" />
+    <path d="M2.75 7.75 8 3.25l5.25 4.5" />
+    <path d="M4.25 6.75v6h7.5v-6" />
+    <path d="M6.75 12.75v-3h2.5v3" />
   </svg>
 );
 
-const LinksIcon = () => (
+const PlusIcon = () => (
   <svg {...ICON_PROPS}>
-    <path d="M6.75 9.25 9.25 6.75" />
-    <path d="M7.5 4.75 8.9 3.35a2.3 2.3 0 0 1 3.25 3.25L10.75 8" />
-    <path d="M8.5 11.25 7.1 12.65a2.3 2.3 0 0 1-3.25-3.25L5.25 8" />
+    <path d="M8 3.5v9" />
+    <path d="M3.5 8h9" />
   </svg>
 );
 
-const TasksIcon = () => (
-  <svg {...ICON_PROPS}>
-    <rect x="2.75" y="2.75" width="10.5" height="10.5" rx="2.5" />
-    <path d="M5.5 8.25 7.25 10 10.5 6.25" />
-  </svg>
-);
+const itemClass = ({ isActive }: { isActive: boolean }) =>
+  isActive ? 'memex-sidebar-item is-active' : 'memex-sidebar-item';
 
-const SpacesIcon = () => (
-  <svg {...ICON_PROPS}>
-    <rect x="2.75" y="2.75" width="4.5" height="4.5" rx="1.25" />
-    <rect x="8.75" y="2.75" width="4.5" height="4.5" rx="1.25" />
-    <rect x="2.75" y="8.75" width="4.5" height="4.5" rx="1.25" />
-    <rect x="8.75" y="8.75" width="4.5" height="4.5" rx="1.25" />
-  </svg>
-);
-
-const MODULE_ICONS: Record<ModuleKey, () => ReactElement> = {
-  notes: NotesIcon,
-  links: LinksIcon,
-  tasks: TasksIcon,
-  spaces: SpacesIcon,
-};
-
+/**
+ * App navigation: Home (everything) on top, then the segmented list of
+ * spaces. While a stream selection is active, spaces turn into bulk-assign
+ * targets — clicking one adds the selected items to that space instead of
+ * navigating (the same dashed-chip affordance the old rails used).
+ */
 const MemexSidebar = () => {
+  const navigate = useNavigate();
+  const { data: profiles } = useProfiles();
+  const { data: linkMembership } = useProfileLinkMembership();
+  const { data: noteMembership } = useProfileNoteMembership();
+  const { data: taskMembership } = useProfileTaskMembership();
+  const createProfile = useCreateProfile();
+  const addLinks = useAddLinksToProfile();
+  const addNotes = useAddNotesToProfile();
+  const addTasks = useAddTasksToProfile();
+  const { toast, flash, handleAnimationEnd } = useFeedbackToast();
+
+  const selectionMode = useAppStore((state) => state.selectionMode);
+  const selectedItemKeys = useAppStore((state) => state.selectedItemKeys);
+  const bulkAssignActive = selectionMode && selectedItemKeys.length > 0;
+
+  const [isCreating, setIsCreating] = useState(false);
+
+  const spaces = useMemo(() => profiles ?? [], [profiles]);
+
+  const spaceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const bump = (id: string) => {
+      counts[id] = (counts[id] ?? 0) + 1;
+    };
+    (linkMembership ?? []).forEach((row) => bump(row.profile_id));
+    (noteMembership ?? []).forEach((row) => bump(row.profile_id));
+    (taskMembership ?? []).forEach((row) => bump(row.profile_id));
+    return counts;
+  }, [linkMembership, noteMembership, taskMembership]);
+
+  const handleCreateSpace = useCallback(
+    async (name: string) => {
+      try {
+        const created = await createProfile.mutateAsync({ name });
+        setIsCreating(false);
+        if (created?.id) {
+          navigate(spacePath(created.id));
+        }
+      } catch (error) {
+        console.error('Failed to create space:', error);
+      }
+    },
+    [createProfile, navigate],
+  );
+
+  const handleAddSelectionToSpace = useCallback(
+    async (spaceId: string) => {
+      const space = spaces.find((s) => s.id === spaceId);
+      const name = space?.name ?? 'space';
+
+      const linkIds: string[] = [];
+      const noteIds: string[] = [];
+      const taskIds: string[] = [];
+      selectedItemKeys.forEach((key) => {
+        const { type, id } = parseItemKey(key);
+        if (id.startsWith('temp-')) return;
+        if (type === 'link') linkIds.push(id);
+        else if (type === 'note') noteIds.push(id);
+        else if (type === 'task') taskIds.push(id);
+      });
+
+      const already = new Set<string>();
+      (linkMembership ?? []).forEach((row) => {
+        if (row.profile_id === spaceId) already.add(`link:${row.link_id}`);
+      });
+      (noteMembership ?? []).forEach((row) => {
+        if (row.profile_id === spaceId) already.add(`note:${row.note_id}`);
+      });
+      (taskMembership ?? []).forEach((row) => {
+        if (row.profile_id === spaceId) already.add(`task:${row.task_id}`);
+      });
+      const total = linkIds.length + noteIds.length + taskIds.length;
+      const newlyAdded = selectedItemKeys.filter((key) => !already.has(key)).length;
+
+      if (newlyAdded === 0) {
+        flash(`Selection was already in “${name}”.`);
+      } else if (newlyAdded === total) {
+        flash(`Added ${newlyAdded} item${newlyAdded === 1 ? '' : 's'} to “${name}”.`);
+      } else {
+        flash(
+          `Added ${newlyAdded} item${newlyAdded === 1 ? '' : 's'} to “${name}” (${total - newlyAdded} already there).`,
+        );
+      }
+
+      try {
+        await Promise.all([
+          linkIds.length > 0
+            ? addLinks.mutateAsync({ profileId: spaceId, linkIds })
+            : Promise.resolve(),
+          noteIds.length > 0
+            ? addNotes.mutateAsync({ profileId: spaceId, noteIds })
+            : Promise.resolve(),
+          taskIds.length > 0
+            ? addTasks.mutateAsync({ profileId: spaceId, taskIds })
+            : Promise.resolve(),
+        ]);
+      } catch (error) {
+        console.error('Failed to add selection to space:', error);
+      }
+    },
+    [
+      addLinks,
+      addNotes,
+      addTasks,
+      flash,
+      linkMembership,
+      noteMembership,
+      selectedItemKeys,
+      spaces,
+      taskMembership,
+    ],
+  );
+
   return (
-    <nav className="memex-sidebar" aria-label="Modules">
+    <nav className="memex-sidebar" aria-label="Navigation">
       <div className="memex-sidebar-brand">
         <div className="bookmark-toolbar-brand-shell">
           <span className="bookmark-toolbar-brand" translate="no">
@@ -63,25 +168,97 @@ const MemexSidebar = () => {
         </div>
       </div>
 
-      <div className="memex-sidebar-nav">
-        {MODULES.map((module) => {
-          const Icon = MODULE_ICONS[module.key];
-          return (
-            <NavLink
-              key={module.key}
-              to={module.path}
-              className={({ isActive }) =>
-                isActive ? 'memex-sidebar-item is-active' : 'memex-sidebar-item'
-              }
+      <div className="memex-sidebar-scroll">
+        <div className="memex-sidebar-nav">
+          <NavLink to={HOME_PATH} end className={itemClass}>
+            <span className="memex-sidebar-item-icon">
+              <HomeIcon />
+            </span>
+            <span className="memex-sidebar-item-label">Home</span>
+          </NavLink>
+        </div>
+
+        <div className="memex-sidebar-section">
+          <div className="memex-sidebar-section-header">
+            <span className="memex-sidebar-kicker">Spaces</span>
+            <button
+              type="button"
+              className="memex-sidebar-new"
+              onClick={() => setIsCreating(true)}
+              aria-label="New space"
+              title="New space"
             >
-              <span className="memex-sidebar-item-icon">
-                <Icon />
-              </span>
-              <span className="memex-sidebar-item-label">{module.label}</span>
-            </NavLink>
-          );
-        })}
+              <PlusIcon />
+            </button>
+          </div>
+
+          <div
+            className={`memex-sidebar-nav memex-sidebar-spaces${
+              bulkAssignActive ? ' is-bulk-assign' : ''
+            }`}
+          >
+            {spaces.map((space) => {
+              const count = spaceCounts[space.id] ?? 0;
+              if (bulkAssignActive) {
+                return (
+                  <button
+                    key={space.id}
+                    type="button"
+                    className="memex-sidebar-item is-bulk-target"
+                    onClick={() => void handleAddSelectionToSpace(space.id)}
+                    title={`Add selection to “${space.name}”`}
+                  >
+                    <span className="memex-sidebar-item-icon">
+                      <PlusIcon />
+                    </span>
+                    <span className="memex-sidebar-item-label">{space.name}</span>
+                    <span className="memex-sidebar-item-count">{count}</span>
+                  </button>
+                );
+              }
+              return (
+                <NavLink
+                  key={space.id}
+                  to={spacePath(space.id)}
+                  className={itemClass}
+                >
+                  <span className="memex-sidebar-item-label">{space.name}</span>
+                  <span className="memex-sidebar-item-count">{count}</span>
+                </NavLink>
+              );
+            })}
+
+            {isCreating && (
+              <div className="memex-sidebar-create">
+                <InlineCreateForm
+                  placeholder="Space name…"
+                  pending={createProfile.isPending}
+                  onSubmit={handleCreateSpace}
+                  onCancel={() => setIsCreating(false)}
+                />
+              </div>
+            )}
+
+            {spaces.length === 0 && !isCreating && (
+              <button
+                type="button"
+                className="memex-sidebar-empty"
+                onClick={() => setIsCreating(true)}
+              >
+                Create your first space
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {toast !== null && (
+        <FeedbackToast
+          message={toast.message}
+          phase={toast.phase}
+          onAnimationEnd={handleAnimationEnd}
+        />
+      )}
     </nav>
   );
 };

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>memex capture — settings</title>
+  <link rel="stylesheet" href="popup.css" />
+  <style>
+    body {
+      width: auto;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    input[type="text"], input[type="password"] {
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+    }
+    input:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 1px;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      min-height: 24px;
+    }
+    #status {
+      min-height: 20px;
+      font-size: 12px;
+      margin: 0;
+    }
+    #status.ok { color: var(--green); }
+    #status.bad { color: var(--coral); }
+  </style>
+</head>
+<body>
+  <h1 style="font-size:16px; font-weight:700; margin:0 0 4px;">memex capture</h1>
+  <p class="detail" style="margin-bottom:20px;">
+    Create an access token in memex under Settings → Access tokens, and paste it here
+    together with your memex-api worker address.
+  </p>
+
+  <div class="field">
+    <label for="apiUrl">API address</label>
+    <input id="apiUrl" type="text" spellcheck="false" autocomplete="off"
+      placeholder="https://memex-api.your-account.workers.dev…" />
+  </div>
+
+  <div class="field">
+    <label for="token">Access token</label>
+    <input id="token" type="password" spellcheck="false" autocomplete="off"
+      placeholder="mx_…" />
+  </div>
+
+  <label class="check">
+    <input id="sound" type="checkbox" checked />
+    Play a confirmation sound on save
+  </label>
+
+  <div class="row" style="margin-top:20px;">
+    <button id="save" class="btn btn-primary" type="button">Save settings</button>
+    <button id="test" class="btn" type="button">Test connection</button>
+  </div>
+  <p id="status" role="status"></p>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "memex-scraper",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "vars": {
+    // Comma-separated list of origins allowed to call this worker.
+    // Add your production origin(s) here before deploying.
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:4173,https://memex.joyfulsystems.workers.dev,https://memoryextension.app,https://www.memoryextension.app",
+  },
+}

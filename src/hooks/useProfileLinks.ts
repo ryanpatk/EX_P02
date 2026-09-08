@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import supabase from '../supabase'
-import { ProfileLinkWithLink } from '../types/database'
+import { ProfileLinkMembership, ProfileLinkWithLink } from '../types/database'
 import { getErrorMessage } from '../utils/errors'
 
 export const profileLinkKeys = {
@@ -13,21 +13,47 @@ export const profileLinkKeys = {
 
 export const profileLinksApi = {
   /** All profile ↔ link pairs for the current user (RLS). Lightweight filter + counts. */
-  listMembership: async (): Promise<{ profile_id: string; link_id: string }[]> => {
+  listMembership: async (): Promise<ProfileLinkMembership[]> => {
     try {
       const { data, error } = await supabase
         .from('profile_links')
-        .select('profile_id, link_id')
+        .select('profile_id, link_id, is_super_favorite')
 
       if (error) throw error
       return data || []
     } catch (error: unknown) {
       const message = getErrorMessage(error)
+      // Migration for per-space super favorites not applied yet — the error
+      // reads "column profile_links.is_super_favorite does not exist", so this
+      // must be checked before the table-missing case. Degrade to plain
+      // membership so spaces still show their contents.
+      if (message.includes('is_super_favorite')) {
+        const { data, error: fallbackError } = await supabase
+          .from('profile_links')
+          .select('profile_id, link_id')
+        if (fallbackError) throw fallbackError
+        return data || []
+      }
       if (message.includes('profile_links') && message.includes('does not exist')) {
         return []
       }
       throw error
     }
+  },
+
+  /** Pin/unpin a link to the header inside one space. */
+  setSuperFavorite: async (
+    profileId: string,
+    linkId: string,
+    isSuperFavorite: boolean,
+  ): Promise<void> => {
+    const { error } = await supabase
+      .from('profile_links')
+      .update({ is_super_favorite: isSuperFavorite })
+      .eq('profile_id', profileId)
+      .eq('link_id', linkId)
+
+    if (error) throw error
   },
 
   getByProfile: async (profileId: string): Promise<ProfileLinkWithLink[]> => {
@@ -139,6 +165,47 @@ export const useAddLinksToProfile = () => {
     mutationFn: ({ profileId, linkIds }: { profileId: string; linkIds: string[] }) =>
       profileLinksApi.addLinks(profileId, linkIds),
     onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: profileLinkKeys.byProfile(variables.profileId) })
+      queryClient.invalidateQueries({ queryKey: profileLinkKeys.membership() })
+    },
+  })
+}
+
+export const useSetProfileLinkSuperFavorite = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      profileId,
+      linkId,
+      isSuperFavorite,
+    }: {
+      profileId: string
+      linkId: string
+      isSuperFavorite: boolean
+    }) => profileLinksApi.setSuperFavorite(profileId, linkId, isSuperFavorite),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: profileLinkKeys.membership() })
+      const previous = queryClient.getQueryData<ProfileLinkMembership[]>(
+        profileLinkKeys.membership(),
+      )
+      queryClient.setQueryData<ProfileLinkMembership[]>(
+        profileLinkKeys.membership(),
+        (rows) =>
+          (rows ?? []).map((row) =>
+            row.profile_id === variables.profileId && row.link_id === variables.linkId
+              ? { ...row, is_super_favorite: variables.isSuperFavorite }
+              : row,
+          ),
+      )
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(profileLinkKeys.membership(), context.previous)
+      }
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: profileLinkKeys.byProfile(variables.profileId) })
       queryClient.invalidateQueries({ queryKey: profileLinkKeys.membership() })
     },

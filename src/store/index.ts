@@ -16,6 +16,14 @@ interface AppState {
   selectedProjectIds: string[];
   selectedLinkIds: string[];
 
+  // Stream selection (shared between the stream page and the sidebar so
+  // spaces can act as bulk-assign targets). Keys are `${type}:${id}`.
+  selectionMode: boolean;
+  selectedItemKeys: string[];
+  setSelectionMode: (on: boolean) => void;
+  toggleItemSelection: (key: string) => void;
+  clearItemSelection: () => void;
+
   // Actions
   setProjects: (projects: Project[]) => void;
   setCurrentProject: (project: Project | null) => void;
@@ -47,6 +55,22 @@ export const useAppStore = create<AppState>()(
       searchQuery: '',
       selectedProjectIds: [],
       selectedLinkIds: [],
+      selectionMode: false,
+      selectedItemKeys: [],
+
+      // Stream selection actions
+      setSelectionMode: (on) =>
+        set((state) => ({
+          selectionMode: on,
+          selectedItemKeys: on ? state.selectedItemKeys : [],
+        })),
+      toggleItemSelection: (key) =>
+        set((state) => ({
+          selectedItemKeys: state.selectedItemKeys.includes(key)
+            ? state.selectedItemKeys.filter((k) => k !== key)
+            : [...state.selectedItemKeys, key],
+        })),
+      clearItemSelection: () => set({ selectedItemKeys: [] }),
 
       // Project actions
       setProjects: (projects) => set({ projects }),

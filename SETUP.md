@@ -22,6 +22,9 @@ memex is a personal working-memory system built with React and Supabase. The app
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   # Optional: memex-scraper worker URL (see scraper/README.md).
+   # Enables real titles/descriptions/preview images at link capture.
+   VITE_SCRAPER_URL=https://memex-scraper.your-account.workers.dev
    ```
 
 3. **Database Setup**

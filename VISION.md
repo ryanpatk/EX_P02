@@ -103,11 +103,14 @@ Every module inherits the dashboard's canonical anatomy: **rails | frosted omnil
 
 ## 5. App shell & navigation
 
-- **Desktop:** a persistent **left sidebar** — the one new chrome element — with four entries: Notes, Links, Tasks, Spaces. Compact, icon + label, built from the existing chip vocabulary (transparent idle, `--bookmark-active-*` for the active module). The brand bubble (`memex`, italic) anchors the sidebar top; Settings anchors the bottom or stays in the header.
-- The sidebar is **module navigation only**. Space and tag filtering stay inside each module's rails; the sidebar never becomes a tree of everything.
-- **Mobile (<900px):** the sidebar collapses to the existing slide-over drawer pattern or a bottom tab bar; rails stay as slide-over sheets exactly as today.
-- **Routing:** `/links`, `/notes`, `/tasks`, `/spaces`, `/spaces/:id`. `/` redirects to the user's last-used module (default: Links, protecting the launchpage habit). Filter state is shareable/restorable via URL.
-- Module switching preserves each module's filter state within a session; canvas theme and dark mode are global.
+> **Revised 2026-09-07.** The per-module tab shell described in earlier drafts shipped and was then replaced by a single mixed stream. This section describes the current model; §4's per-module layouts are superseded by it (the primitives' behaviors still hold).
+
+- **One surface: the stream.** Notes, links, and tasks render interleaved by `updated_at` in one card grid inside the frosted stack — the link grid card is the template every primitive conforms to (leading slot · meta · title · excerpt · tags · hover actions).
+- **Filters live above the grid, not in rails.** Two chip rows sit between the omnibar and the grid: element type (Notes · Links · Tasks) and tags, scoped to the current stream. Empty selection = show all. Both are URL state.
+- **Desktop sidebar:** `memex` brand, then **Home**, then a segmented **Spaces** list with an inline new-space affordance. Home shows everything plus the globally pinned super favorites; a space shows its members plus the links pinned inside that space (`profile_links.is_super_favorite`). While items are selected, spaces become bulk-assign targets.
+- **Mobile (<900px):** the sidebar becomes a horizontally scrollable bottom bar (Home, then spaces).
+- **Routing:** `/home` and `/spaces/:id`. `/links`, `/notes`, `/tasks` redirect to Home with the matching type filter; `/spaces` redirects to Home. `/` and the auth pages land on the last-visited stream. Filter state (`?type=`, `?tags=`, `?untagged=1`) and the open note (`?note=`) are shareable/restorable via URL.
+- Canvas theme and dark mode are global.
 
 ## 6. Design language
 

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "memex-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "vars": {
+    // Supabase project URL (the anon-visible one; the service key is a secret).
+    "SUPABASE_URL": "https://zwgotlojioprtjvrxltc.supabase.co",
+    // Optional: memex-scraper worker; enriches captures with page metadata.
+    "SCRAPER_URL": ""
+  }
+  // Secrets (set once, stored encrypted by Cloudflare):
+  //   npx wrangler secret put SUPABASE_SERVICE_KEY
+}

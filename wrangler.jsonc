@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // memex web app — static Vite SPA served from Cloudflare's edge.
+  // Deploy: npm run deploy (builds, then uploads dist/).
+  "name": "memex",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    // React Router owns the URL space: unknown paths serve index.html.
+    "not_found_handling": "single-page-application"
+  }
+}

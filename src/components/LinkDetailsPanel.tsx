@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { LinkWithTag, Profile, Tag } from '../types/database';
-import { ScrapedUrlData } from '../hooks/useUrlScraper';
 import { getTagsForLink } from '../utils/linkTags';
 import LinkListRow from './LinkListRow';
 import TagSelector from './TagSelector';
@@ -11,18 +10,32 @@ const TAG_SELECTOR_WIDTH = 308;
 const TAG_SELECTOR_VIEWPORT_PADDING = 12;
 const TAG_SELECTOR_OFFSET_Y = 8;
 
+/** Outcome of a re-scrape: fresh fields saved, nothing new, or scrape failed. */
+export type RescrapeResult = 'updated' | 'unchanged' | 'failed';
+
+const RESCRAPE_MESSAGES: Record<RescrapeResult, string> = {
+  updated: 'Metadata refreshed',
+  unchanged: 'Already up to date — nothing new found',
+  failed: 'Couldn’t reach the page — kept existing metadata',
+};
+
 interface LinkDetailsPanelProps {
   link: LinkWithTag;
-  scrapedData?: ScrapedUrlData;
   membershipRows: { profile_id: string; link_id: string }[];
   profiles: Profile[];
   availableTags: Tag[];
   onUpdateUrl: (url: string) => Promise<void>;
   onToggleSuperFavorite: (next: boolean) => Promise<void>;
+  /** Overrides the link's global flag (e.g. the per-space pin while standing in a space). */
+  isSuperFavorite?: boolean;
+  /** Explains where the pin shows up ("in the header of “Reading”"). */
+  superFavoriteHint?: string;
   onUpdateTags: (tagIds: string[]) => Promise<void>;
   onCreateTag: (name: string, color: string) => Promise<Tag>;
   onDeleteTag?: (tagId: string) => Promise<void>;
   onDeleteLink: () => Promise<void>;
+  /** Re-fetches page metadata; saves only fields the fresh scrape actually returned. */
+  onRescrape?: () => Promise<RescrapeResult>;
   urlPending?: boolean;
   superFavoritePending?: boolean;
   deletePending?: boolean;
@@ -30,22 +43,26 @@ interface LinkDetailsPanelProps {
 
 const LinkDetailsPanel = ({
   link,
-  scrapedData,
   membershipRows,
   profiles,
   availableTags,
   onUpdateUrl,
   onToggleSuperFavorite,
+  isSuperFavorite,
+  superFavoriteHint,
   onUpdateTags,
   onCreateTag,
   onDeleteTag,
   onDeleteLink,
+  onRescrape,
   urlPending = false,
   superFavoritePending = false,
   deletePending = false,
 }: LinkDetailsPanelProps) => {
   const [urlDraft, setUrlDraft] = useState(link.url);
   const [urlDirty, setUrlDirty] = useState(false);
+  const [rescrapePending, setRescrapePending] = useState(false);
+  const [rescrapeResult, setRescrapeResult] = useState<RescrapeResult | null>(null);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const [selectorPosition, setSelectorPosition] = useState({ top: 0, left: 0 });
   const tagButtonRef = useRef<HTMLButtonElement>(null);
@@ -61,7 +78,7 @@ const LinkDetailsPanel = ({
       .sort((a, b) => a.localeCompare(b));
   }, [link.id, membershipRows, profiles]);
 
-  const isSuper = Boolean(link.is_super_favorite);
+  const isSuper = isSuperFavorite ?? Boolean(link.is_super_favorite);
   const formattedUpdated = useMemo(
     () =>
       new Date(link.updated_at).toLocaleString(undefined, {
@@ -75,6 +92,23 @@ const LinkDetailsPanel = ({
     setUrlDraft(link.url);
     setUrlDirty(false);
   }, [link.id, link.url]);
+
+  useEffect(() => {
+    setRescrapeResult(null);
+  }, [link.id]);
+
+  const handleRescrape = async () => {
+    if (!onRescrape || rescrapePending) return;
+    setRescrapePending(true);
+    setRescrapeResult(null);
+    try {
+      setRescrapeResult(await onRescrape());
+    } catch {
+      setRescrapeResult('failed');
+    } finally {
+      setRescrapePending(false);
+    }
+  };
 
   const updateSelectorPosition = () => {
     if (!tagButtonRef.current) return;
@@ -129,7 +163,6 @@ const LinkDetailsPanel = ({
         <LinkListRow
           link={link}
           index={0}
-          scrapedData={scrapedData}
           readOnly
           hideActions
           onOpen={() => {}}
@@ -175,6 +208,30 @@ const LinkDetailsPanel = ({
             </button>
           </div>
         </section>
+
+        {onRescrape && (
+          <section className="bookmark-detail-section">
+            <h3 className="bookmark-detail-label">Metadata</h3>
+            <div className="bookmark-detail-rescrape-row">
+              <button
+                type="button"
+                className="bookmark-detail-tag-edit"
+                onClick={() => void handleRescrape()}
+                disabled={rescrapePending}
+              >
+                {rescrapePending ? 'Re-scraping…' : 'Re-scrape metadata'}
+              </button>
+              <span
+                className={`bookmark-detail-rescrape-status${
+                  rescrapeResult === 'updated' ? ' is-ok' : ''
+                }`}
+                aria-live="polite"
+              >
+                {rescrapeResult ? RESCRAPE_MESSAGES[rescrapeResult] : ''}
+              </span>
+            </div>
+          </section>
+        )}
 
         <section className="bookmark-detail-section">
           <h3 className="bookmark-detail-label">Last updated</h3>
@@ -235,7 +292,8 @@ const LinkDetailsPanel = ({
             <div>
               <h3 className="bookmark-detail-label">SuperFavorite</h3>
               <p className="bookmark-detail-hint">
-                Shows this site’s icon in the header for quick access.
+                {superFavoriteHint ??
+                  'Shows this site’s icon in the header for quick access.'}
               </p>
             </div>
             <label className="bookmark-detail-switch">

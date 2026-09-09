@@ -31,6 +31,7 @@ const TaskGridCard = ({
   return (
     <StreamCard
       type="task"
+      isNew={task.id.startsWith('temp-')}
       leading={
         <button
           type="button"

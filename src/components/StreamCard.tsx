@@ -27,6 +27,8 @@ interface StreamCardProps {
   selectionMode?: boolean;
   isDone?: boolean;
   isDetailsActive?: boolean;
+  /** Just created by the user (optimistic row) — plays the capture pop-in. */
+  isNew?: boolean;
   /** Extra class names appended to the article. */
   className?: string;
   ariaLabel?: string;
@@ -54,6 +56,7 @@ const StreamCard = ({
   selectionMode = false,
   isDone = false,
   isDetailsActive = false,
+  isNew = false,
   className,
   ariaLabel,
 }: StreamCardProps) => {
@@ -82,6 +85,7 @@ const StreamCard = ({
     selectionMode ? 'is-selection-mode' : '',
     isDone ? 'is-done' : '',
     isDetailsActive ? 'is-details-active' : '',
+    isNew ? 'is-new' : '',
     interactive ? '' : 'is-static',
     className ?? '',
   ]

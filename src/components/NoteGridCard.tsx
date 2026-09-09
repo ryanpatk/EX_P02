@@ -40,6 +40,7 @@ const NoteGridCard = ({
   return (
     <StreamCard
       type="note"
+      isNew={note.id.startsWith('temp-')}
       leading={<NoteGlyph />}
       title={title}
       excerpt={excerpt || undefined}

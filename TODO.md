@@ -39,6 +39,7 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 ## 🔨 Next build tasks (ask Claude, no credentials needed)
 
 - [ ] **Notes to Self polish** (landed 2026-09-07): edit-in-place for a message, move a message between scopes, optional unread dot on the header bubble, markdown-lite in bubbles
+- [x] **JOYFUL pass** ✓ 2026-09-08: color model (hue-keyed neutrals, paper-first canvas, tint pairs), Geist Mono for data, press travel, canvas grain, capture pop-in — listen/look test in both themes; next candidates: a hue per space, haptics on mobile
 - [ ] **Stream refinements** (layout refactor landed 2026-09-07): visual pass on note/task cards vs. the link card; ~~space rename/delete from the sidebar~~ ✓ 2026-09-08; empty-space onboarding copy; keyboard nav across cards
 - [ ] **Remove list-view leftovers** — `ViewToggleFab`, `useViewMode`, `LinksList`, `LinkListRow`/`NoteListRow`/`TaskListRow`, `BookmarkOmnibar` now only serve `/styleguide` (and `LinkDetailsPanel` uses `LinkListRow` for its preview row); update the styleguide to showcase `StreamCard`
 - [ ] **Deep-link check** — old `/notes?note=<id>` links now redirect to `/home?type=note&note=<id>`; confirm the extension/API don't hardcode `/links`

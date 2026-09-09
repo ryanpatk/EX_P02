@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { bind } from 'cuelume';
 import '@fontsource-variable/inter';
+import '@fontsource-variable/geist-mono';
 import './index.css';
 import router from './router';
 import { RouterProvider } from 'react-router-dom';

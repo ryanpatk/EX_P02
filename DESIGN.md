@@ -171,7 +171,7 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 
 ## Typography
 
-**Families:** `Two Weekend Go` for app chrome — brand, sidebar, filter chips, buttons, headers (see `src/fonts/two-weekend-go.css`). `Inter` (variable, self-hosted via `@fontsource-variable/inter`, token `--bookmark-font-content`) for content — stream cards, the link details panel, and the note editor. Rule of thumb: if the user wrote or saved it, it's Inter; if the app is speaking, it's Two Weekend Go. Code inside notes uses the system monospace stack (`--font-code`).
+**Families:** `Two Weekend Go` for app chrome — brand, sidebar, filter chips, buttons, headers (see `src/fonts/two-weekend-go.css`). `Inter` (variable, self-hosted via `@fontsource-variable/inter`, token `--bookmark-font-content`) for content — stream cards, the link details panel, and the note editor. `Geist Mono` (variable, self-hosted, token `--bookmark-font-mono`) for **data**: card host lines, chip and sidebar counts, timestamps, due dates, day dividers, the Spaces caption, initials fallbacks. Small sizes (10–11px), tabular numerals, a touch of tracking. Rule of thumb: if the user wrote or saved it, it's Inter; if the app is speaking, it's Two Weekend Go; if it's a number, a host, or a time, it's Geist Mono. Code inside notes uses the system monospace stack (`--font-code`).
 
 | Level      | Size          | Weight     | Use                       |
 | ---------- | ------------- | ---------- | ------------------------- |
@@ -187,6 +187,9 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 - **Frosted omnilist:** `backdrop-filter: blur(20px) saturate(180%)` with bubble background; falls back to opaque glass when `prefers-reduced-transparency`.
 - **List inside stack:** Transparent rows, 1px bottom dividers (`--bookmark-list-row-divider`), no per-row card boxes.
 - **Shadows:** Tight `--bookmark-shadow-border` on frosted stack and toasts—not wide floating card shadows.
+- **Press travel:** everything pressable scales to `--press-scale` (0.97) on `:active` over `--press-duration` (100ms) — the mechanical-button feel. Cards lift 1px on hover with a slightly deeper edge shadow and settle to 0.985 on press. Disabled under reduced motion.
+- **Canvas grain:** a static single-tile SVG noise sits under the shell (`.memex-shell::before`, 4.5% multiply in light, 7% screen in dark). It never animates and hides under reduced transparency.
+- **Capture pop-in:** the optimistic row for a just-captured item (and a just-sent note to self) settles in from 0.96 with a soft overshoot over 200ms (`memex-pop-in`). Input-driven only; nothing pops on load or on data arriving.
 - **Edges on translucent surfaces:** cards, Notes to Self bubbles, and the composer use `--bookmark-edge-shadow` (1px inset light catch + 1px 4% outer ring + 1px soft drop) instead of a grey hairline; the border stays 1px transparent so stateful borders (selected, details-active) still take over. Dark mode swaps to an 8% inner light and a 35% ring. Chips, sidebar items, and list dividers keep their existing treatment.
 - **Footer:** Fixed 28px bar on desktop (`desktop-footer`); dashboard uses `--bookmark-footer-offset: 28px` for bottom spacing.
 

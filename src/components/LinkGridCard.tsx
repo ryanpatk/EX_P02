@@ -37,6 +37,7 @@ const LinkGridCard = ({
   return (
     <StreamCard
       type="link"
+      isNew={link.id.startsWith('temp-')}
       previewUrl={previewFailed ? null : previewUrl}
       onPreviewError={() => setPreviewFailed(true)}
       leading={

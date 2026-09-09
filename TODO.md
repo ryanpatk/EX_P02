@@ -39,13 +39,13 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 ## 🔨 Next build tasks (ask Claude, no credentials needed)
 
 - [ ] **Notes to Self polish** (landed 2026-09-07): edit-in-place for a message, move a message between scopes, optional unread dot on the header bubble, markdown-lite in bubbles
-- [ ] **Stream refinements** (layout refactor landed 2026-09-07): visual pass on note/task cards vs. the link card; space rename/delete from the sidebar; empty-space onboarding copy; keyboard nav across cards
+- [ ] **Stream refinements** (layout refactor landed 2026-09-07): visual pass on note/task cards vs. the link card; ~~space rename/delete from the sidebar~~ ✓ 2026-09-08; empty-space onboarding copy; keyboard nav across cards
 - [ ] **Remove list-view leftovers** — `ViewToggleFab`, `useViewMode`, `LinksList`, `LinkListRow`/`NoteListRow`/`TaskListRow`, `BookmarkOmnibar` now only serve `/styleguide` (and `LinkDetailsPanel` uses `LinkListRow` for its preview row); update the styleguide to showcase `StreamCard`
 - [ ] **Deep-link check** — old `/notes?note=<id>` links now redirect to `/home?type=note&note=<id>`; confirm the extension/API don't hardcode `/links`
 
 - [ ] Extension Phase 2: context menus (save link/image), save-selection-as-note, already-saved badge, offline queue (`docs/browser-extension-plan.md`)
 - [ ] Post-capture tag/space editing in the extension popup (API already supports `spaceId`/`tagIds`)
-- [ ] Sound design pass in the app itself (JOYFUL_SYSTEMS: confirm/dismiss/error/move families) — extension has the first blip
+- [x] Sound design pass in the app (confirm/dismiss/error/move/toggle via `src/utils/sound.ts`, mute in Settings) ✓ 2026-09-08 — listen-test the mix; the palette is retunable in one map
 - [ ] Image proxy route on the scraper worker if preview hotlinking breaks for some domains
 - [ ] Per-device token names/revocation polish (Settings modal exists; lean per-device early)
 

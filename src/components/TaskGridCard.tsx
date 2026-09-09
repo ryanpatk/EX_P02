@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TaskWithTags } from '../types/database';
 import { mergeTags } from '../utils/streamItems';
 import StreamCard from './StreamCard';
+import { CheckIcon } from './icons';
 import { formatDueDate } from '../utils/streamCardFormat';
 
 interface TaskGridCardProps {
@@ -45,9 +46,7 @@ const TaskGridCard = ({
             onToggleDone(task);
           }}
         >
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M4 8.25 6.75 11 12 5.5" />
-          </svg>
+          <CheckIcon />
         </button>
       }
       meta={due ? <span className="memex-task-due">{due}</span> : 'Task'}

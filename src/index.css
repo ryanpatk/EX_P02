@@ -129,6 +129,12 @@
   --bookmark-border-ink: oklch(0.42 0.028 264);
   --bookmark-control-bg: oklch(0.967 0.009 264.522);
   --bookmark-control-border: oklch(0.42 0.028 264 / 0.22);
+  /* Sharp edge for translucent surfaces: 1px inner light catch + faint outer
+     ring instead of a grey hairline (cards, chat bubbles, composer) */
+  --bookmark-edge-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.85),
+    0 0 0 1px oklch(0 0 0 / 0.04),
+    0 1px 2px oklch(0 0 0 / 0.04);
   --bookmark-badge-bg: oklch(0.943 0.013 266.698);
   --bookmark-badge-text: var(--neutral-900);
   --bookmark-active-bg: oklch(0.56 0.052 264);
@@ -140,7 +146,8 @@
   --bookmark-text: var(--neutral-900);
   --bookmark-muted: var(--neutral-600);
   --bookmark-secondary-text: var(--bookmark-border-ink);
-  --bookmark-accent: var(--accent-500);
+  /* Focus/emphasis accent follows the user's theme, not a fixed blue */
+  --bookmark-accent: var(--bookmark-active-bg);
   --bookmark-accent-strong: var(--accent-600);
   --bookmark-danger: var(--danger-500);
   --bookmark-danger-soft: var(--danger-soft);
@@ -208,8 +215,8 @@
     transparent
   );
   --bookmark-stack-frosted-row-hover: var(--bookmark-row-hover-bg);
-  --bookmark-focus-ring: oklch(0.562 0.24 268.244 / 0.25);
-  --bookmark-focus-ring-strong: oklch(0.562 0.24 268.244 / 0.2);
+  --bookmark-focus-ring: color-mix(in oklch, var(--bookmark-active-bg) 28%, transparent);
+  --bookmark-focus-ring-strong: color-mix(in oklch, var(--bookmark-active-bg) 22%, transparent);
   --bookmark-on-accent: var(--paper);
   --bookmark-stack-outer-radius: 10px;
   --bookmark-shadow-border:
@@ -292,6 +299,11 @@
   --bookmark-border-ink: oklch(0.32 0.015 264);
   --bookmark-control-bg: oklch(0.267 0.015 256.798 / 0.3);
   --bookmark-control-border: oklch(0.32 0.015 264 / 0.5);
+  /* Dark canvas: quieter inner light, stronger outer ring so the edge survives */
+  --bookmark-edge-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.08),
+    0 0 0 1px oklch(0 0 0 / 0.35),
+    0 1px 2px oklch(0 0 0 / 0.25);
   --bookmark-badge-bg: var(--neutral-400);
   --bookmark-badge-text: var(--neutral-900);
   --bookmark-active-bg: oklch(0.96 0.018 264);
@@ -303,14 +315,15 @@
   --bookmark-text: var(--neutral-900);
   --bookmark-muted: var(--neutral-600);
   --bookmark-secondary-text: var(--bookmark-border-ink);
-  --bookmark-accent: var(--accent-500);
+  /* Focus/emphasis accent follows the user's theme, not a fixed blue */
+  --bookmark-accent: var(--bookmark-active-bg);
   --bookmark-accent-strong: var(--accent-600);
   --bookmark-danger: var(--danger-500);
   --bookmark-danger-soft: var(--danger-soft);
   --bookmark-success: var(--success-500);
   --bookmark-success-soft: var(--success-soft);
-  --bookmark-focus-ring: oklch(0.523 0.266 263.081 / 0.32);
-  --bookmark-focus-ring-strong: oklch(0.523 0.266 263.081 / 0.24);
+  --bookmark-focus-ring: color-mix(in oklch, var(--bookmark-active-bg) 34%, transparent);
+  --bookmark-focus-ring-strong: color-mix(in oklch, var(--bookmark-active-bg) 26%, transparent);
   --bookmark-on-accent: var(--paper);
   --bookmark-brand-bubble-bg: oklch(1 0 0 / 0.12);
   --bookmark-brand-bubble-bg-hover: oklch(1 0 0 / 0.18);
@@ -1548,7 +1561,7 @@ textarea.input-field {
 .theme-toggle:hover,
 .user-menu-action:hover {
   transform: translateY(-1px);
-  border-color: rgba(3, 40, 241, 0.22);
+  border-color: color-mix(in oklch, var(--bookmark-accent) 22%, transparent);
   background: var(--surface-panel-muted);
 }
 
@@ -1792,7 +1805,7 @@ textarea.input-field {
   border: var(--border-heavy);
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(3, 40, 241, 0.08), transparent 45%),
+    linear-gradient(135deg, color-mix(in oklch, var(--bookmark-accent) 8%, transparent), transparent 45%),
     linear-gradient(180deg, var(--surface-panel-strong), var(--surface-panel));
 }
 
@@ -1864,7 +1877,7 @@ textarea.input-field {
 .profiles-rail-button:hover,
 .profile-action:hover {
   transform: translateY(-1px);
-  border-color: rgba(3, 40, 241, 0.24);
+  border-color: color-mix(in oklch, var(--bookmark-accent) 24%, transparent);
   background: var(--surface-panel-muted);
 }
 
@@ -1932,7 +1945,7 @@ textarea.input-field {
 
 .tag-pill:hover {
   transform: translateY(-1px);
-  border-color: rgba(3, 40, 241, 0.22);
+  border-color: color-mix(in oklch, var(--bookmark-accent) 22%, transparent);
 }
 
 .tag-pill-active {
@@ -2044,7 +2057,7 @@ textarea.input-field {
   border: 3px solid var(--color-blue);
   background: linear-gradient(
     180deg,
-    rgba(3, 40, 241, 0.14),
+    color-mix(in oklch, var(--bookmark-accent) 14%, transparent),
     rgba(246, 249, 30, 0.08)
   );
 }
@@ -2060,7 +2073,7 @@ textarea.input-field {
   overflow: hidden;
   flex: 0 0 var(--link-card-media-height, auto);
   background:
-    linear-gradient(135deg, rgba(3, 40, 241, 0.12), transparent 42%),
+    linear-gradient(135deg, color-mix(in oklch, var(--bookmark-accent) 12%, transparent), transparent 42%),
     linear-gradient(180deg, rgba(8, 16, 28, 0.08), rgba(8, 16, 28, 0.02));
 }
 
@@ -2768,8 +2781,8 @@ textarea.input-field {
 
 .profile-name-input:focus {
   outline: none;
-  border-color: rgba(3, 40, 241, 0.46);
-  box-shadow: 0 0 0 3px rgba(3, 40, 241, 0.1);
+  border-color: var(--bookmark-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--bookmark-accent) 10%, transparent);
 }
 
 .profile-action-primary {
@@ -3414,7 +3427,7 @@ textarea.input-field {
 }
 
 .focus\:border-orange:focus {
-  border-color: rgba(3, 40, 241, 0.46) !important;
+  border-color: var(--bookmark-accent) !important;
 }
 
 .shadow-sm {
@@ -10162,4 +10175,231 @@ textarea,
 
 .memex-sidebar-spaces .memex-sidebar-item:not(.is-active) .memex-sidebar-item-count {
   opacity: 0.5;
+}
+
+/* ============================================================ */
+/* Edges: cards, chat bubbles, and the composer drop their grey hairline for
+   the inset-light + faint-ring shadow pair. The border stays 1px but goes
+   transparent so layout is unchanged and stateful borders (selected,
+   details-active) can still take over. */
+.memex-card {
+  border-color: transparent;
+  box-shadow: var(--bookmark-edge-shadow);
+}
+
+.memex-card.is-selected,
+.memex-card.is-selected:hover {
+  border-color: var(--bookmark-active-bg);
+  box-shadow: none;
+}
+
+.memex-card.is-details-active {
+  border-color: var(--bookmark-border-strong);
+}
+
+.memex-self-note-bubble {
+  border-color: transparent;
+  box-shadow: var(--bookmark-edge-shadow);
+}
+
+.memex-self-notes-input {
+  border-color: transparent;
+  box-shadow: var(--bookmark-edge-shadow);
+}
+
+/* Reduced transparency: translucent fills become opaque and the light catch
+   reads as a hard white line — fall back to the plain hairline */
+@media (prefers-reduced-transparency: reduce) {
+  .memex-card,
+  .memex-self-note-bubble,
+  .memex-self-notes-input {
+    border-color: var(--bookmark-control-border);
+    box-shadow: none;
+  }
+}
+
+/* ============================================================ */
+/* Chrome icons are filled silhouettes (src/components/icons.tsx). Earlier
+   rules styled these slots for stroked glyphs; neutralize the strokes so
+   the fills render at their designed weight. */
+.memex-sidebar-item-icon svg,
+.memex-sidebar-new svg,
+.memex-self-notes-toggle svg,
+.memex-self-notes-close svg,
+.memex-self-notes-send svg,
+.memex-omnibar-clear svg,
+.memex-task-check svg,
+.theme-toggle-icon svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.memex-sidebar-new svg,
+.memex-self-notes-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-self-notes-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.memex-self-notes-send svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-task-check svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Notes to Self toggle: larger glyph in the theme's primary color at rest;
+   open state stays inverted (primary fill, label color glyph) */
+.memex-self-notes-toggle {
+  color: var(--bookmark-active-bg);
+}
+
+.memex-self-notes-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.memex-self-notes-toggle:hover:not(.is-active) {
+  background: color-mix(in oklch, var(--bookmark-active-bg) 14%, transparent);
+  color: var(--bookmark-active-bg);
+}
+
+/* Open state keeps the glyph in the theme color: tinted fill + ring rather
+   than inverting to the (sometimes near-black) label color */
+.memex-self-notes-toggle.is-active {
+  background: color-mix(in oklch, var(--bookmark-active-bg) 20%, transparent);
+  border-color: color-mix(in oklch, var(--bookmark-active-bg) 55%, transparent);
+  color: var(--bookmark-active-bg);
+}
+
+.memex-self-notes-toggle.is-active:hover {
+  background: color-mix(in oklch, var(--bookmark-active-bg) 28%, transparent);
+}
+
+/* ============================================================ */
+/* Space details: icon chip beside Select (only inside a space) + dialog */
+/* Specificity matches the row-level chip rule so its 11px side padding
+   doesn't squeeze the glyph */
+.memex-stream-filter-row .memex-space-details-chip,
+.memex-space-details-chip {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.memex-stream-filter-row .memex-space-details-chip svg,
+.memex-space-details-chip svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  overflow: visible;
+  fill: currentColor;
+  stroke: none;
+}
+
+.memex-space-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.memex-space-details-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--bookmark-radius-card);
+  background: var(--bookmark-control-bg);
+  border: 1px solid var(--bookmark-control-border);
+}
+
+.memex-space-details-stat b {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--bookmark-text);
+}
+
+.memex-space-details-stat span {
+  font-size: var(--bookmark-fs-small);
+  color: var(--bookmark-muted);
+}
+
+.memex-space-details-meta {
+  margin: 0;
+  color: var(--bookmark-muted);
+  font-size: var(--bookmark-fs-small);
+}
+
+.memex-space-details-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.memex-space-details-name-row .bookmark-detail-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--bookmark-font-content);
+}
+
+@media (max-width: 480px) {
+  .memex-space-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Gear sits right after the type chips; a hair of extra breathing room */
+.memex-stream-filter-row.is-types .memex-space-details-chip {
+  margin-left: 4px;
+}
+
+/* Link details → "Remove from space": a neutral action, visibly not Delete */
+.bookmark-detail-remove {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--bookmark-radius-pill);
+  border: 1px solid var(--bookmark-control-border);
+  background: var(--bookmark-control-bg);
+  color: var(--bookmark-text);
+  font-family: inherit;
+  font-size: var(--bookmark-fs-ui);
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.bookmark-detail-remove:hover:not(:disabled) {
+  background: var(--bookmark-chip-secondary-bg-hover);
+  border-color: var(--bookmark-border-strong);
+}
+
+.bookmark-detail-remove:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.bookmark-detail-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bookmark-detail-remove:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
 }

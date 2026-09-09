@@ -1,4 +1,3 @@
-import { play } from 'cuelume';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AppHeader from '../components/AppHeader';
@@ -7,6 +6,7 @@ import LinkGridCard from '../components/LinkGridCard';
 import NoteEditor from '../components/NoteEditor';
 import NoteGridCard from '../components/NoteGridCard';
 import NotesToSelfPanel from '../components/NotesToSelfPanel';
+import SpaceDetailsModal from '../components/SpaceDetailsModal';
 import StreamFilterBar from '../components/StreamFilterBar';
 import TaskGridCard from '../components/TaskGridCard';
 import { EmptyState, FeedbackToast, FrostedStack, Omnibar } from '../components/ui';
@@ -30,6 +30,7 @@ import { useSetNoteTags } from '../hooks/useNoteTags';
 import {
   useAddLinksToProfile,
   useProfileLinkMembership,
+  useRemoveLinkFromProfile,
   useSetProfileLinkSuperFavorite,
 } from '../hooks/useProfileLinks';
 import { useAddNotesToProfile, useProfileNoteMembership } from '../hooks/useProfileNotes';
@@ -42,6 +43,8 @@ import { urlScraperApi } from '../hooks/useUrlScraper';
 import { useAppStore } from '../store';
 import { LinkWithTag, NoteWithTags, TaskWithTags, UpdateNoteData } from '../types/database';
 import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
+import { cue } from '../utils/sound';
+import { ChatIcon, GearIcon } from '../components/icons';
 import {
   StreamItem,
   buildStreamItems,
@@ -65,14 +68,6 @@ type PendingAdd = {
 
 const SELF_NOTES_OPEN_KEY = 'memex.self-notes-open';
 
-const ChatBubbleIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3 3.25h10a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-.75.75H7.25L4.5 13.25v-2.5H3a.75.75 0 0 1-.75-.75V4A.75.75 0 0 1 3 3.25Z" />
-    <path d="M5.5 6.5h5" />
-    <path d="M5.5 8.5h3" />
-  </svg>
-);
-
 const parseList = (value: string | null) =>
   value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
 
@@ -92,6 +87,7 @@ const StreamPage = () => {
   const [detailLinkId, setDetailLinkId] = useState<string | null>(null);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [spaceDetailsOpen, setSpaceDetailsOpen] = useState(false);
   const [selfNotesOpen, setSelfNotesOpen] = useState<boolean>(() => {
     try {
       return window.localStorage.getItem(SELF_NOTES_OPEN_KEY) === '1';
@@ -124,6 +120,7 @@ const StreamPage = () => {
   const setLinkTags = useSetLinkTags();
   const addLinksToProfile = useAddLinksToProfile();
   const setProfileLinkSuperFavorite = useSetProfileLinkSuperFavorite();
+  const removeLinkFromProfile = useRemoveLinkFromProfile();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -244,6 +241,7 @@ const StreamPage = () => {
   }, []);
 
   const closeSelfNotes = useCallback(() => {
+    cue('dismiss');
     setSelfNotesOpen(false);
     try {
       window.localStorage.setItem(SELF_NOTES_OPEN_KEY, '0');
@@ -494,6 +492,7 @@ const StreamPage = () => {
         return;
       }
       flash(`Applied “${tagName}” to ${targets.length} item${targets.length === 1 ? '' : 's'}.`);
+      cue('move');
 
       try {
         await Promise.all(
@@ -591,12 +590,13 @@ const StreamPage = () => {
     };
     setPendingAdd(context);
     setSearchQuery('');
-    play('sparkle');
+    cue('confirm');
     createLink.mutate(
       { url },
       {
         onSuccess: (created) => afterCreate('link', created.id, context),
         onError: () => {
+          cue('error');
           setSearchQuery(context.rawInput);
           setPendingAdd(null);
         },
@@ -615,6 +615,7 @@ const StreamPage = () => {
     };
     setPendingAdd(context);
     setSearchQuery('');
+    cue('confirm');
     createNote.mutate(
       { title: rawInput },
       {
@@ -623,6 +624,7 @@ const StreamPage = () => {
           openNote(created.id);
         },
         onError: () => {
+          cue('error');
           setSearchQuery(context.rawInput);
           setPendingAdd(null);
         },
@@ -641,11 +643,13 @@ const StreamPage = () => {
     };
     setPendingAdd(context);
     setSearchQuery('');
+    cue('confirm');
     createTask.mutate(
       { title: rawInput },
       {
         onSuccess: (created) => afterCreate('task', created.id, context),
         onError: () => {
+          cue('error');
           setSearchQuery(context.rawInput);
           setPendingAdd(null);
         },
@@ -718,6 +722,7 @@ const StreamPage = () => {
   const handleToggleTaskDone = useCallback(
     (task: TaskWithTags) => {
       if (task.id.startsWith('temp-')) return;
+      cue('toggle');
       updateTask.mutate({ id: task.id, updates: { is_done: !task.is_done } });
     },
     [updateTask],
@@ -727,6 +732,7 @@ const StreamPage = () => {
     (taskId: string) => {
       if (taskId.startsWith('temp-')) return;
       if (!window.confirm('Delete this task permanently? This cannot be undone.')) return;
+      cue('dismiss');
       deleteTask.mutate(taskId);
     },
     [deleteTask],
@@ -736,6 +742,7 @@ const StreamPage = () => {
     (noteId: string) => {
       if (noteId.startsWith('temp-')) return;
       if (openNoteId === noteId) closeNote();
+      cue('dismiss');
       deleteNote.mutate(noteId);
     },
     [closeNote, deleteNote, openNoteId],
@@ -831,13 +838,28 @@ const StreamPage = () => {
     return 'updated';
   }, [detailLink, updateLink]);
 
+  const handleRemoveLinkFromSpace = useCallback(async () => {
+    if (!detailLinkId || !spaceId) return;
+    const name = space?.name ?? 'this space';
+    try {
+      await removeLinkFromProfile.mutateAsync({ profileId: spaceId, linkId: detailLinkId });
+      cue('move');
+      flash(`Removed from “${name}”.`);
+      setDetailLinkId(null);
+    } catch (error) {
+      cue('error');
+      console.error('Failed to remove link from space:', error);
+    }
+  }, [detailLinkId, flash, removeLinkFromProfile, space?.name, spaceId]);
+
   const handleDeleteLinkFromDetail = useCallback(async () => {
     if (!detailLinkId) return;
     try {
       await deleteLink.mutateAsync(detailLinkId);
+      cue('dismiss');
       setDetailLinkId(null);
     } catch {
-      /* silent */
+      cue('error');
     }
   }, [deleteLink, detailLinkId]);
 
@@ -963,7 +985,7 @@ const StreamPage = () => {
             }
             title="Notes to Self"
           >
-            <ChatBubbleIcon />
+            <ChatIcon />
           </button>
         }
       />
@@ -1036,6 +1058,20 @@ const StreamPage = () => {
                       untaggedCount={untaggedCount}
                       onToggleUntagged={toggleUntagged}
                       bulkAssignMode={bulkAssignActive}
+                      afterTypes={
+                        space ? (
+                          <button
+                            type="button"
+                            className="bookmark-tag-chip memex-space-details-chip"
+                            onClick={() => setSpaceDetailsOpen(true)}
+                            aria-haspopup="dialog"
+                            aria-label={`Space details for “${space.name}”`}
+                            title="Space details"
+                          >
+                            <GearIcon />
+                          </button>
+                        ) : null
+                      }
                       trailing={
                         <>
                           {selectionMode && (
@@ -1145,6 +1181,9 @@ const StreamPage = () => {
                             onCreateTag={handleCreateTag}
                             onDeleteTag={handleDeleteTag}
                             onDeleteLink={handleDeleteLinkFromDetail}
+                            spaceName={space?.name}
+                            onRemoveFromSpace={space ? handleRemoveLinkFromSpace : undefined}
+                            removeFromSpacePending={removeLinkFromProfile.isPending}
                             onRescrape={handleDetailRescrape}
                             urlPending={updateLink.isPending}
                             superFavoritePending={
@@ -1179,6 +1218,16 @@ const StreamPage = () => {
           <aside className="bookmark-rail bookmark-rail--tags" aria-hidden="true" />
         )}
       </div>
+
+      {space && (
+        <SpaceDetailsModal
+          space={space}
+          isOpen={spaceDetailsOpen}
+          onClose={() => setSpaceDetailsOpen(false)}
+          typeTotals={typeTotals}
+          onFeedback={flash}
+        />
+      )}
 
       {toast !== null && (
         <FeedbackToast

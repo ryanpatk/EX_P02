@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
+import SoundToggle from './SoundToggle';
 import CanvasColorPicker from './CanvasColorPicker';
 import ApiTokensModal from './ApiTokensModal';
 import type { LinkWithTag } from '../types/database';
@@ -181,6 +182,7 @@ const AppHeader = ({
             <div className="bookmark-account-menu-section">
               <CanvasColorPicker />
               <DarkModeToggle className="bookmark-account-menu-action" />
+              <SoundToggle className="bookmark-account-menu-action" />
               <button
                 type="button"
                 className="bookmark-account-menu-action"

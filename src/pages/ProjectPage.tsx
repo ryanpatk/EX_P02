@@ -1,4 +1,4 @@
-import { play } from 'cuelume';
+import { cue } from '../utils/sound';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -137,7 +137,7 @@ const ProjectPage = () => {
         url: url,
       };
 
-      play('sparkle');
+      cue('confirm');
 
       createLink.mutate(linkData, {
         onSuccess: () => {

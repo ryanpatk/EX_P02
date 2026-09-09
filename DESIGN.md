@@ -140,6 +140,27 @@ Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 
 **No hover border darkening on list rows.** Row dividers stay constant; hover uses `--bookmark-row-hover-bg` only.
 
+## Iconography
+
+Chrome icons live in `src/components/icons.tsx` as **filled, rounded silhouettes** in `currentColor` on a 16px grid ("Filled Friendly", per the 2026-09-08 icon direction). Cutouts are real evenodd holes so a glyph reads on canvas, primary fill, or frosted glass alike. Metaphors are chosen for meaning: Home is a rounded house with a round-topped door; Notes to Self is a simple chat bubble with two text lines. Content surfaces — the note and link glyphs inside cards — stay as quiet 1.5px outlines so chrome reads louder than content. Don't mix in stroked icons for new chrome; add to `icons.tsx`.
+
+## Sound
+
+Interaction sounds come from `cuelume`, routed through `src/utils/sound.ts` so components name a **mechanic**, never a sound. Per JOYFUL_SYSTEMS: short, quiet, tactile; sound accompanies feedback the UI already shows; never on passive events.
+
+| Mechanic | Sound | Fires on |
+| --- | --- | --- |
+| `confirm` | sparkle | Capturing a link, note, or task; sending a note to self |
+| `dismiss` | droplet | Deleting a link, note, task, or note to self; closing Notes to Self |
+| `error` | error | A capture, send, or delete that fails (the UI also restores the input) |
+| `move` | page | Adding a selection to a space; applying a tag to a selection |
+| `toggle` | toggle | Checking a task done or undone; turning sound back on |
+| hover `tick` | tick | Filter chips only (`data-cuelume-hover="tick"`) |
+
+**User control:** Settings → Sound On / Sound Off (`SoundToggle`, persisted as `memex.sound`). Muting silences both `cue()` calls and hover attributes. Browsers keep audio suspended until the first click, so the first hover tick after load can be silent by design.
+
+**Don't:** put hover sounds on content (cards, rows, previews), play on load or on data arriving, or call `play()` from `cuelume` directly.
+
 ## Typography
 
 **Families:** `Two Weekend Go` for app chrome — brand, sidebar, filter chips, buttons, headers (see `src/fonts/two-weekend-go.css`). `Inter` (variable, self-hosted via `@fontsource-variable/inter`, token `--bookmark-font-content`) for content — stream cards, the link details panel, and the note editor. Rule of thumb: if the user wrote or saved it, it's Inter; if the app is speaking, it's Two Weekend Go. Code inside notes uses the system monospace stack (`--font-code`).
@@ -158,6 +179,7 @@ Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 - **Frosted omnilist:** `backdrop-filter: blur(20px) saturate(180%)` with bubble background; falls back to opaque glass when `prefers-reduced-transparency`.
 - **List inside stack:** Transparent rows, 1px bottom dividers (`--bookmark-list-row-divider`), no per-row card boxes.
 - **Shadows:** Tight `--bookmark-shadow-border` on frosted stack and toasts—not wide floating card shadows.
+- **Edges on translucent surfaces:** cards, Notes to Self bubbles, and the composer use `--bookmark-edge-shadow` (1px inset light catch + 1px 4% outer ring + 1px soft drop) instead of a grey hairline; the border stays 1px transparent so stateful borders (selected, details-active) still take over. Dark mode swaps to an 8% inner light and a 35% ring. Chips, sidebar items, and list dividers keep their existing treatment.
 - **Footer:** Fixed 28px bar on desktop (`desktop-footer`); dashboard uses `--bookmark-footer-offset: 28px` for bottom spacing.
 
 ## Components

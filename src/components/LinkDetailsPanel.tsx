@@ -36,6 +36,10 @@ interface LinkDetailsPanelProps {
   onDeleteLink: () => Promise<void>;
   /** Re-fetches page metadata; saves only fields the fresh scrape actually returned. */
   onRescrape?: () => Promise<RescrapeResult>;
+  /** When opened from inside a space: the space's name and a handler to drop the link from it. */
+  spaceName?: string;
+  onRemoveFromSpace?: () => Promise<void>;
+  removeFromSpacePending?: boolean;
   urlPending?: boolean;
   superFavoritePending?: boolean;
   deletePending?: boolean;
@@ -55,6 +59,9 @@ const LinkDetailsPanel = ({
   onDeleteTag,
   onDeleteLink,
   onRescrape,
+  spaceName,
+  onRemoveFromSpace,
+  removeFromSpacePending = false,
   urlPending = false,
   superFavoritePending = false,
   deletePending = false,
@@ -307,6 +314,24 @@ const LinkDetailsPanel = ({
             </label>
           </div>
         </section>
+
+        {spaceName && onRemoveFromSpace && (
+          <section className="bookmark-detail-section">
+            <h3 className="bookmark-detail-label">In this space</h3>
+            <p className="bookmark-detail-hint">
+              Takes the link out of “{spaceName}”. It stays in your library and in any other
+              spaces.
+            </p>
+            <button
+              type="button"
+              className="bookmark-detail-remove"
+              onClick={() => void onRemoveFromSpace()}
+              disabled={removeFromSpacePending}
+            >
+              {removeFromSpacePending ? 'Removing…' : `Remove from “${spaceName}”`}
+            </button>
+          </section>
+        )}
 
         <section className="bookmark-detail-section bookmark-detail-section--danger">
           <button

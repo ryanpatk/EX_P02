@@ -23,6 +23,8 @@ interface StreamFilterBarProps {
   onToggleUntagged: () => void;
   /** When a selection is active, tag chips apply to the selection instead of filtering. */
   bulkAssignMode?: boolean;
+  /** Controls placed directly after the type chips (e.g. the space gear). */
+  afterTypes?: ReactNode;
   /** Controls pinned to the right end of the type row (e.g. Select / Clear). */
   trailing?: ReactNode;
 }
@@ -45,6 +47,7 @@ const StreamFilterBar = ({
   untaggedCount,
   onToggleUntagged,
   bulkAssignMode = false,
+  afterTypes,
   trailing,
 }: StreamFilterBarProps) => {
   const createTag = useCreateTag();
@@ -95,6 +98,7 @@ const StreamFilterBar = ({
             }
           />
         ))}
+        {afterTypes}
         {trailing && <div className="memex-stream-filter-trailing">{trailing}</div>}
       </div>
 

@@ -14,7 +14,9 @@ import {
   useSelfMessages,
 } from '../hooks/useSelfMessages';
 import type { SelfMessage } from '../types/database';
+import { cue } from '../utils/sound';
 import { EmptyState, FrostedStack } from './ui';
+import { CloseIcon, SendIcon } from './icons';
 
 interface NotesToSelfPanelProps {
   /** Space id, or null for the Home (general) feed. */
@@ -27,20 +29,6 @@ interface NotesToSelfPanelProps {
 const MAX_COMPOSER_ROWS = 6;
 
 const URL_PATTERN = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?])/gi;
-
-const CloseIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M4 4l8 8" />
-    <path d="M12 4 4 12" />
-  </svg>
-);
-
-const SendIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M2.75 8h9.5" />
-    <path d="M8.75 4.5 12.25 8l-3.5 3.5" />
-  </svg>
-);
 
 const dayKey = (iso: string) => {
   const d = new Date(iso);
@@ -130,10 +118,14 @@ const NotesToSelfPanel = ({ scopeId, scopeName, onClose }: NotesToSelfPanelProps
     const body = draft.trim();
     if (!body || createMessage.isPending) return;
     setDraft('');
+    cue('confirm');
     createMessage.mutate(
       { body, profile_id: scopeId },
       {
-        onError: () => setDraft(body),
+        onError: () => {
+          cue('error');
+          setDraft(body);
+        },
       },
     );
   }, [createMessage, draft, scopeId]);
@@ -148,6 +140,7 @@ const NotesToSelfPanel = ({ scopeId, scopeName, onClose }: NotesToSelfPanelProps
   const handleDelete = (message: SelfMessage) => {
     if (message.id.startsWith('temp-')) return;
     if (!window.confirm('Delete this note to self? This cannot be undone.')) return;
+    cue('dismiss');
     deleteMessage.mutate(message.id);
   };
 

@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
 import CanvasColorPicker from './CanvasColorPicker';
 import DarkModeToggle from './DarkModeToggle';
+import SoundToggle from './SoundToggle';
 import ApiTokensModal from './ApiTokensModal';
 import supabase from '../supabase';
 
@@ -95,6 +96,7 @@ const AppFooter = () => {
             <div className="bookmark-account-menu-section">
               <CanvasColorPicker />
               <DarkModeToggle className="bookmark-account-menu-action" />
+              <SoundToggle className="bookmark-account-menu-action" />
               {user && (
                 <button
                   type="button"

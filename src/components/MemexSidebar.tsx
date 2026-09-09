@@ -8,32 +8,9 @@ import { useAddTasksToProfile, useProfileTaskMembership } from '../hooks/useProf
 import { useCreateProfile, useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { parseItemKey } from '../utils/streamItems';
+import { cue } from '../utils/sound';
 import { FeedbackToast, InlineCreateForm } from './ui';
-
-const ICON_PROPS = {
-  viewBox: '0 0 16 16',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.5,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-} as const;
-
-const HomeIcon = () => (
-  <svg {...ICON_PROPS}>
-    <path d="M2.75 7.75 8 3.25l5.25 4.5" />
-    <path d="M4.25 6.75v6h7.5v-6" />
-    <path d="M6.75 12.75v-3h2.5v3" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg {...ICON_PROPS}>
-    <path d="M8 3.5v9" />
-    <path d="M3.5 8h9" />
-  </svg>
-);
+import { HomeIcon, PlusIcon } from './icons';
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'memex-sidebar-item is-active' : 'memex-sidebar-item';
@@ -119,6 +96,7 @@ const MemexSidebar = () => {
       const total = linkIds.length + noteIds.length + taskIds.length;
       const newlyAdded = selectedItemKeys.filter((key) => !already.has(key)).length;
 
+      if (newlyAdded > 0) cue('move');
       if (newlyAdded === 0) {
         flash(`Selection was already in “${name}”.`);
       } else if (newlyAdded === total) {
@@ -217,11 +195,7 @@ const MemexSidebar = () => {
                 );
               }
               return (
-                <NavLink
-                  key={space.id}
-                  to={spacePath(space.id)}
-                  className={itemClass}
-                >
+                <NavLink key={space.id} to={spacePath(space.id)} className={itemClass}>
                   <span className="memex-sidebar-item-label">{space.name}</span>
                   <span className="memex-sidebar-item-count">{count}</span>
                 </NavLink>

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { CloseIcon } from '../icons';
 
 export interface OmnibarAction {
   label: string;
@@ -82,10 +83,7 @@ const Omnibar = ({
             aria-label="Clear search"
             title="Clear"
           >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4.5 4.5l7 7" />
-              <path d="M11.5 4.5l-7 7" />
-            </svg>
+            <CloseIcon />
           </button>
         )}
         {allActions.map((a, index) => {

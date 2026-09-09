@@ -148,6 +148,10 @@
   --bookmark-secondary-text: var(--bookmark-border-ink);
   /* Focus/emphasis accent follows the user's theme, not a fixed blue */
   --bookmark-accent: var(--bookmark-active-bg);
+  /* Same-hue tint pair (runtime-derived from the swatch; these are fallbacks) */
+  --bookmark-tint-bg: oklch(0.93 0.03 264);
+  --bookmark-tint-ink: oklch(0.42 0.06 264);
+  --bookmark-tint-border: oklch(0.7 0.05 264 / 0.5);
   --bookmark-accent-strong: var(--accent-600);
   --bookmark-danger: var(--danger-500);
   --bookmark-danger-soft: var(--danger-soft);
@@ -317,6 +321,9 @@
   --bookmark-secondary-text: var(--bookmark-border-ink);
   /* Focus/emphasis accent follows the user's theme, not a fixed blue */
   --bookmark-accent: var(--bookmark-active-bg);
+  --bookmark-tint-bg: oklch(0.32 0.04 264);
+  --bookmark-tint-ink: oklch(0.88 0.06 264);
+  --bookmark-tint-border: oklch(0.6 0.05 264 / 0.5);
   --bookmark-accent-strong: var(--accent-600);
   --bookmark-danger: var(--danger-500);
   --bookmark-danger-soft: var(--danger-soft);
@@ -10402,4 +10409,60 @@ textarea,
 .bookmark-detail-remove:focus-visible {
   outline: 2px solid var(--bookmark-accent);
   outline-offset: 2px;
+}
+
+/* ============================================================ */
+/* Tint pairs: pastel fill + deep same-hue ink. Replaces alpha-mixes of the
+   primary over the tinted canvas (which read muddy). Type chips, hovers,
+   Notes to Self bubbles. The primary fill stays for navigation + selection. */
+
+/* Type filter chips: tint pair when active, tint fill on hover */
+.memex-stream-filter-row .bookmark-profile-chip:hover:not(:disabled):not(.is-bulk-target):not(.is-active) {
+  background: var(--bookmark-tint-bg);
+  border-color: var(--bookmark-tint-border);
+  color: var(--bookmark-tint-ink);
+}
+
+.memex-stream-filter-row .bookmark-profile-chip.is-active,
+.memex-stream-filter-row .bookmark-profile-chip.is-active:hover:not(:disabled) {
+  background: var(--bookmark-tint-bg);
+  border-color: var(--bookmark-tint-border);
+  color: var(--bookmark-tint-ink);
+}
+
+.memex-stream-filter-row .bookmark-profile-chip.is-active .bookmark-profile-chip-count {
+  opacity: 0.8;
+}
+
+/* Sidebar bulk-assign targets hover in the tint */
+.memex-sidebar-item.is-bulk-target:hover {
+  background: var(--bookmark-tint-bg);
+  color: var(--bookmark-tint-ink);
+}
+
+/* Notes to Self: bubbles are the tint pair, not white glass */
+.memex-self-note-bubble {
+  background: var(--bookmark-tint-bg);
+  color: var(--bookmark-tint-ink);
+}
+
+.memex-self-note-bubble a {
+  color: var(--bookmark-tint-ink);
+}
+
+/* Notes to Self toggle: tint states */
+.memex-self-notes-toggle:hover:not(.is-active) {
+  background: var(--bookmark-tint-bg);
+  color: var(--bookmark-active-bg);
+}
+
+.memex-self-notes-toggle.is-active {
+  background: var(--bookmark-tint-bg);
+  border-color: var(--bookmark-tint-border);
+  color: var(--bookmark-active-bg);
+}
+
+.memex-self-notes-toggle.is-active:hover {
+  background: var(--bookmark-tint-bg);
+  border-color: var(--bookmark-active-bg);
 }

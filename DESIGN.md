@@ -161,6 +161,14 @@ Interaction sounds come from `cuelume`, routed through `src/utils/sound.ts` so c
 
 **Don't:** put hover sounds on content (cards, rows, previews), play on load or on data arriving, or call `play()` from `cuelume` directly.
 
+## Color model (revised 2026-09-08)
+
+Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/canvasColor.ts`:
+
+1. **Paper-first canvas.** Swatches are a whisper of hue (chroma ≈ 0.02 light / 0.018 dark; grey ≈ 0.006). Bold color lives in the interactive layer, never the ground.
+2. **Hue-keyed neutrals.** Ink, muted text, borders, and control fills carry a little of the swatch hue (`--bookmark-text`, `--bookmark-muted`, `--bookmark-border*`, `--bookmark-control-*` are set on `:root` at runtime). A grey swatch keys neutrals to warm paper (hue 70), never the old cool blue-grey. Lightness and alpha are unchanged, so contrast is unchanged.
+3. **Tint pairs.** `--bookmark-tint-bg` (pastel fill, L≈0.93) + `--bookmark-tint-ink` (deep ink, L≈0.44) + `--bookmark-tint-border`, one hue. Use them for secondary emphasis: active type chips, chip and bulk-target hovers, Notes to Self bubbles, the Notes to Self toggle. Never alpha-mix the primary over the canvas for a hover — it goes muddy. The **primary fill** (`--bookmark-active-bg` / `-fg`) stays reserved for navigation state (active sidebar item), the selected card, and primary buttons.
+
 ## Typography
 
 **Families:** `Two Weekend Go` for app chrome — brand, sidebar, filter chips, buttons, headers (see `src/fonts/two-weekend-go.css`). `Inter` (variable, self-hosted via `@fontsource-variable/inter`, token `--bookmark-font-content`) for content — stream cards, the link details panel, and the note editor. Rule of thumb: if the user wrote or saved it, it's Inter; if the app is speaking, it's Two Weekend Go. Code inside notes uses the system monospace stack (`--font-code`).

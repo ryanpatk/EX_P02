@@ -1,15 +1,16 @@
-import { useCallback, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { HOME_PATH, spacePath } from '../constants/modules';
 import { useFeedbackToast } from '../hooks/useFeedbackToast';
 import { useAddLinksToProfile, useProfileLinkMembership } from '../hooks/useProfileLinks';
 import { useAddNotesToProfile, useProfileNoteMembership } from '../hooks/useProfileNotes';
 import { useAddTasksToProfile, useProfileTaskMembership } from '../hooks/useProfileTasks';
-import { useCreateProfile, useProfiles } from '../hooks/useProfiles';
+import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { parseItemKey } from '../utils/streamItems';
 import { cue } from '../utils/sound';
-import { FeedbackToast, InlineCreateForm } from './ui';
+import { FeedbackToast } from './ui';
+import NewSpaceModal from './NewSpaceModal';
 import { HomeIcon, PlusIcon } from './icons';
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
@@ -22,12 +23,10 @@ const itemClass = ({ isActive }: { isActive: boolean }) =>
  * navigating (the same dashed-chip affordance the old rails used).
  */
 const MemexSidebar = () => {
-  const navigate = useNavigate();
   const { data: profiles } = useProfiles();
   const { data: linkMembership } = useProfileLinkMembership();
   const { data: noteMembership } = useProfileNoteMembership();
   const { data: taskMembership } = useProfileTaskMembership();
-  const createProfile = useCreateProfile();
   const addLinks = useAddLinksToProfile();
   const addNotes = useAddNotesToProfile();
   const addTasks = useAddTasksToProfile();
@@ -38,6 +37,16 @@ const MemexSidebar = () => {
   const bulkAssignActive = selectionMode && selectedItemKeys.length > 0;
 
   const [isCreating, setIsCreating] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  // Phone bottom bar scrolls horizontally: bring the active item into view
+  // whenever the route changes so the current space is never off-screen
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 899px)').matches) return;
+    const active = scrollRef.current?.querySelector<HTMLElement>('.memex-sidebar-item.is-active');
+    active?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [location.pathname]);
 
   const spaces = useMemo(() => profiles ?? [], [profiles]);
 
@@ -51,21 +60,6 @@ const MemexSidebar = () => {
     (taskMembership ?? []).forEach((row) => bump(row.profile_id));
     return counts;
   }, [linkMembership, noteMembership, taskMembership]);
-
-  const handleCreateSpace = useCallback(
-    async (name: string) => {
-      try {
-        const created = await createProfile.mutateAsync({ name });
-        setIsCreating(false);
-        if (created?.id) {
-          navigate(spacePath(created.id));
-        }
-      } catch (error) {
-        console.error('Failed to create space:', error);
-      }
-    },
-    [createProfile, navigate],
-  );
 
   const handleAddSelectionToSpace = useCallback(
     async (spaceId: string) => {
@@ -146,7 +140,7 @@ const MemexSidebar = () => {
         </div>
       </div>
 
-      <div className="memex-sidebar-scroll">
+      <div className="memex-sidebar-scroll" ref={scrollRef}>
         <div className="memex-sidebar-nav">
           <NavLink to={HOME_PATH} end className={itemClass}>
             <span className="memex-sidebar-item-icon">
@@ -202,18 +196,7 @@ const MemexSidebar = () => {
               );
             })}
 
-            {isCreating && (
-              <div className="memex-sidebar-create">
-                <InlineCreateForm
-                  placeholder="Space name…"
-                  pending={createProfile.isPending}
-                  onSubmit={handleCreateSpace}
-                  onCancel={() => setIsCreating(false)}
-                />
-              </div>
-            )}
-
-            {spaces.length === 0 && !isCreating && (
+            {spaces.length === 0 && (
               <button
                 type="button"
                 className="memex-sidebar-empty"
@@ -225,6 +208,12 @@ const MemexSidebar = () => {
           </div>
         </div>
       </div>
+
+      <NewSpaceModal
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        onFeedback={flash}
+      />
 
       {toast !== null && (
         <FeedbackToast

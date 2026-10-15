@@ -1,10 +1,13 @@
 import type { User } from '@supabase/supabase-js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
 import SoundToggle from './SoundToggle';
 import CanvasColorPicker from './CanvasColorPicker';
 import ApiTokensModal from './ApiTokensModal';
+import { CloseIcon } from './icons';
+import { cue } from '../utils/sound';
 import type { LinkWithTag } from '../types/database';
 import supabase from '../supabase';
 
@@ -86,24 +89,37 @@ const AppHeader = ({
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTokensOpen, setIsTokensOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 899px)').matches,
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
+    const mql = window.matchMedia('(max-width: 899px)');
+    const onChange = () => setIsNarrow(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+  // The phone settings drawer closes on Escape and when the viewport widens
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    if (!isNarrow) {
+      setIsMenuOpen(false);
+      return;
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMenuOpen(false);
     };
-  }, [isMenuOpen]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMenuOpen, isNarrow]);
+
+  const openDrawer = () => setIsMenuOpen(true);
+  const closeDrawer = () => {
+    cue('dismiss');
+    setIsMenuOpen(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -126,17 +142,60 @@ const AppHeader = ({
     }
   };
 
+  const menuSections = (
+    <>
+      <div className="bookmark-account-menu-section">
+        <p className="bookmark-account-menu-kicker">SIGNED IN</p>
+        <p className="bookmark-account-menu-value">{userLabel}</p>
+        {user?.email && user?.email !== userLabel && (
+          <p className="bookmark-account-menu-meta">{user.email}</p>
+        )}
+      </div>
+      <div className="bookmark-account-menu-section">
+        <CanvasColorPicker />
+        <DarkModeToggle className="bookmark-account-menu-action" />
+        <SoundToggle className="bookmark-account-menu-action" />
+        <button
+          type="button"
+          className="bookmark-account-menu-action"
+          onClick={() => {
+            setIsMenuOpen(false);
+            setIsTokensOpen(true);
+          }}
+        >
+          ACCESS TOKENS…
+        </button>
+        <button type="button" className="bookmark-account-menu-action" onClick={handleLogout}>
+          LOG OUT
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <header className="bookmark-toolbar">
       <div className="bookmark-toolbar-brand-wrap">
-        <div className="bookmark-toolbar-brand-shell">
-          {/* <span className="bookmark-toolbar-brand-emoji" aria-hidden="true">
-            🌼
-          </span> */}
-          <span className="bookmark-toolbar-brand" translate="no">
-            memex
-          </span>
-        </div>
+        {isNarrow ? (
+          /* On phones the wordmark is the settings handle: opens a left drawer */
+          <button
+            type="button"
+            className="bookmark-toolbar-brand-shell bookmark-toolbar-brand-button"
+            onClick={openDrawer}
+            aria-haspopup="dialog"
+            aria-expanded={isMenuOpen}
+            aria-label="Open settings"
+          >
+            <span className="bookmark-toolbar-brand" translate="no">
+              memex
+            </span>
+          </button>
+        ) : (
+          <div className="bookmark-toolbar-brand-shell">
+            <span className="bookmark-toolbar-brand" translate="no">
+              memex
+            </span>
+          </div>
+        )}
       </div>
 
       {center ? (
@@ -145,70 +204,52 @@ const AppHeader = ({
         <div className="bookmark-toolbar-center" aria-label="Super favorites">
           <div className="bookmark-toolbar-super-favorites">
             {superFavoriteLinks.map((link) => (
-              <SuperFavoriteButton
-                key={link.id}
-                link={link}
-                onOpen={handleSuperFav}
-              />
+              <SuperFavoriteButton key={link.id} link={link} onOpen={handleSuperFav} />
             ))}
           </div>
         </div>
       )}
 
-      <div className="bookmark-toolbar-status" ref={menuRef}>
-        {right}
+      <div className="bookmark-toolbar-status">{right}</div>
 
-        {/* On desktop (≥768px) settings lives in the app footer instead */}
-        <button
-          type="button"
-          className="bookmark-toolbar-cta is-secondary is-chip bookmark-toolbar-settings-mobile"
-          onClick={() => setIsMenuOpen((prev) => !prev)}
-          aria-expanded={isMenuOpen}
-          aria-haspopup="true"
-          aria-label="Open settings menu"
-        >
-          Settings
-        </button>
-
-        {isMenuOpen && (
-          <div className="bookmark-account-menu">
-            <div className="bookmark-account-menu-section">
-              <p className="bookmark-account-menu-kicker">SIGNED IN</p>
-              <p className="bookmark-account-menu-value">{userLabel}</p>
-              {user?.email && user?.email !== userLabel && (
-                <p className="bookmark-account-menu-meta">{user.email}</p>
-              )}
-            </div>
-            <div className="bookmark-account-menu-section">
-              <CanvasColorPicker />
-              <DarkModeToggle className="bookmark-account-menu-action" />
-              <SoundToggle className="bookmark-account-menu-action" />
-              <button
-                type="button"
-                className="bookmark-account-menu-action"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  setIsTokensOpen(true);
-                }}
-              >
-                ACCESS TOKENS…
-              </button>
-              <button
-                type="button"
-                className="bookmark-account-menu-action"
-                onClick={handleLogout}
-              >
-                LOG OUT
-              </button>
-            </div>
-          </div>
+      {/* Phone settings drawer — portaled to <body> so it sits above the
+          fixed bottom bar (the header lives in a lower stacking layer) */}
+      {isNarrow &&
+        isMenuOpen &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              className="memex-drawer-scrim"
+              aria-label="Close settings"
+              onClick={closeDrawer}
+            />
+            <aside
+              className="memex-settings-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Settings"
+            >
+              <div className="memex-settings-drawer-header">
+                <span className="bookmark-toolbar-brand" translate="no">
+                  memex
+                </span>
+                <button
+                  type="button"
+                  className="memex-settings-drawer-close"
+                  onClick={closeDrawer}
+                  aria-label="Close settings"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+              <div className="memex-settings-drawer-body">{menuSections}</div>
+            </aside>
+          </>,
+          document.body,
         )}
-      </div>
 
-      <ApiTokensModal
-        isOpen={isTokensOpen}
-        onClose={() => setIsTokensOpen(false)}
-      />
+      <ApiTokensModal isOpen={isTokensOpen} onClose={() => setIsTokensOpen(false)} />
     </header>
   );
 };

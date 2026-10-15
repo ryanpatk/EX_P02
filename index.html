@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#6b7280" />
+    <meta name="theme-color" content="#eeeef1" />
     <meta property="og:title" content="memex" />
     <meta
       property="og:description"
@@ -17,7 +17,17 @@
     />
     <meta property="og:image" content="/og-image.png" />
     <meta property="og:type" content="website" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <!-- Installed (home-screen) app behaviour on iOS / Android -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="memex" />
+    <!-- Canvas extends under the status bar; the header pads for the safe area -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
     <link
       rel="preload"
       href="/fonts/two-weekend-go/twoweekendgo-regular.otf"

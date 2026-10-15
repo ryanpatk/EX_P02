@@ -144,6 +144,19 @@ Dark mode: `[data-theme='dark']` token swap + dark swatch variants.
 
 Chrome icons live in `src/components/icons.tsx` as **filled, rounded silhouettes** in `currentColor` on a 16px grid ("Filled Friendly", per the 2026-09-08 icon direction). Cutouts are real evenodd holes so a glyph reads on canvas, primary fill, or frosted glass alike. Metaphors are chosen for meaning: Home is a rounded house with a round-topped door; Notes to Self is a simple chat bubble with two text lines. Content surfaces — the note and link glyphs inside cards — stay as quiet 1.5px outlines so chrome reads louder than content. Don't mix in stroked icons for new chrome; add to `icons.tsx`.
 
+## Mobile & installed app
+
+memex is used as an installed home-screen app on iPhone. Rules that keep that working:
+
+- **The sidebar becomes a fixed bottom bar under 900px** (`.memex-sidebar` is `position: fixed`). Never set `position` on `.memex-shell > *` generically — the grain-layer stacking rule is scoped to `.memex-shell-main` (and to the sidebar only on desktop) for exactly this reason.
+- **Full-height shells use `100dvh`** (with a `100vh` fallback) so the iOS toolbar collapse doesn't leave a gap or clip the bottom bar.
+- **Safe areas:** the header pads `env(safe-area-inset-top)` (status bar is `black-translucent`, so the canvas runs under it); the bottom bar and the Notes to Self sheet pad the bottom/side insets; `--bookmark-footer-offset` includes the home-indicator inset.
+- **Inputs are ≥ 16px on phones** or iOS zooms the page on focus. Every text field is covered by a `max(16px, 1em)` floor.
+- **Touch:** `touch-action: manipulation` and no tap highlight on all controls and cards; the document never rubber-bands in standalone (`overscroll-behavior: none`) — the stacks scroll inside.
+- **Phone layout (2026-09-20):** the stack reorders for the thumb — filter chips on top, grid in the middle, **omnibar at the bottom** (border-top, capture button radius follows the bottom corner); the "← Back" row of link details stays at the top. The bottom bar snaps (`scroll-snap-type: x proximity`), fades at both edges, uses 44px targets, and scrolls the active space into view on route change. Notes to Self opens as a **full-screen sheet above the bar** (z 250). Header favorites scroll horizontally instead of wrapping. Grid is two equal columns at 204px with 8px gutters; card hover lift is disabled (press feedback stays). Under 380px chip counts hide and the brand shrinks.
+- **Settings on phones (2026-09-27):** the header wordmark is a button that opens a left **settings drawer** (portaled to `<body>`, z 410, above the bottom bar) holding the same sections as the desktop menu: signed-in, canvas color, dark mode, sound, access tokens, log out. The old header "Settings" chip is gone; desktop keeps settings in the footer.
+- **Manifest** (`public/site.webmanifest`): standalone, `start_url: /home`, theme/background keyed to the canvas grey; `theme-color` is updated at runtime to the live canvas swatch.
+
 ## Sound
 
 Interaction sounds come from `cuelume`, routed through `src/utils/sound.ts` so components name a **mechanic**, never a sound. Per JOYFUL_SYSTEMS: short, quiet, tactile; sound accompanies feedback the UI already shows; never on passive events.
@@ -190,6 +203,7 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 - **Press travel:** everything pressable scales to `--press-scale` (0.97) on `:active` over `--press-duration` (100ms) — the mechanical-button feel. Cards lift 1px on hover with a slightly deeper edge shadow and settle to 0.985 on press. Disabled under reduced motion.
 - **Canvas grain:** a static single-tile SVG noise sits under the shell (`.memex-shell::before`, 4.5% multiply in light, 7% screen in dark). It never animates and hides under reduced transparency.
 - **Capture pop-in:** the optimistic row for a just-captured item (and a just-sent note to self) settles in from 0.96 with a soft overshoot over 200ms (`memex-pop-in`). Input-driven only; nothing pops on load or on data arriving.
+- **Dialogs (`.app-modal`, 2026-09-27):** the canvas surface with the edge shadow + a deep drop; backdrop is the primary hue mixed into a dark veil with a 6px blur; transparent header/footer with frosted hairlines; footer actions are the pill buttons, primary on the right. On phones a dialog becomes a **bottom sheet**: full width, 24px top corners, grab handle, slide-up entry, stacked full-width actions (primary on top, 48px), safe-area bottom padding, inputs ≥ 16px. Creating a space always goes through `NewSpaceModal` — no inline forms.
 - **Edges on translucent surfaces:** cards, Notes to Self bubbles, and the composer use `--bookmark-edge-shadow` (1px inset light catch + 1px 4% outer ring + 1px soft drop) instead of a grey hairline; the border stays 1px transparent so stateful borders (selected, details-active) still take over. Dark mode swaps to an 8% inner light and a 35% ring. Chips, sidebar items, and list dividers keep their existing treatment.
 - **Footer:** Fixed 28px bar on desktop (`desktop-footer`); dashboard uses `--bookmark-footer-offset: 28px` for bottom spacing.
 

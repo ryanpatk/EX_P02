@@ -3664,6 +3664,9 @@ textarea.input-field {
   height: 100vh;
   max-height: 100vh;
   min-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   padding-bottom: var(--bookmark-footer-offset);
@@ -7727,6 +7730,7 @@ textarea.input-field {
 .memex-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   background: var(--bookmark-experiment-bg);
   color: var(--bookmark-text);
   font-family: var(--bookmark-font-sans);
@@ -9132,6 +9136,8 @@ textarea.input-field {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  gap: 4px;
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
@@ -10632,9 +10638,18 @@ textarea,
   mix-blend-mode: screen;
 }
 
-.memex-shell > * {
+/* Content sits above the grain. The sidebar is excluded: on phones it is a
+   fixed bottom bar and must keep its own positioning and z-index. */
+.memex-shell > .memex-shell-main {
   position: relative;
   z-index: 1;
+}
+
+@media (min-width: 900px) {
+  .memex-shell > .memex-sidebar {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -10689,5 +10704,594 @@ textarea,
   .memex-card.is-new,
   .memex-self-note.is-pending {
     animation: none;
+  }
+}
+
+/* ============================================================ */
+/* Mobile + installed-app (PWA) hardening — 2026-09-19 */
+
+/* Touch: no double-tap zoom on controls, no grey tap flash */
+button,
+a,
+[role='button'],
+.memex-card,
+.memex-task-check {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS zooms into inputs under 16px; the app already uses small type, so
+   force the floor on phones for every text field */
+@media (max-width: 899px) {
+  input[type='text'],
+  input[type='search'],
+  input[type='url'],
+  input[type='email'],
+  textarea,
+  .bookmark-omnibar-input,
+  .bookmark-detail-input,
+  .memex-self-notes-input,
+  .memex-sidebar-rename,
+  .bookmark-profile-create-input {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Safe areas. With a translucent status bar the canvas runs under it, so
+   the header takes the top inset; the bottom bar and the right-hand sheet
+   take theirs. env() is 0 on desktop, so these are inert there. */
+.bookmark-toolbar {
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-left: calc(12px + env(safe-area-inset-left, 0px));
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
+}
+
+@media (max-width: 899px) {
+  .memex-sidebar {
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  /* Content clears the bar + the home indicator */
+  .memex-shell .bookmark-dashboard {
+    --bookmark-footer-offset: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .memex-self-notes-rail.is-mobile-open {
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bookmark-feed-layout > .bookmark-rail.bookmark-rail--tags.is-mobile-open {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Installed app: no rubber-band on the document (the stacks scroll inside),
+   and the canvas paints edge to edge behind everything */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior: none;
+    background: var(--bookmark-experiment-bg, var(--bookmark-bg));
+  }
+
+  .memex-shell,
+  .bookmark-dashboard {
+    /* Prevent the 1px white seam some iOS builds show under a translucent bar */
+    background-color: var(--bookmark-canvas-base, var(--bookmark-bg));
+  }
+}
+
+/* ============================================================ */
+/* Mobile UX pass — 2026-09-20. Phones (<900px) reorganise around the thumb:
+   capture at the bottom, navigation in a snapping bar, sheets full-screen. */
+@media (max-width: 899px) {
+  /* --- Stack order: filters → grid → omnibar (bottom, thumb-reachable) --- */
+  .memex-stream-page .bookmark-feed-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .memex-stream-page .memex-stream-filters {
+    order: 1;
+    border-bottom: 1px solid var(--bookmark-stack-frosted-border);
+  }
+
+  .memex-stream-page .bookmark-list-panel-stack {
+    order: 2;
+  }
+
+  .memex-stream-page .bookmark-search-panel {
+    order: 3;
+    border-top: 1px solid var(--bookmark-stack-frosted-border);
+  }
+
+  /* The details "← Back" row lives in the same slot; keep it at the top */
+  .memex-stream-page .bookmark-search-panel:has(.bookmark-link-details-header-row) {
+    order: 0;
+    border-top: 0;
+  }
+
+  /* Bottom omnibar: no bottom hairline (the stack edge does it), taller for
+     touch, and the capture button's radius follows the bottom corner */
+  .memex-stream-page .bookmark-search-panel:not(:has(.bookmark-link-details-header-row))
+    .bookmark-omnibar-row {
+    border-bottom: 0;
+    min-height: 56px;
+  }
+
+  .memex-stream-page .bookmark-search-panel:not(:has(.bookmark-link-details-header-row))
+    .bookmark-omnibar-add {
+    border-radius: 0 0 var(--bookmark-stack-outer-radius) 0;
+  }
+
+  .memex-stream-page .bookmark-search-panel:not(:has(.bookmark-link-details-header-row))
+    .bookmark-omnibar-add:has(+ .bookmark-omnibar-add) {
+    border-radius: 0;
+  }
+
+  /* --- Filter row: fits one line on a 375px phone --- */
+  .memex-stream-filters {
+    padding: 6px 8px 6px;
+  }
+
+  .memex-stream-filter-row .bookmark-profile-chip,
+  .memex-stream-filter-row .bookmark-tag-chip {
+    min-height: 36px;
+    padding: 5px 9px;
+    font-size: var(--bookmark-fs-ui-sm, 12px);
+    gap: 5px;
+  }
+
+  .memex-stream-filter-row .memex-space-details-chip,
+  .memex-stream-filter-row .memex-stream-select {
+    min-height: 36px;
+  }
+
+  .memex-stream-filter-row .bookmark-profile-chip-count,
+  .memex-stream-filter-row .bookmark-tag-chip-count {
+    font-size: 10px;
+  }
+
+  /* --- Header: brand + favorites + actions in one row, favorites scroll --- */
+  .bookmark-toolbar {
+    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .bookmark-toolbar-center {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .bookmark-toolbar-super-favorites {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
+    mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 14px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 14px), transparent);
+  }
+
+  .bookmark-toolbar-super-favorites::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bookmark-toolbar-super-favorites > * {
+    flex-shrink: 0;
+  }
+
+  /* --- Bottom bar: snap, generous targets, faded edges hint the scroll --- */
+  .memex-sidebar {
+    padding-top: 6px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .memex-sidebar-scroll {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 12px;
+    mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 16px), transparent);
+  }
+
+  .memex-sidebar-item {
+    scroll-snap-align: start;
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  .memex-sidebar-new {
+    width: 44px;
+    height: 44px;
+    border: 1px dashed var(--bookmark-tint-border);
+    color: var(--bookmark-tint-ink);
+    background: var(--bookmark-tint-bg);
+  }
+
+  .memex-shell .bookmark-dashboard {
+    --bookmark-footer-offset: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* --- Notes to Self: full-screen sheet above the bar --- */
+  .memex-self-notes-rail.is-mobile-open {
+    width: 100vw;
+    max-width: 100vw;
+    z-index: 250;
+    border-left: 0;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .memex-self-notes-rail .memex-self-notes-composer {
+    padding-bottom: 12px;
+  }
+
+  /* --- Grid: two columns, a touch shorter card, tighter gutters --- */
+  .memex-grid {
+    --memex-card-height: 204px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .memex-grid > .memex-card {
+    padding: 12px;
+  }
+
+  .memex-card-preview {
+    margin: -12px -12px 0;
+  }
+
+  /* Card hover lift is meaningless on touch; keep press feedback only */
+  .memex-card:hover {
+    transform: none;
+    box-shadow: var(--bookmark-edge-shadow);
+  }
+
+  /* --- Empty states + done section clear the bottom omnibar visually --- */
+  .memex-grid-view {
+    padding-bottom: 4px;
+  }
+}
+
+/* Very small phones: counts go, labels stay */
+@media (max-width: 380px) {
+  .memex-stream-filter-row .bookmark-profile-chip-count {
+    display: none;
+  }
+
+  .bookmark-toolbar-brand {
+    font-size: 18px;
+  }
+}
+
+/* Notes to Self on phones is a whole page: the bottom bar steps aside while
+   it is open, and the sheet fills the viewport edge to edge */
+@media (max-width: 899px) {
+  html.memex-sheet-open .memex-sidebar {
+    display: none;
+  }
+
+  html.memex-sheet-open .memex-self-notes-rail.is-mobile-open {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: none;
+    transform: none;
+    background: var(--bookmark-experiment-bg, var(--bookmark-bg));
+  }
+
+  html.memex-sheet-open .memex-self-notes-rail .memex-self-notes {
+    border-radius: var(--bookmark-stack-outer-radius);
+  }
+
+  /* Nothing behind the sheet should be reachable or announced */
+  html.memex-sheet-open .memex-shell-main .bookmark-feed-main {
+    visibility: hidden;
+  }
+}
+
+/* ============================================================ */
+/* Dialogs on the theme: canvas-tinted, blurred backdrop; edge-lit surface;
+   footer actions as pills. Phones get a bottom sheet. */
+.app-modal {
+  background: var(--bookmark-stack-surface, var(--bookmark-surface));
+  border-radius: 16px;
+  box-shadow:
+    var(--bookmark-edge-shadow),
+    0 18px 48px oklch(0 0 0 / 0.16);
+}
+
+[data-theme='dark'] .app-modal {
+  box-shadow:
+    var(--bookmark-edge-shadow),
+    0 18px 48px oklch(0 0 0 / 0.5);
+}
+
+.app-modal::backdrop {
+  background: color-mix(in oklch, var(--bookmark-active-bg, oklch(0.4 0.05 264)) 18%, oklch(0.2 0.02 264 / 0.42));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.app-modal-header {
+  background: transparent;
+  border-bottom-color: var(--bookmark-stack-frosted-border);
+}
+
+.app-modal-footer {
+  background: transparent;
+  border-top-color: var(--bookmark-stack-frosted-border);
+  justify-content: flex-end;
+}
+
+.app-modal-footer .btn-primary,
+.app-modal-footer .btn-secondary {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.app-modal--compact .app-modal-body {
+  gap: 14px;
+}
+
+.app-modal-hint {
+  margin: 0;
+  color: var(--bookmark-muted);
+  font-size: var(--bookmark-fs-small);
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.app-field-label {
+  font-family: var(--bookmark-font-header);
+  font-size: var(--bookmark-fs-small);
+  font-weight: 600;
+  color: var(--bookmark-muted);
+  letter-spacing: 0.02em;
+}
+
+.memex-new-space-input {
+  width: 100%;
+  min-height: 44px;
+  font-family: var(--bookmark-font-content);
+  font-size: var(--bookmark-fs-ui);
+}
+
+.memex-new-space-error {
+  margin: 0;
+  color: var(--bookmark-danger, oklch(0.55 0.19 17));
+  font-size: var(--bookmark-fs-small);
+}
+
+/* Enter animation: desktop settles in from 0.96; phones slide up */
+@keyframes app-modal-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes app-modal-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-modal[open] {
+  animation: app-modal-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (max-width: 899px) {
+  .app-modal {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: calc(100dvh - 24px);
+    margin: auto 0 0;
+    border-radius: 24px 24px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .app-modal[open] {
+    animation: app-modal-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  /* Grab handle */
+  .app-modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 8px auto -4px;
+    border-radius: 999px;
+    background: var(--bookmark-border-strong);
+  }
+
+  .app-modal-header,
+  .app-modal-body,
+  .app-modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .app-modal-body {
+    max-height: min(60dvh, 520px);
+  }
+
+  /* Footer actions: primary on top, full width, 48px targets */
+  .app-modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .app-modal-footer .btn-primary,
+  .app-modal-footer .btn-secondary {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .memex-new-space-input {
+    min-height: 48px;
+    font-size: max(16px, var(--bookmark-fs-ui));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-modal[open] {
+    animation: none;
+  }
+}
+
+/* Phone stack insets: even breathing room above (after the header favorites)
+   and a tight, consistent gap to the bottom bar */
+@media (max-width: 899px) {
+  .bookmark-dashboard .bookmark-feed-layout > .bookmark-feed-main {
+    padding-top: 6px;
+  }
+
+  .bookmark-dashboard .bookmark-feed-main-inner {
+    padding-bottom: 8px;
+  }
+
+  /* Offset = the bar's real height (6 + 44 + 6) + home indicator; no extra */
+  .memex-shell .bookmark-dashboard {
+    --bookmark-footer-offset: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* The header's own bottom padding was zeroed for the old rail tabs */
+  .bookmark-dashboard .bookmark-toolbar {
+    padding-bottom: 2px;
+  }
+}
+
+/* ============================================================ */
+/* Phone settings drawer: the wordmark opens it from the left. Desktop keeps
+   the footer settings; the old header "Settings" chip is gone. */
+.bookmark-toolbar-brand-button {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.bookmark-toolbar-brand-button:active {
+  transform: scale(var(--press-scale));
+  transition-duration: var(--press-duration);
+}
+
+.bookmark-toolbar-brand-button:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+.memex-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: color-mix(in oklch, var(--bookmark-active-bg) 14%, oklch(0.2 0.02 264 / 0.4));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.memex-settings-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 410;
+  width: min(86vw, 340px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px
+    calc(12px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px));
+  background: var(--bookmark-experiment-bg, var(--bookmark-bg));
+  color: var(--bookmark-text);
+  box-shadow: 12px 0 40px oklch(0 0 0 / 0.18);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: memex-drawer-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes memex-drawer-in {
+  from { transform: translateX(-16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.memex-settings-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+  flex-shrink: 0;
+}
+
+.memex-settings-drawer-close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bookmark-secondary-text);
+  cursor: pointer;
+  padding: 0;
+}
+
+.memex-settings-drawer-close svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.memex-settings-drawer-close:hover {
+  background: var(--bookmark-chip-secondary-bg-soft);
+  color: var(--bookmark-text);
+}
+
+.memex-settings-drawer-close:focus-visible {
+  outline: 2px solid var(--bookmark-accent);
+  outline-offset: 2px;
+}
+
+/* Body is a frosted stack holding the same sections as the desktop menu */
+.memex-settings-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--bookmark-stack-frosted-border);
+  border-radius: var(--bookmark-stack-outer-radius);
+  background: var(--bookmark-stack-frosted-bg);
+  backdrop-filter: var(--bookmark-stack-frosted-blur);
+  -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
+  box-shadow: var(--bookmark-stack-frosted-shadow);
+}
+
+.memex-settings-drawer-body .bookmark-account-menu-action {
+  min-height: 48px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-settings-drawer {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .memex-settings-drawer-body {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bookmark-stack-glass, var(--bookmark-surface));
   }
 }

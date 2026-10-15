@@ -1,7 +1,7 @@
 {
   "name": "memex",
   "short_name": "memex",
-  "description": "Personal knowledge management for bookmarks and notes",
+  "description": "Personal working memory: notes, links, tasks, and spaces",
   "icons": [
     {
       "src": "/favicon-48x48.png",
@@ -28,9 +28,15 @@
       "purpose": "any"
     }
   ],
-  "theme_color": "#6b7280",
-  "background_color": "#f4f4f5",
+  "theme_color": "#eeeef1",
+  "background_color": "#eeeef1",
   "display": "standalone",
-  "start_url": "/",
-  "orientation": "portrait-primary"
+  "start_url": "/home",
+  "orientation": "portrait-primary",
+  "id": "/",
+  "scope": "/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ]
 }

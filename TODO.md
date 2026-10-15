@@ -56,7 +56,7 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 - [ ] Attach-to-space modals; retire legacy project views
 - [ ] Cross-primitive search
 - [ ] Supabase exit: grow `api/` worker into the real backend (D1/Neon + auth) — extension already routes through it, so clients won't notice
-- [ ] Encryption, mobile polish
+- [ ] Encryption; mobile polish (PWA hardening landed 2026-09-19 — re-add to home screen to pick up the new manifest/meta; test bottom bar, safe areas, and input zoom on device)
 - [ ] Testing setup (Vitest + Playwright) — still none configured
 
 ## 📌 Parking lot / open questions

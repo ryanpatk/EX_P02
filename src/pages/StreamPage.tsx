@@ -52,6 +52,7 @@ import {
   isPendingItem,
   itemKey,
   itemMatchesSearch,
+  mergeTags,
 } from '../utils/streamItems';
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
 
@@ -249,6 +250,15 @@ const StreamPage = () => {
       /* storage unavailable — skip */
     }
   }, []);
+
+  // On phones the sheet is a whole page: flag the document so the bottom
+  // bar hides while it is open (the bar is fixed at a higher stacking layer
+  // than the stream, so it can't be overlapped — only removed)
+  useEffect(() => {
+    const open = selfNotesOpen && isNarrow;
+    document.documentElement.classList.toggle('memex-sheet-open', open);
+    return () => document.documentElement.classList.remove('memex-sheet-open');
+  }, [isNarrow, selfNotesOpen]);
 
   // Escape closes the mobile sheet
   useEffect(() => {
@@ -748,6 +758,59 @@ const StreamPage = () => {
     [closeNote, deleteNote, openNoteId],
   );
 
+  /** Turn a note that is just a URL into a link, carrying over its tags and spaces. */
+  const handleConvertNoteToLink = useCallback(
+    async (note: NoteWithTags, url: string) => {
+      if (note.id.startsWith('temp-')) return;
+      const noteTagIds = mergeTags(note.note_tags, note.tags).map((tag) => tag.id);
+      const noteSpaceIds = (noteMembership ?? [])
+        .filter((row) => row.note_id === note.id)
+        .map((row) => row.profile_id);
+      try {
+        // Reuse an existing link for the same URL rather than duplicating it.
+        const existing = (allLinks ?? []).find(
+          (link) => link.url === url && !link.id.startsWith('temp-'),
+        );
+        const link = existing ?? (await createLink.mutateAsync({ url }));
+        const tagIds = Array.from(
+          new Set([
+            ...(existing ? mergeTags(existing.link_tags, existing.tags, existing.tag) : []).map(
+              (tag) => tag.id,
+            ),
+            ...noteTagIds,
+          ]),
+        );
+        await Promise.all([
+          noteTagIds.length > 0
+            ? setLinkTags.mutateAsync({ linkId: link.id, tagIds })
+            : Promise.resolve(),
+          ...noteSpaceIds.map((profileId) =>
+            addLinksToProfile.mutateAsync({ profileId, linkIds: [link.id] }),
+          ),
+        ]);
+        if (openNoteId === note.id) closeNote();
+        await deleteNote.mutateAsync(note.id);
+        cue('confirm');
+        flash(existing ? 'Merged into existing link.' : 'Converted to link.');
+      } catch (error) {
+        console.error('Failed to convert note to link:', error);
+        cue('error');
+        flash('Couldn’t convert to link.');
+      }
+    },
+    [
+      addLinksToProfile,
+      allLinks,
+      closeNote,
+      createLink,
+      deleteNote,
+      flash,
+      noteMembership,
+      openNoteId,
+      setLinkTags,
+    ],
+  );
+
   const updateNoteAsync = updateNote.mutateAsync;
   const handleSaveNote = useCallback(
     (id: string, updates: UpdateNoteData) => updateNoteAsync({ id, updates }),
@@ -947,6 +1010,7 @@ const StreamPage = () => {
           note={item.note}
           onOpen={handleOpenNote}
           onDelete={handleDeleteNote}
+          onConvertToLink={handleConvertNoteToLink}
           selectionMode={selectionMode}
           isSelected={isSelected}
           onToggleSelect={() => handleToggleSelect(item)}

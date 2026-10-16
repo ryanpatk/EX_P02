@@ -1,0 +1,2392 @@
+/*
+ * The stream surface (decided via /mocks, 2026-10-15): page header with the
+ * pinned-sites launcher (2C), command palette (4A), masonry ⇄ list views
+ * (1A/1C), link preview cards (7C, falls back to 7A), expand-in-place link
+ * details (3C), the task checklist band, the note document column (5A), and
+ * space identity dots (6A). Pastel Sky tokens only.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Shared bits                                                         */
+/* ------------------------------------------------------------------ */
+
+.memex-space-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-10-transparent);
+}
+
+.memex-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-10);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.memex-icon-button:hover,
+.memex-icon-button[aria-expanded='true'] {
+  background: var(--neutral-3);
+}
+
+.memex-icon-button:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-popover-anchor {
+  position: relative;
+}
+
+/* Menu (Pastel Sky Menu assignment) */
+.memex-menu {
+  position: absolute;
+  top: calc(100% + var(--space-xxs));
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  min-width: 200px;
+  padding: var(--space-xxs);
+  border-radius: var(--radius-m);
+  background: var(--popover-background);
+  box-shadow: 0 0 0 var(--border-s) var(--neutral-4-transparent), var(--shadow-m);
+  transform-origin: top right;
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+.memex-menu > button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-10);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  text-align: left;
+  cursor: pointer;
+}
+
+.memex-menu > button svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.memex-menu > button:hover,
+.memex-menu > button:focus-visible {
+  background: var(--neutral-3);
+  outline: none;
+}
+
+.memex-menu > button.is-danger {
+  color: var(--error);
+}
+
+@keyframes memex-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--motion-popup-scale));
+  }
+}
+
+.memex-kbd {
+  display: inline-block;
+  padding: 0 var(--space-xxs);
+  border-radius: var(--radius-xs);
+  background: var(--neutral-3);
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Page header + launcher (2C) + space identity (6A)                   */
+/* ------------------------------------------------------------------ */
+
+.memex-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: var(--space-m) var(--layout-gutter) var(--space-xs);
+  flex-shrink: 0;
+}
+
+.memex-page-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-width: 0;
+}
+
+.memex-page-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-s);
+  min-width: 0;
+  flex: 1;
+}
+
+.memex-page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin: 0;
+  color: var(--neutral-10);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-heavy);
+  font-size: var(--size-l);
+  line-height: var(--line-l);
+  letter-spacing: var(--letter-spacing-l);
+}
+
+.memex-page-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-page-title .memex-space-dot {
+  width: 12px;
+  height: 12px;
+}
+
+.memex-page-subtitle {
+  margin: 0;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.memex-page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: none;
+}
+
+.memex-page-actions .btn-compact svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-launcher {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--space-xxs));
+  padding: var(--space-xxs);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--space-xl)), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--space-xl)), transparent);
+}
+
+.memex-launcher::-webkit-scrollbar {
+  display: none;
+}
+
+.memex-launch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: none;
+  max-width: 180px;
+  padding: var(--space-xxs) var(--space-s) var(--space-xxs) var(--space-xs);
+  border: 0;
+  --edge: var(--border-default-color);
+  border-radius: var(--radius-s);
+  background: var(--neutral-1);
+  color: var(--neutral-10);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-s);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    --edge var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.memex-launch-chip:hover {
+  --edge: var(--neutral-7-transparent);
+  background: var(--neutral-2);
+}
+
+.memex-launch-chip:active {
+  transform: translateY(var(--motion-press-distance));
+}
+
+.memex-launch-chip:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-launch-chip-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  color: var(--neutral-7);
+  font-size: var(--size-xxs);
+}
+
+.memex-launch-chip-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.memex-launch-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sidebar: space dots, quiet empty spaces, account foot */
+.memex-sidebar-item.is-empty:not(.is-active) {
+  color: var(--neutral-6);
+}
+
+.memex-sidebar-item.is-empty:not(.is-active) .memex-space-dot {
+  opacity: 0.5;
+}
+
+.memex-sidebar-foot {
+  position: relative;
+  flex: none;
+  padding: var(--space-xs) var(--space-xxs) var(--space-xxs);
+  box-shadow: inset 0 var(--border-s) 0 0 var(--neutral-4);
+}
+
+.memex-sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-8);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-sidebar-account:hover,
+.memex-sidebar-account[aria-expanded='true'] {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-sidebar-account:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-sidebar-account-avatar,
+.memex-sidebar-account-gear {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.memex-sidebar-account-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-sidebar-settings {
+  position: absolute;
+  bottom: calc(100% + var(--space-xxs));
+  left: var(--space-xxs);
+  z-index: 60;
+  width: 280px;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform-origin: bottom left;
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+/* ------------------------------------------------------------------ */
+/* Command palette (4A)                                                */
+/* ------------------------------------------------------------------ */
+
+.memex-command {
+  position: relative;
+  z-index: 30;
+}
+
+.memex-command-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--bookmark-omnibar-height);
+  padding: 0 var(--space-s);
+  background: var(--neutral-1);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-4);
+  transition: box-shadow var(--transition-fast);
+}
+
+.memex-command-field:focus-within {
+  box-shadow: inset 0 calc(-1 * var(--border-l)) 0 0 var(--color-1-transparent);
+}
+
+.memex-command-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--neutral-6);
+}
+
+.memex-command-input {
+  flex: 1;
+  min-width: 0;
+  height: var(--bookmark-omnibar-height);
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--neutral-10);
+  font-family: var(--font-ui);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+}
+
+.memex-command-input::placeholder {
+  color: var(--neutral-6);
+}
+
+.memex-command-clear {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-7);
+  cursor: pointer;
+}
+
+.memex-command-clear svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-command-clear:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-command-clear:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-palette {
+  position: absolute;
+  top: calc(100% + var(--space-xxs));
+  left: var(--space-xs);
+  right: var(--space-xs);
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xxs);
+  border-radius: var(--radius-m);
+  background: var(--popover-background);
+  box-shadow: 0 0 0 var(--border-s) var(--neutral-4-transparent), var(--shadow-l);
+  transform-origin: top center;
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+.memex-palette-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 36px;
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-s);
+  color: var(--neutral-10);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  cursor: pointer;
+}
+
+.memex-palette-row.is-active {
+  background: var(--navigation-active-background);
+}
+
+.memex-palette-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  flex: none;
+  color: var(--neutral-7);
+}
+
+.memex-palette-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-palette-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-palette-text strong {
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-palette-meta {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+.memex-palette-group {
+  margin-top: var(--space-xxs);
+}
+
+.memex-palette-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-xs) var(--space-xxs);
+  color: var(--neutral-6);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-palette-count {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-palette-more {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-1-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.memex-palette-more:hover {
+  text-decoration: underline;
+}
+
+.memex-palette-empty {
+  margin: 0;
+  padding: var(--space-xs);
+  color: var(--neutral-7);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+}
+
+.memex-palette-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+  margin-top: var(--space-xxs);
+  padding: var(--space-xs);
+  box-shadow: inset 0 var(--border-s) 0 0 var(--neutral-4);
+  color: var(--neutral-6);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+.memex-palette-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.memex-palette-foot svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ------------------------------------------------------------------ */
+/* View toggle (grid ⇄ list)                                           */
+/* ------------------------------------------------------------------ */
+
+.memex-view-toggle {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  padding: var(--space-xxs);
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+}
+
+.memex-view-toggle button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-7);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-view-toggle button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-view-toggle button:hover {
+  color: var(--neutral-10);
+}
+
+.memex-view-toggle button.is-active {
+  background: var(--neutral-1);
+  color: var(--neutral-10);
+  box-shadow: var(--shadow-s);
+}
+
+.memex-view-toggle button:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Stream body + masonry (1A)                                          */
+/* ------------------------------------------------------------------ */
+
+.memex-stream-body {
+  gap: var(--space-s);
+  padding: var(--space-s) var(--space-s) var(--space-xxl);
+}
+
+.memex-masonry {
+  position: relative;
+  column-gap: var(--space-s);
+  row-gap: var(--space-s);
+}
+
+.memex-masonry-cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.memex-masonry.is-animating .memex-masonry-cell {
+  transition: transform var(--motion-large-duration) var(--motion-large-easing);
+}
+
+.memex-masonry-cell > .memex-card {
+  height: auto;
+  min-height: 0;
+}
+
+.memex-masonry .memex-card--note .memex-card-excerpt {
+  -webkit-line-clamp: 7;
+}
+
+/* ------------------------------------------------------------------ */
+/* Link preview card (7C, or 7A when captions are always shown)        */
+/* ------------------------------------------------------------------ */
+
+.memex-pv {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--neutral-3);
+  --edge: var(--border-default-color);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-s);
+  cursor: pointer;
+  isolation: isolate;
+  transition:
+    box-shadow var(--transition-fast),
+    --edge var(--transition-fast);
+}
+
+.memex-pv:hover {
+  --edge: var(--neutral-7-transparent);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-m);
+}
+
+.memex-pv:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-pv.is-selected {
+  box-shadow: 0 0 0 var(--border-l) var(--color-1), var(--shadow-m);
+}
+
+.memex-pv.is-new {
+  animation: memex-pop-in var(--motion-large-duration) var(--motion-large-easing);
+}
+
+.memex-pv-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 72px;
+  max-height: 520px;
+  object-fit: cover;
+}
+
+.memex-pv-favicon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  font-size: var(--size-xxs);
+}
+
+.memex-pv-favicon img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+/* Host badge at rest (hover mode) */
+.memex-pv-badge {
+  position: absolute;
+  left: var(--space-xs);
+  bottom: var(--space-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  max-width: calc(100% - 2 * var(--space-xs));
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-s);
+  background: color-mix(in oklab, var(--on-image-scrim) 50%, transparent);
+  color: var(--on-image-foreground);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  transition: opacity var(--motion-duration) var(--motion-easing);
+}
+
+.memex-pv-badge-host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Frosted caption */
+.memex-pv-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding: var(--space-xl) var(--space-s) var(--space-s);
+  color: var(--on-image-foreground);
+  pointer-events: none;
+}
+
+.memex-pv-caption::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--on-image-scrim) 72%, transparent) 0%,
+    color-mix(in oklab, var(--on-image-scrim) 38%, transparent) 55%,
+    transparent 100%
+  );
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  mask-image: linear-gradient(to top, #000 45%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 45%, transparent 100%);
+}
+
+.memex-pv-host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+  opacity: 0.85;
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.memex-pv-host > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-pv-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  text-shadow: 0 1px 2px color-mix(in oklab, var(--on-image-scrim) 50%, transparent);
+}
+
+/* 'always' (7A): caption shown, badge hidden */
+html[data-link-captions='always'] .memex-pv-badge {
+  display: none;
+}
+
+/* 'hover' (7C): caption slides up on hover/focus; the badge yields */
+html:not([data-link-captions='always']) .memex-pv-caption {
+  transform: translateY(100%);
+  opacity: 0;
+  transition:
+    transform var(--motion-large-duration) var(--motion-large-easing),
+    opacity var(--motion-duration) var(--motion-easing);
+}
+
+html:not([data-link-captions='always']) .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption,
+html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-caption {
+  transform: none;
+  opacity: 1;
+}
+
+html:not([data-link-captions='always']) .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-badge,
+html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-badge {
+  opacity: 0;
+}
+
+/* Touch: no hover, so captions are always on */
+@media (hover: none) {
+  html:not([data-link-captions='always']) .memex-pv-caption {
+    transform: none;
+    opacity: 1;
+  }
+
+  .memex-pv-badge {
+    display: none;
+  }
+}
+
+/* Details button + selection check */
+.memex-pv-actions {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--motion-duration) var(--motion-easing);
+}
+
+.memex-pv:is(:hover, :focus-within) .memex-pv-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .memex-pv-actions {
+    opacity: 1;
+  }
+}
+
+.memex-pv-action {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: color-mix(in oklab, var(--on-image-scrim) 55%, transparent);
+  color: var(--on-image-foreground);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.memex-pv-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-pv-action:hover {
+  background: color-mix(in oklab, var(--on-image-scrim) 75%, transparent);
+}
+
+.memex-pv-action:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 1px;
+}
+
+.memex-pv-check {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--on-image-scrim) 45%, transparent);
+  box-shadow: inset 0 0 0 var(--border-l) var(--on-image-foreground);
+  color: var(--cte-accent-text);
+}
+
+.memex-pv.is-selected .memex-pv-check {
+  background: var(--color-1);
+  box-shadow: none;
+}
+
+.memex-pv-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .memex-pv-caption::before {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(
+      to top,
+      var(--on-image-scrim) 0%,
+      color-mix(in oklab, var(--on-image-scrim) 60%, transparent) 60%,
+      transparent
+    );
+  }
+
+  .memex-pv-badge,
+  .memex-pv-action {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--on-image-scrim);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Link expanded in place (3C)                                         */
+/* ------------------------------------------------------------------ */
+
+.memex-expanded {
+  position: relative;
+  overflow: visible;
+  border-radius: var(--radius-m);
+  background: var(--popover-background);
+  box-shadow:
+    0 0 0 var(--border-l) var(--color-1-transparent),
+    var(--shadow-l);
+  outline: none;
+  animation: memex-expand-in var(--motion-large-duration) var(--motion-large-easing);
+}
+
+.memex-expanded:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+@keyframes memex-expand-in {
+  from {
+    opacity: 0.4;
+    transform: scale(var(--motion-popup-scale));
+  }
+}
+
+.memex-expanded-media {
+  overflow: hidden;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  background: var(--neutral-3);
+}
+
+.memex-expanded-media img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.memex-expanded-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: var(--space-s) var(--space-m) var(--space-m);
+}
+
+.memex-expanded-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memex-expanded-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  flex: 1;
+  min-width: 0;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.memex-expanded-favicon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+}
+
+.memex-expanded-tools {
+  display: flex;
+  gap: var(--space-xxs);
+}
+
+.memex-expanded-title {
+  margin: 0;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-heavy);
+  font-size: var(--size-l);
+  line-height: var(--line-l);
+  letter-spacing: var(--letter-spacing-l);
+  text-wrap: balance;
+}
+
+.memex-expanded-desc {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--neutral-8);
+  font-family: var(--font-editorial);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+}
+
+.memex-expanded-actions,
+.memex-expanded-url {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memex-expanded-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-expanded-url .input-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.memex-pin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: var(--space-xs) var(--space-s);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-8);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-pin-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-pin-toggle:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-pin-toggle.is-on {
+  background: var(--option-badge-background);
+  color: var(--option-badge-foreground);
+}
+
+.memex-pin-toggle:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-expanded-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+}
+
+.memex-expanded-label {
+  color: var(--neutral-6);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-expanded-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
+.memex-space-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: var(--space-xxs) var(--space-xxs) var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-space-chip.is-add {
+  padding-right: var(--space-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-4);
+  color: var(--neutral-8);
+  cursor: pointer;
+}
+
+.memex-space-chip.is-add:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-space-chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-space-chip-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-7);
+  cursor: pointer;
+}
+
+.memex-space-chip-remove:hover {
+  background: var(--neutral-4);
+  color: var(--neutral-10);
+}
+
+.memex-space-chip-remove:focus-visible,
+.memex-space-chip.is-add:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-expanded .memex-menu {
+  left: auto;
+}
+
+.memex-expanded-chips .memex-menu {
+  left: 0;
+  right: auto;
+  transform-origin: top left;
+}
+
+.memex-expanded-status {
+  min-height: var(--line-xs);
+  margin: 0;
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+/* List-view variant: inset under its row */
+.memex-expanded--row {
+  margin: 0 var(--space-xs) var(--space-xs);
+  box-shadow:
+    0 0 0 var(--border-s) var(--color-1-transparent),
+    var(--shadow-s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-expanded,
+  .memex-menu,
+  .memex-palette,
+  .memex-sidebar-settings,
+  .memex-pv.is-new {
+    animation: none;
+  }
+
+  .memex-masonry.is-animating .memex-masonry-cell,
+  html:not([data-link-captions='always']) .memex-pv-caption {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Task checklist band                                                 */
+/* ------------------------------------------------------------------ */
+
+.memex-taskband {
+  padding: var(--space-xs) var(--space-s) var(--space-xxs);
+  border-radius: var(--radius-m);
+  background: var(--neutral-1);
+  box-shadow: 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-s);
+}
+
+.memex-taskband-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-xxs);
+}
+
+.memex-taskband-title {
+  margin: 0;
+  color: var(--neutral-10);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-taskband-count {
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-taskband-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  column-gap: var(--space-m);
+}
+
+.memex-taskrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 var(--space-xxs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-10);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  text-align: left;
+}
+
+.memex-taskrow:hover {
+  background: var(--neutral-2);
+}
+
+.memex-taskrow.is-selected {
+  background: var(--navigation-active-background);
+}
+
+.memex-taskrow.is-new {
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+.memex-taskrow .memex-task-check {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+}
+
+.memex-taskrow .memex-task-check svg,
+.memex-row .memex-task-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-taskrow-title {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding-block: var(--space-xxs);
+}
+
+.memex-taskrow.is-done .memex-taskrow-title {
+  color: var(--neutral-6);
+  text-decoration: line-through;
+}
+
+.memex-taskrow-due {
+  flex: none;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+.memex-taskrow-delete {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-6);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-taskrow-delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-taskrow:is(:hover, :focus-within) .memex-taskrow-delete {
+  opacity: 1;
+}
+
+.memex-taskrow-delete:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-taskrow-delete:focus-visible {
+  opacity: 1;
+  outline: var(--focus-ring-outline);
+}
+
+@media (hover: none) {
+  .memex-taskrow-delete {
+    opacity: 1;
+  }
+}
+
+.memex-taskrow--add {
+  color: var(--neutral-6);
+  cursor: pointer;
+}
+
+.memex-taskrow--add:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-taskrow-plus {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin: 0 1px;
+}
+
+.memex-taskrow-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--neutral-10);
+  font: inherit;
+}
+
+.memex-taskband-done {
+  padding: var(--space-xxs) 0;
+  box-shadow: inset 0 var(--border-s) 0 0 var(--neutral-3);
+}
+
+.memex-taskband-done-toggle,
+.memex-list-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: var(--space-xxs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-7);
+  font: inherit;
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+}
+
+.memex-taskband-done-toggle svg,
+.memex-list-toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition-fast);
+}
+
+.memex-taskband-done-toggle svg.is-open,
+.memex-list-toggle svg.is-open {
+  transform: rotate(90deg);
+}
+
+.memex-taskband-done-toggle:focus-visible,
+.memex-list-toggle:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+/* ------------------------------------------------------------------ */
+/* Reading list (1C)                                                   */
+/* ------------------------------------------------------------------ */
+
+.memex-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.memex-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.memex-list-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0 var(--space-xxs);
+  color: var(--neutral-10);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-list-toggle {
+  color: var(--neutral-10);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-list-count {
+  color: var(--neutral-6);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  font-weight: var(--weight-data-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-list-rows {
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--neutral-1);
+  box-shadow: 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-s);
+}
+
+.memex-row-wrap.is-expanded {
+  background: var(--neutral-2);
+}
+
+.memex-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-s);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
+  cursor: default;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-row[role='button'] {
+  cursor: pointer;
+}
+
+.memex-row:hover {
+  background: var(--neutral-2);
+}
+
+.memex-row:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: -2px;
+}
+
+.memex-row.is-selected {
+  background: var(--navigation-active-background);
+}
+
+.memex-row.is-new {
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+.memex-row-leading,
+.memex-row-select {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+  color: var(--neutral-7);
+}
+
+.memex-row-leading img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.memex-row-leading svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-row-leading .memex-task-check {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.memex-row-leading:has(.memex-task-check) {
+  background: transparent;
+  overflow: visible;
+}
+
+.memex-row-select {
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--border-l) var(--neutral-5);
+  width: 22px;
+  height: 22px;
+  margin: 0 5px;
+}
+
+.memex-row-select.is-on {
+  background: var(--color-1);
+  color: var(--cte-accent-text);
+  box-shadow: none;
+}
+
+.memex-row-select svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-row-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.memex-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+}
+
+.memex-row-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.memex-row-excerpt {
+  font-family: var(--font-editorial);
+}
+
+.memex-row-thumb {
+  flex: none;
+  width: 72px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--neutral-3);
+  box-shadow: 0 0 0 var(--border-s) var(--neutral-4-transparent);
+}
+
+.memex-row-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memex-row-actions {
+  display: flex;
+  gap: var(--space-xxs);
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-row:is(:hover, :focus-within) .memex-row-actions,
+.memex-row-wrap.is-expanded .memex-row-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .memex-row-actions {
+    opacity: 1;
+  }
+}
+
+.memex-row-actions .bookmark-list-row-action {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.memex-row-actions .bookmark-list-row-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Note editor (5A)                                                    */
+/* ------------------------------------------------------------------ */
+
+.memex-note-editor-toolbar {
+  gap: var(--space-s);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
+}
+
+.memex-note-editor-toolbar .bookmark-link-details-back {
+  padding-inline: var(--space-xs);
+}
+
+.memex-note-editor-status {
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  color: var(--neutral-6);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+.memex-menu--end {
+  right: 0;
+}
+
+.memex-note-doc {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xl) var(--space-l) var(--space-xxl);
+}
+
+/* One reading measure for every child (~68ch of body text); a ch-based
+   width would scale with each element's own font size */
+.memex-note-doc > * {
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+.memex-note-doc .memex-note-title-input {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-heavy);
+  font-size: var(--size-xl);
+  line-height: var(--line-xl);
+  letter-spacing: var(--letter-spacing-xl);
+  box-shadow: none;
+}
+
+.memex-note-doc .memex-note-title-input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 calc(-1 * var(--border-l)) 0 0 var(--color-1-transparent);
+}
+
+.memex-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-l);
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.memex-note-doc .memex-note-editor-body {
+  flex: 1 0 auto;
+  min-height: auto;
+}
+
+.memex-note-doc .memex-note-reading {
+  flex: none;
+  overflow: visible;
+  padding: 0;
+  font-family: var(--font-editorial);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+  color: var(--neutral-9);
+}
+
+.memex-note-doc textarea {
+  min-height: 50vh;
+  font-family: var(--font-editorial);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast action (Undo)                                                 */
+/* ------------------------------------------------------------------ */
+
+.bookmark-bulk-feedback.has-action {
+  pointer-events: auto;
+}
+
+.bookmark-bulk-feedback-action {
+  margin-left: var(--space-xs);
+  padding: var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+}
+
+.bookmark-bulk-feedback-action:hover {
+  background: var(--neutral-4);
+}
+
+.bookmark-bulk-feedback-action:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+/* ------------------------------------------------------------------ */
+/* Phones                                                              */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 899px) {
+  .memex-page-header {
+    padding: calc(var(--space-xs) + env(safe-area-inset-top, 0px)) var(--space-s) var(--space-xxs);
+    gap: var(--space-xs);
+  }
+
+  .memex-page-header-row .bookmark-toolbar-brand-button {
+    flex: none;
+  }
+
+  .memex-page-title {
+    font-size: var(--size-m);
+    line-height: var(--line-m);
+    letter-spacing: var(--letter-spacing-m);
+  }
+
+  .memex-page-subtitle {
+    display: none;
+  }
+
+  .memex-page-actions .btn-compact {
+    padding-inline: var(--space-xs);
+  }
+
+  .memex-page-actions .btn-compact:not(:has(> :only-child)) {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .memex-sidebar-foot {
+    display: none;
+  }
+
+  .memex-stream-body {
+    padding: var(--space-xs) var(--space-xs) var(--space-xxl);
+  }
+
+  .memex-command-input {
+    font-size: var(--size-m);
+  }
+
+  .memex-palette {
+    left: 0;
+    right: 0;
+    max-height: 50vh;
+  }
+
+  .memex-palette-foot {
+    display: none;
+  }
+
+  .memex-taskband-list {
+    grid-template-columns: 1fr;
+  }
+
+  .memex-row-thumb {
+    width: 56px;
+    height: 40px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Today column (8D) + labelled toggle (9A)                            */
+/* ------------------------------------------------------------------ */
+
+.memex-today-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 36px;
+  padding: 0 var(--space-xs) 0 var(--space-s);
+  border: 0;
+  --edge: var(--neutral-6-transparent);
+  border-radius: var(--radius-s);
+  background: var(--neutral-1) var(--control-raised-image);
+  color: var(--neutral-10);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--control-raised-bevel), var(--shadow-s);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    --edge var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.memex-today-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-today-toggle:hover {
+  --edge: var(--neutral-7-transparent);
+  background-color: var(--neutral-2);
+}
+
+.memex-today-toggle.is-active {
+  background: var(--neutral-3);
+  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-6-transparent);
+}
+
+.memex-today-toggle:active {
+  transform: translateY(var(--motion-press-distance));
+}
+
+.memex-today-toggle:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.memex-today-toggle-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-xxs);
+  border-radius: var(--radius-full);
+  background: var(--color-1);
+  color: var(--cte-accent-text);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Panel */
+.memex-today {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--neutral-1);
+  box-shadow: 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-m);
+  font-family: var(--font-ui);
+}
+
+.memex-today-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: var(--space-s) var(--space-s) var(--space-xs);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
+}
+
+.memex-today-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memex-today-title {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.memex-today-title h2 {
+  margin: 0;
+  color: var(--neutral-10);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-today-date {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: 0 var(--space-xxs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  cursor: pointer;
+}
+
+.memex-today-date svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-today-date:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-today-date:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+/* The native date input only supplies the picker; the button is its face */
+.memex-today-date-input {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.memex-today-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  flex: none;
+}
+
+.memex-today-nav .memex-icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+.memex-today-nav .memex-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-today-nav .memex-icon-button:disabled {
+  color: var(--neutral-5);
+  background: transparent;
+  cursor: default;
+}
+
+.memex-today-jump {
+  padding: var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--option-badge-background);
+  color: var(--option-badge-foreground);
+  font: inherit;
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+}
+
+.memex-today-jump:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+/* Week strip */
+.memex-today-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-xxs);
+}
+
+.memex-today-weekday {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-xxs) 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-10);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.memex-today-weekday:hover:not(:disabled) {
+  background: var(--neutral-3);
+}
+
+.memex-today-weekday:disabled {
+  color: var(--neutral-5);
+  cursor: default;
+}
+
+.memex-today-weekday.is-selected {
+  background: var(--navigation-active-background);
+}
+
+.memex-today-weekday:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-today-weekday-letter {
+  color: var(--neutral-6);
+  font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-today-weekday-num {
+  font-family: var(--font-data);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-today-weekday.is-today .memex-today-weekday-num {
+  color: var(--color-1-ink);
+  font-weight: var(--weight-data-heavy);
+}
+
+.memex-today-weekday-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: transparent;
+}
+
+.memex-today-weekday-dot.is-on {
+  background: var(--neutral-6);
+}
+
+.memex-today-weekday.is-selected .memex-today-weekday-dot.is-on {
+  background: var(--color-1-ink);
+}
+
+/* Body */
+.memex-today-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: var(--space-s) var(--space-s) var(--space-l);
+}
+
+.memex-today-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+}
+
+.memex-today-composer textarea {
+  width: 100%;
+  resize: none;
+  min-height: 40px;
+}
+
+.memex-today-composer-hint {
+  color: var(--neutral-6);
+  font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  text-align: right;
+}
+
+.memex-today-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+}
+
+.memex-today-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+}
+
+.memex-today-count {
+  color: var(--neutral-6);
+  font-family: var(--font-data);
+  font-weight: var(--weight-data-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-today-empty {
+  margin: 0;
+  color: var(--neutral-6);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+}
+
+.memex-today-empty.is-day {
+  padding: var(--space-xl) 0;
+  text-align: center;
+}
+
+.memex-today-more {
+  margin: 0;
+  padding-left: var(--space-xs);
+  color: var(--neutral-6);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+}
+
+/* Jots */
+.memex-jots,
+.memex-today-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memex-jot {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  column-gap: var(--space-xs);
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-s);
+  transition: background-color var(--transition-fast);
+}
+
+.memex-jot:hover,
+.memex-jot:focus-within {
+  background: var(--neutral-2);
+}
+
+.memex-jot.is-new {
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+}
+
+.memex-jot-time {
+  padding-top: 2px;
+  color: var(--neutral-6);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.memex-jot-body {
+  margin: 0;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memex-jot-body a {
+  color: var(--color-1-ink);
+}
+
+/* Actions open a row under the jot on hover/focus; only opacity animates */
+.memex-jot-actions {
+  grid-column: 2;
+  display: flex;
+  gap: var(--space-xxs);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-jot:is(:hover, :focus-within) .memex-jot-actions {
+  max-height: 40px;
+  padding-top: var(--space-xxs);
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .memex-jot-actions {
+    max-height: none;
+    padding-top: var(--space-xxs);
+    opacity: 1;
+  }
+}
+
+.memex-jot-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  height: 26px;
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--neutral-1);
+  color: var(--neutral-8);
+  box-shadow: 0 0 0 var(--border-s) var(--neutral-4);
+  font: inherit;
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.memex-jot-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.memex-jot-action:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-jot-action.is-icon {
+  padding: 0 var(--space-xxs);
+  width: 26px;
+  justify-content: center;
+}
+
+.memex-jot-action:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+/* Captured / completed / open tasks */
+.memex-today-item,
+.memex-today-task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--neutral-10);
+  font: inherit;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  text-align: left;
+}
+
+button.memex-today-item {
+  cursor: pointer;
+}
+
+button.memex-today-item:hover {
+  background: var(--neutral-2);
+}
+
+button.memex-today-item:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-today-item.is-done .memex-today-item-title {
+  color: var(--neutral-7);
+  text-decoration: line-through;
+}
+
+.memex-today-item-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--neutral-7);
+}
+
+.memex-today-item-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+}
+
+.memex-today-item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-today-item-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-today-task .memex-task-check {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.memex-today-task .memex-task-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 899px) {
+  .memex-today-toggle span:not(.memex-today-toggle-count),
+  .memex-today-toggle-kbd {
+    display: none;
+  }
+
+  .memex-today-toggle {
+    padding: 0 var(--space-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-jot.is-new {
+    animation: none;
+  }
+}

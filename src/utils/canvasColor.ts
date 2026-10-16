@@ -30,18 +30,6 @@ export interface ThemeSurfaceColors {
   tintBorder: string;
 }
 
-/** Hue-keyed neutrals: ink, muted, borders, control fills carry a whisper of the swatch hue. */
-export interface ThemeNeutralColors {
-  text: string;
-  muted: string;
-  borderInk: string;
-  border: string;
-  borderStrong: string;
-  controlBorder: string;
-  controlBg: string;
-  chipBorderSoft: string;
-}
-
 const LIGHT_SURFACE_FALLBACK: ThemeSurfaceColors = {
   activeBg: 'oklch(0.56 0.052 264)',
   activeFg: 'oklch(0.985 0.004 264)',
@@ -66,13 +54,6 @@ const DARK_SURFACE_FALLBACK: ThemeSurfaceColors = {
   tintBorder: 'oklch(0.6 0.05 264 / 0.5)',
 };
 
-/**
- * Warm paper hue for neutral (grey) swatches — the examples memex is keyed
- * to read as paper, not screen grey, because their neutrals sit around
- * hue 20–100 rather than the cool 260s.
- */
-const PAPER_HUE = 70;
-
 /** Tint pair: pastel fill + deep ink in one hue (Butterfly-chip pairing). */
 function buildTintColors(h: number, c: number, darkMode: boolean) {
   const chroma = clamp(c, 0.06, 0.24);
@@ -87,46 +68,6 @@ function buildTintColors(h: number, c: number, darkMode: boolean) {
     tintBg: formatOklch(0.93, clamp(chroma * 0.45, 0.04, 0.09), h),
     tintInk: formatOklch(0.44, clamp(chroma * 0.85, 0.08, 0.19), h),
     tintBorder: `oklch(0.7 ${clamp(chroma * 0.5, 0.04, 0.1).toFixed(3)} ${h.toFixed(3)} / 0.5)`,
-  };
-}
-
-/**
- * Neutrals keyed to the swatch hue (or warm paper for grey). Lightness and
- * alpha match the former fixed blue-grey scale; only the hue and a little
- * chroma change, so contrast is unaffected.
- */
-export function buildThemeNeutralColors(
-  baseColor: string,
-  darkMode = false,
-): ThemeNeutralColors {
-  const parsed = parseOklch(baseColor);
-  const isGrey = !parsed || parsed.c < 0.012;
-  const h = isGrey ? PAPER_HUE : parsed.h;
-  // A touch more chroma on hue swatches than on paper grey
-  const ink = isGrey ? 0.012 : 0.03;
-  const soft = isGrey ? 0.008 : 0.02;
-
-  if (darkMode) {
-    return {
-      text: formatOklch(0.97, isGrey ? 0.006 : 0.012, h),
-      muted: formatOklch(0.72, soft, h),
-      borderInk: formatOklch(0.32, soft, h),
-      border: `oklch(0.32 ${soft.toFixed(3)} ${h.toFixed(3)} / 0.38)`,
-      borderStrong: `oklch(0.32 ${soft.toFixed(3)} ${h.toFixed(3)} / 0.58)`,
-      controlBorder: `oklch(0.32 ${soft.toFixed(3)} ${h.toFixed(3)} / 0.5)`,
-      controlBg: formatOklch(0.26, isGrey ? 0.008 : 0.014, h),
-      chipBorderSoft: `oklch(0.32 ${soft.toFixed(3)} ${h.toFixed(3)} / 0.28)`,
-    };
-  }
-  return {
-    text: formatOklch(0.26, ink, h),
-    muted: formatOklch(0.42, ink, h),
-    borderInk: formatOklch(0.42, soft + 0.008, h),
-    border: `oklch(0.42 ${(soft + 0.008).toFixed(3)} ${h.toFixed(3)} / 0.16)`,
-    borderStrong: `oklch(0.42 ${(soft + 0.008).toFixed(3)} ${h.toFixed(3)} / 0.28)`,
-    controlBorder: `oklch(0.42 ${(soft + 0.008).toFixed(3)} ${h.toFixed(3)} / 0.22)`,
-    controlBg: formatOklch(0.967, isGrey ? 0.008 : 0.012, h),
-    chipBorderSoft: `oklch(0.42 ${(soft + 0.008).toFixed(3)} ${h.toFixed(3)} / 0.14)`,
   };
 }
 
@@ -254,26 +195,6 @@ export function buildThemeSurfaceColors(
   };
 }
 
-/** Opaque fill matching the list panel interior (single frosted wash over canvas). */
-export function buildStackSurfaceColor(
-  baseColor: string,
-  darkMode = false,
-): string {
-  const parsed = parseOklch(baseColor);
-  if (!parsed) {
-    return darkMode ? 'oklch(0.26 0.012 264)' : 'oklch(0.982 0.009 264)';
-  }
-
-  const topDelta = darkMode
-    ? CANVAS_GRADIENT_TOP_DELTA_DARK
-    : CANVAS_GRADIENT_TOP_DELTA_LIGHT;
-  // The feed stack already applies frosted glass once; match gradient top + a
-  // light lift — not a second full frost composite (which reads too dark/heavy).
-  const frostLift = darkMode ? 0.008 : 0.012;
-
-  return adjustOklchLightness(baseColor, topDelta + frostLift);
-}
-
 export function getCanvasGradientStops(
   baseColor: string,
   darkMode = false,
@@ -302,32 +223,17 @@ export function getStoredCanvasColorId(): CanvasColorId {
   return DEFAULT_CANVAS_COLOR_ID;
 }
 
+/**
+ * The swatch drives Pastel Sky's accent roles: color-1 (primary fill), its
+ * label color, and a text-safe ink for accent text on neutral surfaces.
+ * Neutrals, surfaces, and everything else stay on the theme's values.
+ */
 function applyThemeSurfaceColors(surfaces: ThemeSurfaceColors): void {
   const root = document.documentElement.style;
 
-  root.setProperty('--bookmark-active-bg', surfaces.activeBg);
-  root.setProperty('--bookmark-active-fg', surfaces.activeFg);
-  root.setProperty('--bookmark-prominent-bg', surfaces.prominentBg);
-  root.setProperty('--bookmark-prominent-bg-strong', surfaces.prominentBgStrong);
-  root.setProperty('--bookmark-prominent-fg', surfaces.prominentFg);
-  root.setProperty('--bookmark-prominent-text', surfaces.prominentText);
-  root.setProperty('--bookmark-tint-bg', surfaces.tintBg);
-  root.setProperty('--bookmark-tint-ink', surfaces.tintInk);
-  root.setProperty('--bookmark-tint-border', surfaces.tintBorder);
-}
-
-function applyThemeNeutralColors(neutrals: ThemeNeutralColors): void {
-  const root = document.documentElement.style;
-
-  root.setProperty('--bookmark-text', neutrals.text);
-  root.setProperty('--bookmark-muted', neutrals.muted);
-  root.setProperty('--bookmark-border-ink', neutrals.borderInk);
-  root.setProperty('--bookmark-secondary-text', neutrals.borderInk);
-  root.setProperty('--bookmark-border', neutrals.border);
-  root.setProperty('--bookmark-border-strong', neutrals.borderStrong);
-  root.setProperty('--bookmark-control-border', neutrals.controlBorder);
-  root.setProperty('--bookmark-control-bg', neutrals.controlBg);
-  root.setProperty('--bookmark-chip-secondary-border-soft', neutrals.chipBorderSoft);
+  root.setProperty('--color-1', surfaces.activeBg);
+  root.setProperty('--cte-accent-text', surfaces.activeFg);
+  root.setProperty('--color-1-ink', surfaces.prominentText);
 }
 
 export function applyCanvasColor(colorId: CanvasColorId): void {
@@ -339,13 +245,7 @@ export function applyCanvasColor(colorId: CanvasColorId): void {
 
   root.setProperty('--bookmark-experiment-bg', buildCanvasGradient(baseColor, dark));
   root.setProperty('--bookmark-canvas-base', baseColor);
-  root.setProperty(
-    '--bookmark-stack-surface',
-    buildStackSurfaceColor(baseColor, dark),
-  );
-  root.removeProperty('--bookmark-stack-frosted-bg');
   applyThemeSurfaceColors(surfaces);
-  applyThemeNeutralColors(buildThemeNeutralColors(baseColor, dark));
 
   const stops = getCanvasGradientStops(baseColor, dark);
   updateThemedFavicon(stops.top, stops.base, dark);

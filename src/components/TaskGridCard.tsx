@@ -4,6 +4,7 @@ import { mergeTags } from '../utils/streamItems';
 import StreamCard from './StreamCard';
 import { CheckIcon } from './icons';
 import { formatDueDate } from '../utils/streamCardFormat';
+import { X } from 'lucide-react';
 
 interface TaskGridCardProps {
   task: TaskWithTags;
@@ -71,10 +72,7 @@ const TaskGridCard = ({
             aria-label={`Delete “${task.title}”`}
             title="Delete task"
           >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4 4l8 8" />
-              <path d="M12 4 4 12" />
-            </svg>
+            <X aria-hidden="true" />
           </button>
         ) : undefined
       }

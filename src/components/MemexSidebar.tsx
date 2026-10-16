@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { CircleUser, Settings } from 'lucide-react';
 import { HOME_PATH, spacePath } from '../constants/modules';
 import { useFeedbackToast } from '../hooks/useFeedbackToast';
 import { useAddLinksToProfile, useProfileLinkMembership } from '../hooks/useProfileLinks';
@@ -9,7 +10,13 @@ import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
 import { parseItemKey } from '../utils/streamItems';
 import { cue } from '../utils/sound';
+import { useSpaceColors } from '../hooks/useSpaceColors';
+import { useSession } from '../context/SessionContext';
+import supabase from '../supabase';
 import { FeedbackToast } from './ui';
+import ApiTokensModal from './ApiTokensModal';
+import SettingsMenu from './SettingsMenu';
+import { userDisplayName } from '../utils/userDisplay';
 import NewSpaceModal from './NewSpaceModal';
 import { HomeIcon, PlusIcon } from './icons';
 
@@ -24,6 +31,7 @@ const itemClass = ({ isActive }: { isActive: boolean }) =>
  */
 const MemexSidebar = () => {
   const { data: profiles } = useProfiles();
+  const spaceColors = useSpaceColors();
   const { data: linkMembership } = useProfileLinkMembership();
   const { data: noteMembership } = useProfileNoteMembership();
   const { data: taskMembership } = useProfileTaskMembership();
@@ -37,8 +45,40 @@ const MemexSidebar = () => {
   const bulkAssignActive = selectionMode && selectedItemKeys.length > 0;
 
   const [isCreating, setIsCreating] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tokensOpen, setTokensOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session } = useSession();
+  const user = session?.user ?? null;
+
+  // Settings popover: dismiss on outside click and Escape
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!footRef.current?.contains(event.target as Node)) setSettingsOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSettingsOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [settingsOpen]);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   // Phone bottom bar scrolls horizontally: bring the active item into view
   // whenever the route changes so the current space is never off-screen
@@ -189,7 +229,16 @@ const MemexSidebar = () => {
                 );
               }
               return (
-                <NavLink key={space.id} to={spacePath(space.id)} className={itemClass}>
+                <NavLink
+                  key={space.id}
+                  to={spacePath(space.id)}
+                  className={(state) => `${itemClass(state)}${count === 0 ? ' is-empty' : ''}`}
+                >
+                  <span
+                    className="memex-space-dot"
+                    style={{ background: spaceColors.get(space.id) }}
+                    aria-hidden="true"
+                  />
                   <span className="memex-sidebar-item-label">{space.name}</span>
                   <span className="memex-sidebar-item-count">{count}</span>
                 </NavLink>
@@ -208,6 +257,35 @@ const MemexSidebar = () => {
           </div>
         </div>
       </div>
+
+      <div className="memex-sidebar-foot" ref={footRef}>
+        {settingsOpen && (
+          <div className="bookmark-account-menu memex-sidebar-settings" role="dialog" aria-label="Settings">
+            <SettingsMenu
+              user={user}
+              onOpenTokens={() => {
+                setSettingsOpen(false);
+                setTokensOpen(true);
+              }}
+              onLogout={handleLogout}
+            />
+          </div>
+        )}
+        <button
+          type="button"
+          className="memex-sidebar-account"
+          onClick={() => setSettingsOpen((open) => !open)}
+          aria-expanded={settingsOpen}
+          aria-haspopup="dialog"
+          aria-label="Open settings"
+        >
+          <CircleUser aria-hidden="true" className="memex-sidebar-account-avatar" />
+          <span className="memex-sidebar-account-name">{userDisplayName(user)}</span>
+          <Settings aria-hidden="true" className="memex-sidebar-account-gear" />
+        </button>
+      </div>
+
+      <ApiTokensModal isOpen={tokensOpen} onClose={() => setTokensOpen(false)} />
 
       <NewSpaceModal
         isOpen={isCreating}

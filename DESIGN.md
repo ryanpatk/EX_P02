@@ -65,6 +65,8 @@ components:
     use: 'selected space/tag filters, active filter state'
 ---
 
+> **2026-10-15 — Pastel Sky theme adopted.** Token values, typography, spacing, radii, edges, elevation, motion, and component treatments now come from the Graphical **Pastel Sky** theme: `GUI.md`, `gui/themes/pastel-sky.md`, `gui/themes/pastel-sky-components.md`, implemented in `src/styles/pastel-sky.css` (tokens) and `src/styles/components.css` (shared components). Where this document's values (Two Weekend Go, 13px UI, pill chips, frosted stacks, filled-icon set) disagree, the theme and those files win. Kept from memex: the canvas swatch, which now drives Pastel Sky's `--color-1` accent and the page canvas.
+
 # Design System: memex
 
 **Status:** Current design truth for the project. The live bookmark dashboard (the **Links module**) is the canonical surface; auth pages, modals, and legacy project views should inherit its `--bookmark-*` tokens from `:root`. Per `VISION.md`, every future memex module (Notes, Tasks, Spaces) inherits this dashboard's anatomy, tokens, and interaction rules — this document is the template they build from.

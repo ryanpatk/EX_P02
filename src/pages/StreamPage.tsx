@@ -1,21 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AppHeader from '../components/AppHeader';
-import LinkDetailsPanel from '../components/LinkDetailsPanel';
 import LinkGridCard from '../components/LinkGridCard';
+import CommandBar, {
+  type CommandCreateAction,
+  type CommandResultGroup,
+} from '../components/stream/CommandBar';
+import LinkExpandedCard from '../components/stream/LinkExpandedCard';
+import LinkPreviewCard from '../components/stream/LinkPreviewCard';
+import MasonryLayout, { type MasonryItem } from '../components/stream/MasonryLayout';
+import StreamRow from '../components/stream/StreamRow';
+import TaskBand from '../components/stream/TaskBand';
+import TodayPanel from '../components/stream/TodayPanel';
 import NoteEditor from '../components/NoteEditor';
 import NoteGridCard from '../components/NoteGridCard';
-import NotesToSelfPanel from '../components/NotesToSelfPanel';
 import SpaceDetailsModal from '../components/SpaceDetailsModal';
 import StreamFilterBar from '../components/StreamFilterBar';
-import TaskGridCard from '../components/TaskGridCard';
-import { EmptyState, FeedbackToast, FrostedStack, Omnibar } from '../components/ui';
-import type { OmnibarAction } from '../components/ui';
+import { EmptyState, FeedbackToast, FrostedStack } from '../components/ui';
 import {
   HOME_PATH,
   ITEM_TYPES,
   ItemType,
+  DAY_PARAM,
+  LINK_PARAM,
   NOTE_PARAM,
+  VIEW_PARAM,
   TAGS_PARAM,
   TYPE_PARAM,
   UNTAGGED_PARAM,
@@ -30,21 +39,20 @@ import { useSetNoteTags } from '../hooks/useNoteTags';
 import {
   useAddLinksToProfile,
   useProfileLinkMembership,
-  useRemoveLinkFromProfile,
   useSetProfileLinkSuperFavorite,
 } from '../hooks/useProfileLinks';
 import { useAddNotesToProfile, useProfileNoteMembership } from '../hooks/useProfileNotes';
 import { useAddTasksToProfile, useProfileTaskMembership } from '../hooks/useProfileTasks';
 import { useProfiles } from '../hooks/useProfiles';
-import { useCreateTag, useDeleteTag, useTags } from '../hooks/useTags';
+import { useTags } from '../hooks/useTags';
 import { useAllTasks, useCreateTask, useDeleteTask, useUpdateTask } from '../hooks/useTasks';
+import { useDeleteSelfMessage, useSelfMessages } from '../hooks/useSelfMessages';
 import { useSetTaskTags } from '../hooks/useTaskTags';
 import { urlScraperApi } from '../hooks/useUrlScraper';
 import { useAppStore } from '../store';
-import { LinkWithTag, NoteWithTags, TaskWithTags, UpdateNoteData } from '../types/database';
+import { LinkWithTag, NoteWithTags, SelfMessage, TaskWithTags, UpdateNoteData } from '../types/database';
 import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 import { cue } from '../utils/sound';
-import { ChatIcon, GearIcon } from '../components/icons';
 import {
   StreamItem,
   buildStreamItems,
@@ -55,6 +63,25 @@ import {
   mergeTags,
 } from '../utils/streamItems';
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
+import { getHostname, getLinkTitle } from '../utils/linkDisplay';
+import { markdownExcerpt, noteDisplayTitle } from '../utils/markdown';
+import { dayKeyOf, groupByTime, isDayKey, relativeTime, toDayKey } from '../utils/timeGroups';
+import { useSpaceColors } from '../hooks/useSpaceColors';
+import type { RescrapeResult } from '../components/LinkDetailsPanel';
+import {
+  CalendarDays,
+  Check,
+  ChevronRight,
+  LayoutGrid,
+  Link as LinkIcon,
+  PanelRight,
+  Pencil,
+  Plus,
+  Rows3,
+  Square,
+  StickyNote,
+  X,
+} from 'lucide-react';
 
 /** Context captured when the omnibar creates an item, so the optimistic row
  * passes the active space/tag filters until the joins land. */
@@ -68,6 +95,19 @@ type PendingAdd = {
 };
 
 const SELF_NOTES_OPEN_KEY = 'memex.self-notes-open';
+const VIEW_STORAGE_KEY = 'memex.stream-view';
+const UNDO_WINDOW_MS = 6000;
+const PALETTE_RESULTS_PER_TYPE = 4;
+
+type StreamView = 'grid' | 'list';
+
+const readStoredView = (): StreamView => {
+  try {
+    return window.localStorage.getItem(VIEW_STORAGE_KEY) === 'list' ? 'list' : 'grid';
+  } catch {
+    return 'grid';
+  }
+};
 
 const parseList = (value: string | null) =>
   value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
@@ -85,7 +125,8 @@ const StreamPage = () => {
   const { session } = useSession();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [detailLinkId, setDetailLinkId] = useState<string | null>(null);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(() => new Set());
+  const [brokenPreviews, setBrokenPreviews] = useState<Set<string>>(() => new Set());
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [spaceDetailsOpen, setSpaceDetailsOpen] = useState(false);
@@ -110,6 +151,7 @@ const StreamPage = () => {
   const { data: allNotes } = useAllNotes();
   const { data: allTasks } = useAllTasks();
   const { data: profiles } = useProfiles();
+  const spaceColors = useSpaceColors();
   const { data: tags } = useTags();
   const { data: linkMembership } = useProfileLinkMembership();
   const { data: noteMembership } = useProfileNoteMembership();
@@ -121,7 +163,6 @@ const StreamPage = () => {
   const setLinkTags = useSetLinkTags();
   const addLinksToProfile = useAddLinksToProfile();
   const setProfileLinkSuperFavorite = useSetProfileLinkSuperFavorite();
-  const removeLinkFromProfile = useRemoveLinkFromProfile();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -132,9 +173,9 @@ const StreamPage = () => {
   const deleteTask = useDeleteTask();
   const setTaskTags = useSetTaskTags();
   const addTasksToProfile = useAddTasksToProfile();
-  const createTag = useCreateTag();
-  const deleteTag = useDeleteTag();
-  const { toast, flash, handleAnimationEnd } = useFeedbackToast();
+  const deleteSelfMessage = useDeleteSelfMessage();
+  const { messages: scopeJots } = useSelfMessages(spaceId ?? null);
+  const { toast, flash, dismiss: dismissToast, handleAnimationEnd } = useFeedbackToast();
 
   /* ---------- URL state: type filter, tag filter, open note ---------- */
 
@@ -148,6 +189,13 @@ const StreamPage = () => {
   );
   const includeUntagged = searchParams.get(UNTAGGED_PARAM) === '1';
   const openNoteId = searchParams.get(NOTE_PARAM);
+  const expandedLinkId = searchParams.get(LINK_PARAM);
+  const dayParam = searchParams.get(DAY_PARAM);
+  const todayKey = toDayKey(new Date());
+  const viewedDay = isDayKey(dayParam) && dayParam <= todayKey ? dayParam : todayKey;
+  const viewParam = searchParams.get(VIEW_PARAM);
+  const view: StreamView =
+    viewParam === 'list' || viewParam === 'grid' ? viewParam : readStoredView();
 
   const updateParams = useCallback(
     (mutate: (params: URLSearchParams) => void, replace = false) => {
@@ -206,6 +254,39 @@ const StreamPage = () => {
     [updateParams],
   );
 
+  const setExpandedLinkId = useCallback(
+    (linkId: string | null) =>
+      updateParams((params) => {
+        if (linkId) params.set(LINK_PARAM, linkId);
+        else params.delete(LINK_PARAM);
+      }),
+    [updateParams],
+  );
+
+  const setViewedDay = useCallback(
+    (day: string) =>
+      updateParams((params) => {
+        if (day === toDayKey(new Date())) params.delete(DAY_PARAM);
+        else params.set(DAY_PARAM, day);
+      }, true),
+    [updateParams],
+  );
+
+  const setView = useCallback(
+    (next: StreamView) => {
+      try {
+        window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+      } catch {
+        /* storage unavailable — URL still carries it */
+      }
+      updateParams((params) => {
+        if (next === 'grid') params.delete(VIEW_PARAM);
+        else params.set(VIEW_PARAM, next);
+      }, true);
+    },
+    [updateParams],
+  );
+
   /* ---------- Space resolution ---------- */
 
   const space = useMemo(
@@ -251,6 +332,19 @@ const StreamPage = () => {
     }
   }, []);
 
+  // "T" toggles the Today column from anywhere outside a text field
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 't' || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement;
+      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault();
+      toggleSelfNotes();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleSelfNotes]);
+
   // On phones the sheet is a whole page: flag the document so the bottom
   // bar hides while it is open (the bar is fixed at a higher stacking layer
   // than the stream, so it can't be overlapped — only removed)
@@ -290,9 +384,10 @@ const StreamPage = () => {
 
   /* ---------- Items ---------- */
 
+  // Items deleted in the last few seconds stay hidden until Undo expires
   const allItems = useMemo(
-    () => buildStreamItems(allLinks, allNotes, allTasks),
-    [allLinks, allNotes, allTasks],
+    () => buildStreamItems(allLinks, allNotes, allTasks).filter((item) => !hiddenKeys.has(item.key)),
+    [allLinks, allNotes, allTasks, hiddenKeys],
   );
 
   const itemsByKey = useMemo(() => {
@@ -460,7 +555,6 @@ const StreamPage = () => {
   useEffect(() => {
     clearItemSelection();
     setSelectionMode(false);
-    setDetailLinkId(null);
   }, [
     clearItemSelection,
     includeUntagged,
@@ -477,7 +571,7 @@ const StreamPage = () => {
   const handleToggleSelectionMode = () => {
     const next = !selectionMode;
     setSelectionMode(next);
-    if (next) setDetailLinkId(null);
+    if (next) setExpandedLinkId(null);
   };
 
   const handleToggleSelect = useCallback(
@@ -673,37 +767,54 @@ const StreamPage = () => {
     return filteredItems.some((item) => item.type === 'link' && item.link.url === url);
   }, [filteredItems, inputIsUrl, rawInput]);
 
-  const omnibarActions = useMemo<OmnibarAction[]>(() => {
+  const createActions = useMemo<CommandCreateAction[]>(() => {
     const pending = pendingAdd !== null;
+    if (!rawInput) return [];
     if (inputIsUrl) {
-      return [
-        {
-          label: 'Add link',
-          pendingLabel: 'Adding…',
-          show: !linkAlreadyInStream,
-          pending: pending && pendingAdd?.kind === 'link',
-          onRun: handleAddLink,
-        },
-      ];
+      return linkAlreadyInStream
+        ? []
+        : [
+            {
+              key: 'link',
+              label: (
+                <>
+                  Add link <strong>{normalizeUrlInput(rawInput)}</strong>
+                </>
+              ),
+              icon: <Plus aria-hidden="true" />,
+              hint: '↵',
+              pending: pending && pendingAdd?.kind === 'link',
+              onRun: handleAddLink,
+            },
+          ];
     }
-    const showText = rawInput.length > 0;
-    const preferTask = selectedTypes.length === 1 && selectedTypes[0] === 'task';
-    const noteAction: OmnibarAction = {
-      label: 'New note',
-      pendingLabel: 'Adding…',
-      show: showText,
+    const note: CommandCreateAction = {
+      key: 'note',
+      label: (
+        <>
+          New note <strong>“{rawInput}”</strong>
+        </>
+      ),
+      icon: <Plus aria-hidden="true" />,
+      hint: '⌘↵',
       pending: pending && pendingAdd?.kind === 'note',
       onRun: handleAddNote,
     };
-    const taskAction: OmnibarAction = {
-      label: 'New task',
-      pendingLabel: 'Adding…',
-      show: showText,
+    const task: CommandCreateAction = {
+      key: 'task',
+      label: (
+        <>
+          New task <strong>“{rawInput}”</strong>
+        </>
+      ),
+      icon: <Square aria-hidden="true" />,
+      hint: '⇧⌘↵',
       pending: pending && pendingAdd?.kind === 'task',
       onRun: handleAddTask,
     };
-    // Enter runs the first action; standing in a task-only view makes that a task
-    return preferTask ? [taskAction, noteAction] : [noteAction, taskAction];
+    // Standing in a task-only view, offer the task first
+    const preferTask = selectedTypes.length === 1 && selectedTypes[0] === 'task';
+    return preferTask ? [task, note] : [note, task];
   }, [
     handleAddLink,
     handleAddNote,
@@ -714,6 +825,50 @@ const StreamPage = () => {
     rawInput,
     selectedTypes,
   ]);
+
+  // Palette matches span every type (ignoring the type chips), so a search
+  // never dead-ends behind a filter
+  const paletteGroups = useMemo<CommandResultGroup[]>(() => {
+    if (!rawInput) return [];
+    const matches = scopedItems.filter((item) => matchesTags(item) && matchesSearch(item)).sort(byUpdatedDesc);
+    const order: ItemType[] = ['note', 'link', 'task'];
+    return order.map((type) => {
+      const ofType = matches.filter((item) => item.type === type);
+      return {
+        key: type,
+        label: ITEM_TYPES.find((t) => t.key === type)?.plural ?? type,
+        total: ofType.length,
+        onSeeAll: () => updateParams((params) => setListParam(params, TYPE_PARAM, [type])),
+        results: ofType.slice(0, PALETTE_RESULTS_PER_TYPE).map((item) => {
+          if (item.type === 'link') {
+            return {
+              key: item.id,
+              icon: <LinkIcon aria-hidden="true" />,
+              title: getLinkTitle(item.link),
+              meta: getHostname(item.link.url),
+              onRun: () => openUrlInBackgroundTab(item.link.url),
+            };
+          }
+          if (item.type === 'note') {
+            return {
+              key: item.id,
+              icon: <StickyNote aria-hidden="true" />,
+              title: noteDisplayTitle(item.note),
+              meta: relativeTime(item.note.updated_at),
+              onRun: () => openNote(item.id),
+            };
+          }
+          return {
+            key: item.id,
+            icon: item.task.is_done ? <Check aria-hidden="true" /> : <Square aria-hidden="true" />,
+            title: item.task.title,
+            meta: item.task.is_done ? 'Done' : 'Task',
+            onRun: () => updateParams((params) => setListParam(params, TYPE_PARAM, ['task'])),
+          };
+        }),
+      };
+    });
+  }, [matchesSearch, matchesTags, openNote, rawInput, scopedItems, setListParam, updateParams]);
 
   /* ---------- Item behaviors ---------- */
 
@@ -738,24 +893,79 @@ const StreamPage = () => {
     [updateTask],
   );
 
+  /* ---------- Undoable delete ---------- */
+
+  // A delete hides the item at once and commits after the Undo window;
+  // leaving the page commits anything still pending.
+  const pendingDeletes = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; commit: () => void }>(),
+  );
+
+  useEffect(() => {
+    const pending = pendingDeletes.current;
+    return () => {
+      pending.forEach(({ timer, commit }) => {
+        clearTimeout(timer);
+        commit();
+      });
+      pending.clear();
+    };
+  }, []);
+
+  const scheduleDelete = useCallback(
+    (key: string, label: string, commit: () => void) => {
+      cue('dismiss');
+      setHiddenKeys((prev) => new Set(prev).add(key));
+      const finish = () => {
+        pendingDeletes.current.delete(key);
+        commit();
+        setHiddenKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      };
+      const timer = setTimeout(finish, UNDO_WINDOW_MS);
+      pendingDeletes.current.set(key, { timer, commit });
+      flash(`Deleted “${label}”.`, {
+        label: 'Undo',
+        onClick: () => {
+          const entry = pendingDeletes.current.get(key);
+          if (!entry) return;
+          clearTimeout(entry.timer);
+          pendingDeletes.current.delete(key);
+          setHiddenKeys((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+          cue('confirm');
+          dismissToast();
+        },
+      });
+    },
+    [dismissToast, flash],
+  );
+
   const handleDeleteTask = useCallback(
     (taskId: string) => {
       if (taskId.startsWith('temp-')) return;
-      if (!window.confirm('Delete this task permanently? This cannot be undone.')) return;
-      cue('dismiss');
-      deleteTask.mutate(taskId);
+      const task = (allTasks ?? []).find((t) => t.id === taskId);
+      scheduleDelete(itemKey('task', taskId), task?.title ?? 'task', () => deleteTask.mutate(taskId));
     },
-    [deleteTask],
+    [allTasks, deleteTask, scheduleDelete],
   );
 
   const handleDeleteNote = useCallback(
     (noteId: string) => {
       if (noteId.startsWith('temp-')) return;
       if (openNoteId === noteId) closeNote();
-      cue('dismiss');
-      deleteNote.mutate(noteId);
+      const note = (allNotes ?? []).find((n) => n.id === noteId);
+      scheduleDelete(itemKey('note', noteId), note ? noteDisplayTitle(note) : 'note', () =>
+        deleteNote.mutate(noteId),
+      );
     },
-    [closeNote, deleteNote, openNoteId],
+    [allNotes, closeNote, deleteNote, openNoteId, scheduleDelete],
   );
 
   /** Turn a note that is just a URL into a link, carrying over its tags and spaces. */
@@ -817,128 +1027,173 @@ const StreamPage = () => {
     [updateNoteAsync],
   );
 
-  /* ---------- Link details ---------- */
+  /* ---------- Today column: jots ---------- */
 
-  const detailLink = useMemo(() => {
-    if (!detailLinkId) return undefined;
-    const item = itemsByKey.get(itemKey('link', detailLinkId));
+  const hiddenJotIds = useMemo(
+    () =>
+      new Set(
+        Array.from(hiddenKeys)
+          .filter((key) => key.startsWith('jot:'))
+          .map((key) => key.slice(4)),
+      ),
+    [hiddenKeys],
+  );
+
+  const todayJotCount = useMemo(
+    () =>
+      scopeJots.filter((jot) => !hiddenJotIds.has(jot.id) && dayKeyOf(jot.created_at) === todayKey)
+        .length,
+    [hiddenJotIds, scopeJots, todayKey],
+  );
+
+  const handleDeleteJot = useCallback(
+    (jot: SelfMessage) => {
+      if (jot.id.startsWith('temp-')) return;
+      const label = jot.body.length > 40 ? `${jot.body.slice(0, 40)}…` : jot.body;
+      scheduleDelete(`jot:${jot.id}`, label, () => deleteSelfMessage.mutate(jot.id));
+    },
+    [deleteSelfMessage, scheduleDelete],
+  );
+
+  // A jot graduates into a note or task: the new item joins the current
+  // space, and the jot is removed (its text now lives in the item)
+  const handleConvertJot = useCallback(
+    async (jot: SelfMessage, kind: 'note' | 'task') => {
+      const text = jot.body.trim();
+      const firstLine = text.split('\n')[0].trim();
+      try {
+        if (kind === 'note') {
+          const title = firstLine.length > 80 ? `${firstLine.slice(0, 80)}…` : firstLine;
+          const body = text === firstLine && firstLine.length <= 80 ? '' : text;
+          const created = await createNote.mutateAsync({ title, body });
+          if (spaceId) await addNotesToProfile.mutateAsync({ profileId: spaceId, noteIds: [created.id] });
+          deleteSelfMessage.mutate(jot.id);
+          cue('confirm');
+          flash('Turned into a note.', { label: 'Open', onClick: () => openNote(created.id) });
+        } else {
+          const title = text.replace(/\s+/g, ' ').slice(0, 200);
+          const created = await createTask.mutateAsync({ title });
+          if (spaceId) await addTasksToProfile.mutateAsync({ profileId: spaceId, taskIds: [created.id] });
+          deleteSelfMessage.mutate(jot.id);
+          cue('confirm');
+          flash('Added to tasks.');
+        }
+      } catch (error) {
+        console.error('Failed to convert jot:', error);
+        cue('error');
+        flash('Couldn’t convert that jot.');
+      }
+    },
+    [addNotesToProfile, addTasksToProfile, createNote, createTask, deleteSelfMessage, flash, openNote, spaceId],
+  );
+
+  const handleOpenTodayItem = useCallback(
+    (item: StreamItem) => {
+      if (item.type === 'link') openUrlInBackgroundTab(item.link.url);
+      else if (item.type === 'note') openNote(item.id);
+      else updateParams((params) => setListParam(params, TYPE_PARAM, ['task']));
+    },
+    [openNote, setListParam, updateParams],
+  );
+
+  /* ---------- Link expanded in place (?link=) ---------- */
+
+  const expandedLink = useMemo(() => {
+    if (!expandedLinkId) return undefined;
+    const item = itemsByKey.get(itemKey('link', expandedLinkId));
     return item?.type === 'link' ? item.link : undefined;
-  }, [detailLinkId, itemsByKey]);
+  }, [expandedLinkId, itemsByKey]);
 
+  // A stale ?link= (deleted link) is dropped once links have loaded
   useEffect(() => {
-    if (detailLinkId && !detailLink) setDetailLinkId(null);
-  }, [detailLink, detailLinkId]);
+    if (expandedLinkId && allLinks && !expandedLink) setExpandedLinkId(null);
+  }, [allLinks, expandedLink, expandedLinkId, setExpandedLinkId]);
 
-  const detailIsSuperFavorite = useMemo(() => {
-    if (!detailLink) return false;
-    if (!spaceId) return Boolean(detailLink.is_super_favorite);
+  const expandedIsPinned = useMemo(() => {
+    if (!expandedLink) return false;
+    if (!spaceId) return Boolean(expandedLink.is_super_favorite);
     return (linkMembership ?? []).some(
       (row) =>
-        row.profile_id === spaceId && row.link_id === detailLink.id && row.is_super_favorite,
+        row.profile_id === spaceId && row.link_id === expandedLink.id && row.is_super_favorite,
     );
-  }, [detailLink, linkMembership, spaceId]);
+  }, [expandedLink, linkMembership, spaceId]);
 
   const handleOpenLinkDetails = useCallback(
     (link: LinkWithTag) => {
+      if (link.id.startsWith('temp-')) return;
       clearItemSelection();
       setSelectionMode(false);
-      setDetailLinkId(link.id);
+      setExpandedLinkId(expandedLinkId === link.id ? null : link.id);
     },
-    [clearItemSelection, setSelectionMode],
+    [clearItemSelection, expandedLinkId, setExpandedLinkId, setSelectionMode],
   );
 
-  const handleDetailToggleSuper = useCallback(
+  const handleTogglePin = useCallback(
     async (next: boolean) => {
-      if (!detailLinkId) return;
+      if (!expandedLinkId) return;
+      cue('toggle');
       if (spaceId) {
         await setProfileLinkSuperFavorite.mutateAsync({
           profileId: spaceId,
-          linkId: detailLinkId,
+          linkId: expandedLinkId,
           isSuperFavorite: next,
         });
         return;
       }
-      await updateLink.mutateAsync({ id: detailLinkId, updates: { is_super_favorite: next } });
+      await updateLink.mutateAsync({ id: expandedLinkId, updates: { is_super_favorite: next } });
     },
-    [detailLinkId, setProfileLinkSuperFavorite, spaceId, updateLink],
+    [expandedLinkId, setProfileLinkSuperFavorite, spaceId, updateLink],
   );
 
-  const handleDetailUpdateUrl = useCallback(
+  const handleUpdateUrl = useCallback(
     async (url: string) => {
-      if (!detailLinkId) return;
-      await updateLink.mutateAsync({ id: detailLinkId, updates: { url } });
+      if (!expandedLinkId) return;
+      await updateLink.mutateAsync({ id: expandedLinkId, updates: { url } });
     },
-    [detailLinkId, updateLink],
+    [expandedLinkId, updateLink],
   );
 
   // Field-level merge: a fresh value overwrites, a missing one never blanks
   // out what's stored — a thinner scrape can only be a no-op.
-  const handleDetailRescrape = useCallback(async (): Promise<
-    'updated' | 'unchanged' | 'failed'
-  > => {
-    if (!detailLink) return 'failed';
-    const scraped = await urlScraperApi.tryScrape(detailLink.url);
+  const handleRescrape = useCallback(async (): Promise<RescrapeResult> => {
+    if (!expandedLink) return 'failed';
+    const scraped = await urlScraperApi.tryScrape(expandedLink.url);
     // A successful scrape always carries a favicon; {} means the worker
     // errored or is unconfigured.
     if (!scraped.logo) return 'failed';
 
     const updates: Record<string, string> = {};
-    if (scraped.title && scraped.title !== detailLink.title) {
-      updates.title = scraped.title;
-    }
-    if (scraped.description && scraped.description !== detailLink.description) {
+    if (scraped.title && scraped.title !== expandedLink.title) updates.title = scraped.title;
+    if (scraped.description && scraped.description !== expandedLink.description) {
       updates.description = scraped.description;
     }
-    if (scraped.logo !== detailLink.favicon_url) {
-      updates.favicon_url = scraped.logo;
-    }
-    if (scraped.image && scraped.image !== detailLink.preview_image_url) {
+    if (scraped.logo !== expandedLink.favicon_url) updates.favicon_url = scraped.logo;
+    if (scraped.image && scraped.image !== expandedLink.preview_image_url) {
       updates.preview_image_url = scraped.image;
     }
 
     if (Object.keys(updates).length === 0) return 'unchanged';
-    await updateLink.mutateAsync({ id: detailLink.id, updates });
+    await updateLink.mutateAsync({ id: expandedLink.id, updates });
+    setBrokenPreviews((prev) => {
+      const next = new Set(prev);
+      next.delete(expandedLink.id);
+      return next;
+    });
     return 'updated';
-  }, [detailLink, updateLink]);
+  }, [expandedLink, updateLink]);
 
-  const handleRemoveLinkFromSpace = useCallback(async () => {
-    if (!detailLinkId || !spaceId) return;
-    const name = space?.name ?? 'this space';
-    try {
-      await removeLinkFromProfile.mutateAsync({ profileId: spaceId, linkId: detailLinkId });
-      cue('move');
-      flash(`Removed from “${name}”.`);
-      setDetailLinkId(null);
-    } catch (error) {
-      cue('error');
-      console.error('Failed to remove link from space:', error);
-    }
-  }, [detailLinkId, flash, removeLinkFromProfile, space?.name, spaceId]);
+  const handleDeleteLink = useCallback(
+    (link: LinkWithTag) => {
+      if (link.id.startsWith('temp-')) return;
+      if (expandedLinkId === link.id) setExpandedLinkId(null);
+      scheduleDelete(itemKey('link', link.id), getLinkTitle(link), () => deleteLink.mutate(link.id));
+    },
+    [deleteLink, expandedLinkId, scheduleDelete, setExpandedLinkId],
+  );
 
-  const handleDeleteLinkFromDetail = useCallback(async () => {
-    if (!detailLinkId) return;
-    try {
-      await deleteLink.mutateAsync(detailLinkId);
-      cue('dismiss');
-      setDetailLinkId(null);
-    } catch {
-      cue('error');
-    }
-  }, [deleteLink, detailLinkId]);
-
-  const handleCreateTag = async (name: string, color: string) =>
-    createTag.mutateAsync({ name, color });
-
-  const handleDeleteTag = async (tagId: string) => {
-    try {
-      await deleteTag.mutateAsync(tagId);
-      if (selectedTagIds.includes(tagId)) {
-        setSelectedTagIds(selectedTagIds.filter((id) => id !== tagId));
-      }
-    } catch (error) {
-      console.error('Failed to delete tag:', error);
-    }
-  };
+  const markPreviewBroken = useCallback((linkId: string) => {
+    setBrokenPreviews((prev) => (prev.has(linkId) ? prev : new Set(prev).add(linkId)));
+  }, []);
 
   /* ---------- Open note (in-stack editor) ---------- */
 
@@ -968,15 +1223,17 @@ const StreamPage = () => {
       : 'items';
 
   const emptyTitle = hasActiveFilters
-    ? `No ${typeLabel} match the current filters`
+    ? `No ${typeLabel} match`
     : spaceId
       ? 'This space is empty'
       : 'Nothing here yet';
   const emptySubtitle = hasActiveFilters
-    ? 'Adjust search, type, or tags to broaden the results — or press Enter to capture what you typed.'
+    ? rawInput
+      ? 'Other types may match — check the search results above, or press ⌘↵ to save what you typed.'
+      : 'Try another type, or clear the filters.'
     : spaceId
       ? 'Capture something above, or select items on Home and add them here.'
-      : 'Paste a URL or type a thought above and press Enter to capture it.';
+      : 'Paste a URL or type a thought above to capture it.';
 
   const placeholder = space
     ? `Search “${space.name}” or capture…`
@@ -984,21 +1241,71 @@ const StreamPage = () => {
 
   const selectedCount = selectedItemKeys.length;
 
-  /* ---------- Render ---------- */
+  const openNoteSpaces = useMemo(() => {
+    if (!openNoteItem) return [];
+    const ids = new Set(
+      (noteMembership ?? []).filter((row) => row.note_id === openNoteItem.id).map((row) => row.profile_id),
+    );
+    return (profiles ?? []).filter((p) => ids.has(p.id)).map((p) => p.name);
+  }, [noteMembership, openNoteItem, profiles]);
+
+  /* ---------- Render pieces ---------- */
+
+  const showTasks = selectedTypes.length === 0 || selectedTypes.includes('task');
+  const openTasks = useMemo(
+    () =>
+      openItems
+        .filter((item): item is Extract<StreamItem, { type: 'task' }> => item.type === 'task')
+        .map((item) => item.task),
+    [openItems],
+  );
+  const doneTaskList = useMemo(
+    () =>
+      doneTasks
+        .filter((item): item is Extract<StreamItem, { type: 'task' }> => item.type === 'task')
+        .map((item) => item.task),
+    [doneTasks],
+  );
+  const gridItems = useMemo(() => openItems.filter((item) => item.type !== 'task'), [openItems]);
+
+  const renderExpanded = (link: LinkWithTag, variant: 'card' | 'row') => (
+    <LinkExpandedCard
+      link={link}
+      variant={variant}
+      isPinned={expandedIsPinned}
+      onTogglePin={handleTogglePin}
+      onOpen={() => handleOpenLink(link)}
+      onClose={() => setExpandedLinkId(null)}
+      onUpdateUrl={handleUpdateUrl}
+      onRescrape={handleRescrape}
+      onDelete={() => handleDeleteLink(link)}
+    />
+  );
 
   const renderCard = (item: StreamItem) => {
     const isSelected = selectedItemKeys.includes(item.key);
     if (item.type === 'link') {
+      if (expandedLinkId === item.id) return renderExpanded(item.link, 'card');
+      const activate = () =>
+        selectionMode ? handleToggleSelect(item) : handleOpenLink(item.link);
+      if (item.link.preview_image_url && !brokenPreviews.has(item.id)) {
+        return (
+          <LinkPreviewCard
+            link={item.link}
+            isSelected={isSelected}
+            selectionMode={selectionMode}
+            onActivate={activate}
+            onOpenDetails={() => handleOpenLinkDetails(item.link)}
+            onImageError={() => markPreviewBroken(item.id)}
+          />
+        );
+      }
       return (
         <LinkGridCard
-          key={item.key}
           link={item.link}
           isSelected={isSelected}
           selectionMode={selectionMode}
-          isDetailsActive={detailLinkId === item.id}
-          onActivate={() =>
-            selectionMode ? handleToggleSelect(item) : handleOpenLink(item.link)
-          }
+          onActivate={activate}
           onOpenDetails={() => handleOpenLinkDetails(item.link)}
         />
       );
@@ -1006,7 +1313,6 @@ const StreamPage = () => {
     if (item.type === 'note') {
       return (
         <NoteGridCard
-          key={item.key}
           note={item.note}
           onOpen={handleOpenNote}
           onDelete={handleDeleteNote}
@@ -1017,45 +1323,205 @@ const StreamPage = () => {
         />
       );
     }
+    return null;
+  };
+
+  const masonryItems: MasonryItem[] = gridItems.map((item) => ({
+    key: item.key,
+    span: item.type === 'link' && expandedLinkId === item.id ? 2 : 1,
+    node: renderCard(item),
+  }));
+
+  const renderRow = (item: StreamItem) => {
+    const isSelected = selectedItemKeys.includes(item.key);
+    if (item.type === 'link') {
+      const link = item.link;
+      const isExpanded = expandedLinkId === item.id;
+      return (
+        <div key={item.key} className={`memex-row-wrap${isExpanded ? ' is-expanded' : ''}`}>
+          <StreamRow
+            leading={
+              link.favicon_url ? (
+                <img src={link.favicon_url} alt="" />
+              ) : (
+                <LinkIcon aria-hidden="true" />
+              )
+            }
+            title={getLinkTitle(link)}
+            meta={
+              <>
+                <span translate="no">{getHostname(link.url)}</span>
+                <span aria-hidden="true"> · </span>
+                {relativeTime(item.updatedAt)}
+              </>
+            }
+            thumbnail={brokenPreviews.has(link.id) ? null : link.preview_image_url}
+            onActivate={() => (selectionMode ? handleToggleSelect(item) : handleOpenLink(link))}
+            selectionMode={selectionMode}
+            isSelected={isSelected}
+            isNew={link.id.startsWith('temp-')}
+            ariaLabel={selectionMode ? `Select ${getLinkTitle(link)}` : `Open ${getLinkTitle(link)}`}
+            actions={
+              <button
+                type="button"
+                className={`bookmark-list-row-action${isExpanded ? ' is-open' : ''}`}
+                onClick={() => handleOpenLinkDetails(link)}
+                aria-label={`Details for ${getLinkTitle(link)}`}
+                aria-expanded={isExpanded}
+                title="Details"
+              >
+                <PanelRight aria-hidden="true" />
+              </button>
+            }
+          />
+          {isExpanded && renderExpanded(link, 'row')}
+        </div>
+      );
+    }
+    if (item.type === 'note') {
+      const note = item.note;
+      const excerpt = markdownExcerpt(note.body, 140);
+      return (
+        <StreamRow
+          key={item.key}
+          leading={<StickyNote aria-hidden="true" />}
+          title={noteDisplayTitle(note)}
+          meta={
+            <>
+              {relativeTime(item.updatedAt)}
+              {excerpt && <span className="memex-row-excerpt"> · {excerpt}</span>}
+            </>
+          }
+          onActivate={() => (selectionMode ? handleToggleSelect(item) : handleOpenNote(note))}
+          selectionMode={selectionMode}
+          isSelected={isSelected}
+          isNew={note.id.startsWith('temp-')}
+          actions={
+            <button
+              type="button"
+              className="bookmark-list-row-action"
+              onClick={() => handleDeleteNote(note.id)}
+              aria-label={`Delete “${noteDisplayTitle(note)}”`}
+              title="Delete note"
+            >
+              <X aria-hidden="true" />
+            </button>
+          }
+        />
+      );
+    }
+    const task = item.task;
     return (
-      <TaskGridCard
+      <StreamRow
         key={item.key}
-        task={item.task}
-        onToggleDone={handleToggleTaskDone}
-        onDelete={handleDeleteTask}
+        leading={
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={task.is_done}
+            className="memex-task-check"
+            onClick={() => handleToggleTaskDone(task)}
+            aria-label={task.is_done ? `Mark “${task.title}” not done` : `Mark “${task.title}” done`}
+          >
+            <Check aria-hidden="true" />
+          </button>
+        }
+        title={task.title}
+        meta={task.due_date ? `Due ${relativeTime(task.due_date)}` : relativeTime(item.updatedAt)}
+        onActivate={selectionMode ? () => handleToggleSelect(item) : undefined}
         selectionMode={selectionMode}
         isSelected={isSelected}
-        onToggleSelect={() => handleToggleSelect(item)}
+        isNew={task.id.startsWith('temp-')}
+        actions={
+          <button
+            type="button"
+            className="bookmark-list-row-action"
+            onClick={() => handleDeleteTask(task.id)}
+            aria-label={`Delete “${task.title}”`}
+            title="Delete task"
+          >
+            <X aria-hidden="true" />
+          </button>
+        }
       />
     );
   };
+
+  const listGroups = useMemo(() => groupByTime(openItems, (item) => item.updatedAt), [openItems]);
+
+  const viewToggle = (
+    <div className="memex-view-toggle" role="group" aria-label="Layout">
+      <button
+        type="button"
+        className={view === 'grid' ? 'is-active' : ''}
+        aria-pressed={view === 'grid'}
+        onClick={() => setView('grid')}
+        aria-label="Grid view"
+        title="Grid"
+      >
+        <LayoutGrid aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className={view === 'list' ? 'is-active' : ''}
+        aria-pressed={view === 'list'}
+        onClick={() => setView('list')}
+        aria-label="List view"
+        title="List"
+      >
+        <Rows3 aria-hidden="true" />
+      </button>
+    </div>
+  );
+
+  const nothingToShow = openItems.length === 0 && doneTasks.length === 0;
+
+  /* ---------- Render ---------- */
 
   return (
     <div className="bookmark-dashboard memex-stream-page">
       <AppHeader
         user={session?.user ?? null}
-        superFavoriteLinks={superFavoriteLinks}
-        onSuperFavoriteOpen={handleOpenLink}
-        right={
-          <button
-            type="button"
-            className={`memex-self-notes-toggle${selfNotesOpen ? ' is-active' : ''}`}
-            onClick={toggleSelfNotes}
-            aria-pressed={selfNotesOpen}
-            aria-label={
-              selfNotesOpen
-                ? 'Close Notes to Self'
-                : `Open Notes to Self for ${space?.name ?? 'Home'}`
-            }
-            title="Notes to Self"
-          >
-            <ChatIcon />
-          </button>
+        title={contextName}
+        titleColor={space ? spaceColors.get(space.id) : undefined}
+        subtitle={`${scopedItems.length} item${scopedItems.length === 1 ? '' : 's'}`}
+        pinnedLinks={superFavoriteLinks}
+        onPinnedOpen={handleOpenLink}
+        actions={
+          <>
+            {space && (
+              <button
+                type="button"
+                className="btn-secondary btn-compact"
+                onClick={() => setSpaceDetailsOpen(true)}
+                aria-haspopup="dialog"
+              >
+                <Pencil aria-hidden="true" /> Edit space
+              </button>
+            )}
+            <button
+              type="button"
+              className={`memex-today-toggle${selfNotesOpen ? ' is-active' : ''}`}
+              onClick={toggleSelfNotes}
+              aria-pressed={selfNotesOpen}
+              aria-keyshortcuts="T"
+              title={selfNotesOpen ? 'Close Today (T)' : 'Open Today (T)'}
+            >
+              <CalendarDays aria-hidden="true" />
+              <span>Today</span>
+              {todayJotCount > 0 && (
+                <span className="memex-today-toggle-count" aria-label={`${todayJotCount} jots today`}>
+                  {todayJotCount}
+                </span>
+              )}
+              <kbd className="memex-kbd memex-today-toggle-kbd" aria-hidden="true">
+                T
+              </kbd>
+            </button>
+          </>
         }
       />
 
-      {/* Same grid as before with the rail columns collapsed, so the stack
-          keeps its inset and width rules */}
       <div
         className={`bookmark-feed-layout is-grid-wide is-empty-rails${
           selfNotesOpen ? ' has-self-notes' : ''
@@ -1065,7 +1531,7 @@ const StreamPage = () => {
           <button
             type="button"
             className="bookmark-mobile-scrim"
-            aria-label="Close Notes to Self"
+            aria-label="Close Today"
             onClick={closeSelfNotes}
           />
         )}
@@ -1078,6 +1544,8 @@ const StreamPage = () => {
               {openNoteItem ? (
                 <NoteEditor
                   note={openNoteItem}
+                  backLabel={contextName}
+                  spaceNames={openNoteSpaces}
                   onBack={closeNote}
                   onSave={handleSaveNote}
                   onDelete={handleDeleteNote}
@@ -1085,179 +1553,121 @@ const StreamPage = () => {
               ) : (
                 <>
                   <div className="bookmark-search-panel">
-                    {detailLink ? (
-                      <div className="bookmark-omnibar">
-                        <div className="bookmark-omnibar-row bookmark-link-details-header-row">
-                          <button
-                            type="button"
-                            className="bookmark-link-details-back"
-                            onClick={() => setDetailLinkId(null)}
-                          >
-                            ← Back to {contextName}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Omnibar
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder={placeholder}
-                        ariaLabel="Search, paste a URL, or type to capture"
-                        actions={omnibarActions}
-                      />
-                    )}
+                    <CommandBar
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder={placeholder}
+                      createActions={createActions}
+                      groups={paletteGroups}
+                      preferCreate={inputIsUrl}
+                    />
                   </div>
 
-                  {!detailLink && (
-                    <StreamFilterBar
-                      selectedTypes={selectedTypes}
-                      typeCounts={typeCounts}
-                      typeTotals={typeTotals}
-                      onToggleType={toggleType}
-                      tags={tagsForRow}
-                      tagCounts={tagCounts}
-                      selectedTagIds={selectedTagIds}
-                      onToggleTag={handleToggleTag}
-                      includeUntagged={includeUntagged}
-                      untaggedCount={untaggedCount}
-                      onToggleUntagged={toggleUntagged}
-                      bulkAssignMode={bulkAssignActive}
-                      afterTypes={
-                        space ? (
+                  <StreamFilterBar
+                    selectedTypes={selectedTypes}
+                    typeCounts={typeCounts}
+                    typeTotals={typeTotals}
+                    onToggleType={toggleType}
+                    tags={tagsForRow}
+                    tagCounts={tagCounts}
+                    selectedTagIds={selectedTagIds}
+                    onToggleTag={handleToggleTag}
+                    includeUntagged={includeUntagged}
+                    untaggedCount={untaggedCount}
+                    onToggleUntagged={toggleUntagged}
+                    bulkAssignMode={bulkAssignActive}
+                    trailing={
+                      <>
+                        {selectionMode && (
                           <button
                             type="button"
-                            className="bookmark-tag-chip memex-space-details-chip"
-                            onClick={() => setSpaceDetailsOpen(true)}
-                            aria-haspopup="dialog"
-                            aria-label={`Space details for “${space.name}”`}
-                            title="Space details"
+                            className="bookmark-tag-new memex-stream-clear"
+                            onClick={clearItemSelection}
+                            disabled={selectedCount === 0}
+                            aria-label={
+                              selectedCount > 0
+                                ? `Clear ${selectedCount} selected item${selectedCount === 1 ? '' : 's'}`
+                                : 'Clear selection'
+                            }
                           >
-                            <GearIcon />
+                            {selectedCount > 0 ? `Clear ${selectedCount}` : 'Clear'}
                           </button>
-                        ) : null
-                      }
-                      trailing={
-                        <>
-                          {selectionMode && (
-                            <button
-                              type="button"
-                              className="bookmark-tag-new memex-stream-clear"
-                              onClick={clearItemSelection}
-                              disabled={selectedCount === 0}
-                              aria-label={
-                                selectedCount > 0
-                                  ? `Clear ${selectedCount} selected item${selectedCount === 1 ? '' : 's'}`
-                                  : 'Clear selection'
-                              }
-                            >
-                              {selectedCount > 0 ? `Clear ${selectedCount}` : 'Clear'}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className={`bookmark-tag-chip memex-stream-select${
-                              selectionMode ? ' is-active' : ''
-                            }`}
-                            onClick={handleToggleSelectionMode}
-                            aria-pressed={selectionMode}
-                            title={selectionMode ? 'Finish selecting' : 'Select items to tag or add to a space'}
-                          >
-                            <span className="bookmark-tag-chip-label">
-                              {selectionMode ? 'Done' : 'Select'}
-                            </span>
-                          </button>
-                        </>
-                      }
-                    />
-                  )}
+                        )}
+                        <button
+                          type="button"
+                          className={`bookmark-tag-chip memex-stream-select${
+                            selectionMode ? ' is-active' : ''
+                          }`}
+                          onClick={handleToggleSelectionMode}
+                          aria-pressed={selectionMode}
+                          title={selectionMode ? 'Finish selecting' : 'Select items to tag or add to a space'}
+                        >
+                          <span className="bookmark-tag-chip-label">
+                            {selectionMode ? 'Done' : 'Select'}
+                          </span>
+                        </button>
+                        {viewToggle}
+                      </>
+                    }
+                  />
 
                   <div className="bookmark-list-panel-stack">
-                    <div className="memex-grid-view">
-                      {openItems.length === 0 && doneTasks.length === 0 ? (
+                    <div key={view} className={`memex-grid-view memex-stream-body is-${view}`}>
+                      {nothingToShow ? (
                         <EmptyState title={emptyTitle} subtitle={emptySubtitle} />
-                      ) : (
+                      ) : view === 'grid' ? (
                         <>
-                          {openItems.length > 0 ? (
-                            <div className="memex-grid">{openItems.map(renderCard)}</div>
-                          ) : (
-                            <EmptyState
-                              title={hasActiveFilters ? emptyTitle : 'All clear'}
-                              subtitle={
-                                hasActiveFilters
-                                  ? emptySubtitle
-                                  : 'Nothing open. Everything left is done.'
-                              }
+                          {showTasks && (openTasks.length > 0 || doneTaskList.length > 0) && (
+                            <TaskBand
+                              openTasks={openTasks}
+                              doneTasks={doneTaskList}
+                              onToggleDone={handleToggleTaskDone}
+                              onDelete={handleDeleteTask}
+                              selectionMode={selectionMode}
+                              selectedKeys={selectedItemKeys}
+                              onToggleSelect={(task) => handleToggleSelect(itemsByKey.get(itemKey('task', task.id))!)}
                             />
                           )}
-
+                          {masonryItems.length > 0 ? (
+                            <MasonryLayout items={masonryItems} animateKey={expandedLinkId} />
+                          ) : (
+                            openTasks.length === 0 && (
+                              <EmptyState
+                                title={hasActiveFilters ? emptyTitle : 'All clear'}
+                                subtitle={hasActiveFilters ? emptySubtitle : 'Nothing open. Everything left is done.'}
+                              />
+                            )
+                          )}
+                        </>
+                      ) : (
+                        <div className="memex-list">
+                          {listGroups.map((group) => (
+                            <section key={group.label} className="memex-list-group" aria-label={group.label}>
+                              <h2 className="memex-list-label">
+                                {group.label}
+                                <span className="memex-list-count">{group.items.length}</span>
+                              </h2>
+                              <div className="memex-list-rows">{group.items.map(renderRow)}</div>
+                            </section>
+                          ))}
                           {doneTasks.length > 0 && (
-                            <div className="memex-task-done-section">
+                            <section className="memex-list-group" aria-label="Done">
                               <button
                                 type="button"
-                                className="memex-task-done-toggle"
+                                className="memex-list-label memex-list-toggle"
                                 onClick={() => setShowDone((prev) => !prev)}
                                 aria-expanded={showDone}
                               >
-                                <span
-                                  className={`memex-task-done-caret${showDone ? ' is-open' : ''}`}
-                                  aria-hidden="true"
-                                >
-                                  <svg viewBox="0 0 16 16" fill="none">
-                                    <path d="M6 4.5 9.5 8 6 11.5" />
-                                  </svg>
-                                </span>
-                                Done ({doneTasks.length})
+                                <ChevronRight aria-hidden="true" className={showDone ? 'is-open' : ''} />
+                                Done
+                                <span className="memex-list-count">{doneTasks.length}</span>
                               </button>
-                              {showDone && (
-                                <div className="memex-grid">{doneTasks.map(renderCard)}</div>
-                              )}
-                            </div>
+                              {showDone && <div className="memex-list-rows">{doneTasks.map(renderRow)}</div>}
+                            </section>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
-
-                    {detailLink && (
-                      <div
-                        className="bookmark-link-details-overlay"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Link details"
-                      >
-                        <div className="bookmark-link-details-scroll">
-                          <LinkDetailsPanel
-                            link={detailLink}
-                            membershipRows={linkMembership ?? []}
-                            profiles={profiles ?? []}
-                            availableTags={tags ?? []}
-                            onUpdateUrl={handleDetailUpdateUrl}
-                            onToggleSuperFavorite={handleDetailToggleSuper}
-                            isSuperFavorite={detailIsSuperFavorite}
-                            superFavoriteHint={
-                              space
-                                ? `Pins this site’s icon to the header while you’re in “${space.name}”.`
-                                : 'Pins this site’s icon to the Home header for quick access.'
-                            }
-                            onUpdateTags={async (tagIds) => {
-                              if (!detailLinkId) return;
-                              await setLinkTags.mutateAsync({ linkId: detailLinkId, tagIds });
-                            }}
-                            onCreateTag={handleCreateTag}
-                            onDeleteTag={handleDeleteTag}
-                            onDeleteLink={handleDeleteLinkFromDetail}
-                            spaceName={space?.name}
-                            onRemoveFromSpace={space ? handleRemoveLinkFromSpace : undefined}
-                            removeFromSpacePending={removeLinkFromProfile.isPending}
-                            onRescrape={handleDetailRescrape}
-                            urlPending={updateLink.isPending}
-                            superFavoritePending={
-                              updateLink.isPending || setProfileLinkSuperFavorite.isPending
-                            }
-                            deletePending={deleteLink.isPending}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </>
               )}
@@ -1270,11 +1680,19 @@ const StreamPage = () => {
             className={`bookmark-rail bookmark-rail--tags memex-self-notes-rail${
               isNarrow ? ' is-mobile-open' : ''
             }`}
-            aria-label="Notes to Self"
+            aria-label="Today"
           >
-            <NotesToSelfPanel
+            <TodayPanel
               scopeId={spaceId ?? null}
-              scopeName={space?.name ?? 'Home'}
+              scopeName={contextName}
+              day={viewedDay}
+              onChangeDay={setViewedDay}
+              items={scopedItems}
+              hiddenJotIds={hiddenJotIds}
+              onOpenItem={handleOpenTodayItem}
+              onToggleTask={handleToggleTaskDone}
+              onConvertJot={(jot, kind) => void handleConvertJot(jot, kind)}
+              onDeleteJot={handleDeleteJot}
               onClose={closeSelfNotes}
             />
           </aside>
@@ -1297,6 +1715,7 @@ const StreamPage = () => {
         <FeedbackToast
           message={toast.message}
           phase={toast.phase}
+          action={toast.action}
           onAnimationEnd={handleAnimationEnd}
         />
       )}

@@ -4,6 +4,7 @@ import { getTagsForLink } from '../utils/linkTags';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import StreamCard from './StreamCard';
 import { getInitials } from '../utils/streamCardFormat';
+import { PanelRight } from 'lucide-react';
 
 interface LinkGridCardProps {
   link: LinkWithTag;
@@ -68,10 +69,7 @@ const LinkGridCard = ({
             title="Link details"
             aria-pressed={isDetailsActive}
           >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7" r="3.75" />
-              <path d="m10.1 10.1 3.4 3.4" />
-            </svg>
+            <PanelRight aria-hidden="true" />
           </button>
         ) : undefined
       }

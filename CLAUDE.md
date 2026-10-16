@@ -13,6 +13,7 @@ EX_P02 is the codebase for **memex**, a personal working-memory system built as 
 - `PRODUCT.md` — positioning, users, brand personality, design principles.
 - `DESIGN.md` — design-system truth. The live Links dashboard is the canonical surface and the template every new module inherits. When code and `DESIGN.md` diverge, the dashboard implementation wins; update the doc.
 - `JOYFUL_SYSTEMS.md` — the abstract JOYFUL_SYSTEMS design language (palette, spacing, radius, contrast, motion, sound). Product-agnostic; memex's canvas swatches and future color decisions derive from it.
+- `GUI.md` + `gui/` — "Pastel Sky" Graphical theme guidance (theme values, component assignments, font/icon setup). For UI work, follow GUI.md and use the graphical-ui, graphical-convert, or graphical-audit skills in `.agents/skills/` as appropriate.
 - `SETUP.md` — local development setup.
 - `docs/ex_p02_prd.md` — original PRD, superseded by `VISION.md` (kept for history).
 - `docs/database-migrations.md` — Supabase CLI migration workflow.
@@ -40,7 +41,7 @@ npm run deploy             # Build + deploy to Cloudflare (Workers static assets
 
 ### Technology Stack
 - **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: Custom CSS with design tokens (`--bookmark-*` custom properties in `src/index.css`)
+- **Styling**: Custom CSS on the **Pastel Sky** theme — token values in `src/styles/pastel-sky.css`, shared component treatments in `src/styles/components.css`, layout and legacy `--bookmark-*` aliases (now pointing at Pastel Sky tokens) in `src/index.css`
 - **Backend**: Supabase (PostgreSQL + Auth + RLS)
 - **State Management**: Zustand global store
 - **Data Fetching**: React Query (TanStack Query)
@@ -50,20 +51,21 @@ npm run deploy             # Build + deploy to Cloudflare (Workers static assets
 - **Authentication**: Supabase Auth (email/password + GitHub OAuth); session flows through `SessionProvider` / `useSession` (`src/context/SessionContext.tsx`); `AuthProtectedRoute` guards authenticated routes
 - **Stream**: `src/pages/StreamPage.tsx` — the one surface; mounted at `/home` (everything) and `/spaces/:spaceId` (one space). `/links`, `/notes`, `/tasks` redirect into Home with the matching type filter (`src/router/LegacyModuleRedirect.tsx`)
 - **Filtering model**: type chips (Notes · Links · Tasks) and tag chips above the grid (`src/components/StreamFilterBar.tsx`); empty selection = show all; both live in the URL (`?type=`, `?tags=`, `?untagged=1`); the open note is `?note=<id>`. Space scoping comes from the route, not a rail
-- **Notes to Self**: chat-bubble toggle in the header opens `src/components/NotesToSelfPanel.tsx` docked right of the grid (desktop) or as a slide-over sheet (mobile); scoped to Home or the current space via the route; open state persisted in localStorage
+- **Today column** (formerly Notes to Self): the labelled "Today" header button (shortcut T, count of today's jots) opens `src/components/stream/TodayPanel.tsx` docked right of the grid (desktop) or as a slide-over sheet (mobile). It is a daily log for the current scope: a jot composer (today only), that day's jots (each can become a note or task, or be deleted with Undo), items captured that day, tasks completed that day, and open tasks (today only). Other days: ‹ › arrows, a Monday-start week strip with activity dots, a date picker on the date label, and `?day=YYYY-MM-DD` deep links. Open state persisted in localStorage
 - **Selection / bulk assign**: selection state lives in the Zustand store so the sidebar's spaces become bulk-assign targets while items are selected; tag chips apply to the selection likewise
-- **Canvas theming**: user-selected OKLCH swatch drives active/prominent/hover surfaces (`src/utils/canvasColor.ts`, `src/constants/canvasColors.ts`); dark mode via `data-theme`
+- **Canvas theming**: user-selected OKLCH swatch drives the page canvas and Pastel Sky's accent roles (`--color-1`, `--cte-accent-text`, `--color-1-ink`) at runtime (`src/utils/canvasColor.ts`, `src/constants/canvasColors.ts`); neutrals and surfaces stay on the theme; dark mode via `data-theme`
 
 ### Key Files
 - `/src/components/ui/` — shared design-system primitives (FilterChip, ActionChip, FrostedStack, EmptyState, FeedbackToast, InlineCreateForm); compose these for new surfaces
 - `/src/pages/StyleguidePage.tsx` — component catalog at `/styleguide` (auth-protected, unlinked); keep it updated when primitives change
+- `/src/pages/MocksPage.tsx` — design-direction mocks at `/mocks` (auth-protected, unlinked); static compositions over real data for choosing UX options before building them
 - `/src/router/index.tsx` — route definitions with nested protected routes
 - `/src/pages/StreamPage.tsx` — the mixed stream (header | frosted stack: omnibar → filter chips → card grid)
 - `/src/components/MemexSidebar.tsx` — Home + spaces navigation (also bulk-assign targets)
 - `/src/components/StreamCard.tsx` — the single card anatomy every primitive renders through; `LinkGridCard` / `NoteGridCard` / `TaskGridCard` only fill its slots
 - `/src/components/StreamFilterBar.tsx` — type + tag chip rows
-- `/src/components/NotesToSelfPanel.tsx`, `/src/hooks/useSelfMessages.ts` — Notes to Self feed + data
-- `/src/components/ui/Omnibar.tsx` — search + multi-action capture bar (Add link / New note / New task)
+- `/src/components/stream/TodayPanel.tsx`, `/src/hooks/useSelfMessages.ts` — Today column (jots + day log) and jot data
+- `/src/components/stream/` — `TodayPanel`, `CommandBar` (search + capture palette), `MasonryLayout`, `LinkPreviewCard`, `LinkExpandedCard`, `TaskBand`, `StreamRow`
 - `/src/utils/streamItems.ts` — `StreamItem` union, tag merging, search matching
 - `/src/constants/modules.ts` — routes, item types, URL param names
 - `/src/types/database.ts` — Supabase schema types
@@ -81,16 +83,18 @@ All tables user-scoped via RLS:
 Planned (per `VISION.md`): **notes** (markdown body), **tasks**, and per-primitive space/tag join tables mirroring `profile_links` / `link_tags`.
 
 ### Design System
-- Aesthetic: "The Operator's Desk" — user-tinted canvas gradient, frosted-glass stacks, hairline dividers, pill chips
-- Typography: **Two Weekend Go** for app chrome (13px UI / 12px caption, italic lowercase `memex` brand); **Inter** (`--bookmark-font-content`) for content surfaces — stream cards, link details panel, note editor
-- Color: theme-first — interactive emphasis derives from the user's canvas swatch, never a fixed product color
-- Every new surface must use `--bookmark-*` tokens and the existing component vocabulary (chips at 40px height, 6.75rem action chips, `app-modal` dialogs, bottom-right toasts)
+- Theme: **Pastel Sky** (Graphical) — see `GUI.md`, `gui/themes/pastel-sky.md` and `gui/themes/pastel-sky-components.md`. User-tinted canvas gradient under opaque Pastel Sky surfaces (stack, cards, popups)
+- Typography: **Inter** (`@fontsource-variable/inter`, upright + italic axes) for every role (`--font-ui/brand/editorial/data`); sizes, line heights, and tracking come from `--size-*` / `--line-*` / `--letter-spacing-*` together; italic lowercase `memex` wordmark; code keeps `--font-code`
+- Icons: Lucide outlined (`lucide-react`) via the adapters in `src/components/icons.tsx` / `StreamGlyphs.tsx`
+- Color: the canvas swatch is the one intentional exception to the theme — it drives `--color-1` (primary fills, selection tint, focus ring) instead of Pastel Sky's teal; everything else uses the theme's neutrals/status colors
+- Edges are box-shadow rings, never native borders: set `--edge` / `--edge-w` (registered, non-inheriting) and compose them in `box-shadow`
+- New surfaces use theme tokens and the shared treatments in `src/styles/components.css` (Button, Toggle chips, Navigation sidebar, Text field, Checkbox, Switch, Dialog, Drawer, Menu, Toast, card/stack surfaces); don't re-declare their appearance in `index.css`
 - Honor `prefers-reduced-motion` and `prefers-reduced-transparency`
 
 ## Development Notes
 
 ### Current State
-The per-module tabs (Links / Notes / Tasks / Spaces pages) were replaced on 2026-09-07 by one `StreamPage`: a mixed, grid-only stream with type and tag chips, omnibar capture that offers Add link / New note / New task, link details overlay, in-stack note editor, task check-off with a collapsible Done section, selection mode with bulk tag/space assign, and per-context super favorites in the header. Sidebar = Home + spaces (new-space inline). Canvas theming, dark mode, GitHub OAuth unchanged. Notes use `react-markdown` + `remark-gfm`; bodies are plain markdown. `LinksList` and `LinkPreviewPopover` were removed 2026-09-07 along with the retired scraped-display cache (`scrapedDataMap` / `getCachedScrapedData`) — cards and search read metadata from the stored link rows only. The remaining list-view leftovers (`ViewToggleFab`, `useViewMode`, the `*ListRow` components) only serve `/styleguide` and `LinkDetailsPanel` and are candidates for removal. Legacy project views still exist and are slated for retirement.
+On 2026-10-15 the app adopted the **Pastel Sky** theme and a redesigned stream (directions chosen via `/mocks`, recorded in `TODO.md`). `StreamPage` now has: a page header (title, space dot, count, Edit space, Today) with a labelled pinned-sites launcher row; a command palette (`src/components/stream/CommandBar.tsx`) in place of the omnibar; a masonry ⇄ list view toggle (`?view=`); image-first link preview cards whose caption shows on hover or always (Settings → “Link titles”); links that expand in place inside the grid (`?link=`, `MasonryLayout` animates neighbours); a task checklist band; undoable deletes (toast + Undo, no confirms); and a centered document-column note editor; and the Today column (daily log of jots, captures, and tasks; `?day=`). The footer bar is gone; settings live at the sidebar foot (phones: the wordmark opens a drawer). Stream styles are in `src/styles/stream.css`. Legacy leftovers (`LinkDetailsPanel`, `Omnibar`, `TaskGridCard`, list-row components, project views) only serve `/styleguide` or legacy routes and are candidates for removal.
 
 ### Direction of Travel
 1. ~~App shell~~ → ~~per-module tabs~~ → **unified stream** done; profiles → spaces rename (DB + copy) still pending

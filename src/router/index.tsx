@@ -6,6 +6,7 @@ import ProtectedPage from "../pages/ProtectedPage.tsx";
 import StreamPage from "../pages/StreamPage.tsx";
 import ProjectPage from "../pages/ProjectPage.tsx";
 import StyleguidePage from "../pages/StyleguidePage.tsx";
+import MocksPage from "../pages/MocksPage.tsx";
 import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import LegacyModuleRedirect from "./LegacyModuleRedirect.tsx";
@@ -73,6 +74,11 @@ const router = createBrowserRouter([
           {
             path: "/styleguide",
             element: <StyleguidePage />,
+          },
+          // Design mocks for choosing directions — unlinked, like /styleguide
+          {
+            path: "/mocks",
+            element: <MocksPage />,
           },
           // Legacy dashboard URL (OAuth redirects still target it)
           {

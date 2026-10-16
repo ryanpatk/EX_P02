@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { SHOW_TAGS_UI, type ItemType } from '../constants/modules';
 import type { Tag } from '../types/database';
 
@@ -128,7 +128,7 @@ const StreamCard = ({
           <span
             key={tag.id}
             className="bookmark-list-row-tag"
-            style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
+            style={tag.color ? ({ '--edge': tag.color, color: tag.color } as CSSProperties) : undefined}
             title={tag.name}
           >
             {tag.name}

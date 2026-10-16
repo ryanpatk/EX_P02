@@ -1,0 +1,76 @@
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const shortDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+const shortDateYear = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+/** "5 minutes ago", "yesterday", "Oct 8", "Mar 3, 2024". */
+export const relativeTime = (iso: string, now = Date.now()) => {
+  const then = new Date(iso).getTime();
+  const seconds = (then - now) / 1000;
+  const abs = Math.abs(seconds);
+  if (abs < 60) return 'just now';
+  if (abs < 3600) return rtf.format(Math.round(seconds / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(seconds / 3600), 'hour');
+  if (abs < 86400 * 7) return rtf.format(Math.round(seconds / 86400), 'day');
+  const date = new Date(iso);
+  return date.getFullYear() === new Date(now).getFullYear()
+    ? shortDate.format(date)
+    : shortDateYear.format(date);
+};
+
+export type TimeGroupLabel = 'Today' | 'This week' | 'This month' | 'Earlier';
+
+const GROUP_ORDER: TimeGroupLabel[] = ['Today', 'This week', 'This month', 'Earlier'];
+
+export const timeGroupFor = (iso: string, now = new Date()): TimeGroupLabel => {
+  const date = new Date(iso);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const time = date.getTime();
+  if (time >= startOfToday) return 'Today';
+  if (time >= startOfToday - 6 * 86400000) return 'This week';
+  if (time >= startOfToday - 30 * 86400000) return 'This month';
+  return 'Earlier';
+};
+
+/** Group already-sorted items by recency bucket, preserving order. */
+export const groupByTime = <T,>(items: T[], getDate: (item: T) => string) => {
+  const now = new Date();
+  const map = new Map<TimeGroupLabel, T[]>();
+  items.forEach((item) => {
+    const label = timeGroupFor(getDate(item), now);
+    const list = map.get(label);
+    if (list) list.push(item);
+    else map.set(label, [item]);
+  });
+  return GROUP_ORDER.filter((label) => map.has(label)).map((label) => ({
+    label,
+    items: map.get(label)!,
+  }));
+};
+
+/** Local calendar day as YYYY-MM-DD (the ?day= URL value). */
+export const toDayKey = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+export const fromDayKey = (key: string) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+export const shiftDay = (key: string, delta: number) => {
+  const date = fromDayKey(key);
+  date.setDate(date.getDate() + delta);
+  return toDayKey(date);
+};
+
+export const dayKeyOf = (iso: string) => toDayKey(new Date(iso));
+
+export const isDayKey = (value: string | null): value is string =>
+  !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);

@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FeedbackToastPhase } from '../components/ui'
 
 const TOAST_VISIBLE_MS = 3400
+const ACTION_TOAST_VISIBLE_MS = 6000
+
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
 
 interface ToastState {
   message: string
   phase: FeedbackToastPhase
+  action?: ToastAction
 }
 
 /**
@@ -17,12 +24,23 @@ export function useFeedbackToast() {
   const [toast, setToast] = useState<ToastState | null>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const flash = useCallback((message: string) => {
+  const dismiss = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+    setToast((current) => (current ? { ...current, phase: 'exiting' } : null))
+    window.setTimeout(() => {
+      setToast((current) => (current?.phase === 'exiting' ? null : current))
+    }, 240)
+  }, [])
+
+  const flash = useCallback((message: string, action?: ToastAction) => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current)
     }
 
-    setToast({ message, phase: 'entering' })
+    setToast({ message, phase: 'entering', action })
 
     hideTimerRef.current = setTimeout(() => {
       setToast((current) => (current ? { ...current, phase: 'exiting' } : null))
@@ -31,7 +49,7 @@ export function useFeedbackToast() {
       window.setTimeout(() => {
         setToast((current) => (current?.phase === 'exiting' ? null : current))
       }, 240)
-    }, TOAST_VISIBLE_MS)
+    }, action ? ACTION_TOAST_VISIBLE_MS : TOAST_VISIBLE_MS)
   }, [])
 
   const handleAnimationEnd = useCallback(
@@ -51,5 +69,5 @@ export function useFeedbackToast() {
     }
   }, [])
 
-  return { toast, flash, handleAnimationEnd }
+  return { toast, flash, dismiss, handleAnimationEnd }
 }

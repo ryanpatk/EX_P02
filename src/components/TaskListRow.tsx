@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { Tag, TaskWithTags } from '../types/database';
 
 interface TaskListRowProps {
@@ -89,7 +90,7 @@ const TaskListRow = ({
               <span
                 key={tag.id}
                 className="bookmark-list-row-tag"
-                style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
+                style={tag.color ? ({ '--edge': tag.color, color: tag.color } as CSSProperties) : undefined}
                 title={tag.name}
               >
                 {tag.name}

@@ -38,6 +38,12 @@ export const TAGS_PARAM = 'tags';
 export const UNTAGGED_PARAM = 'untagged';
 /** Query param that opens a note in the in-stack editor. */
 export const NOTE_PARAM = 'note';
+/** URL param for a link expanded in place in the stream (?link=<id>). */
+export const LINK_PARAM = 'link';
+/** URL param for the stream layout: absent/`grid` = masonry, `list` = reading list. */
+export const VIEW_PARAM = 'view';
+/** URL param for the day shown in the Today column (YYYY-MM-DD; absent = today). */
+export const DAY_PARAM = 'day';
 
 /**
  * Tag UI is parked while the core stream is refined: hides the tag chip row

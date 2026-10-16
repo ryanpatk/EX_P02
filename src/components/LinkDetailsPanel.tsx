@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { LinkWithTag, Profile, Tag } from '../types/database';
 import { getTagsForLink } from '../utils/linkTags';
@@ -256,7 +257,7 @@ const LinkDetailsPanel = ({
                     className="bookmark-detail-tag-chip"
                     style={
                       tag.color
-                        ? { borderColor: tag.color, color: tag.color }
+                        ? ({ '--edge': tag.color, color: tag.color } as CSSProperties)
                         : undefined
                     }
                   >

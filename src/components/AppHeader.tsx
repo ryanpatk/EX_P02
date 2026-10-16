@@ -1,91 +1,67 @@
 import type { User } from '@supabase/supabase-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import DarkModeToggle from './DarkModeToggle';
-import SoundToggle from './SoundToggle';
-import CanvasColorPicker from './CanvasColorPicker';
 import ApiTokensModal from './ApiTokensModal';
+import SettingsMenu from './SettingsMenu';
 import { CloseIcon } from './icons';
 import { cue } from '../utils/sound';
+import { getHostname } from '../utils/linkDisplay';
 import type { LinkWithTag } from '../types/database';
 import supabase from '../supabase';
 
 interface AppHeaderProps {
   user: User | null;
-  superFavoriteLinks?: LinkWithTag[];
-  onSuperFavoriteOpen?: (link: LinkWithTag) => void;
-  /** Custom toolbar-center content (replaces the super-favorites strip). */
-  center?: React.ReactNode;
-  /** Custom toolbar-right content, rendered before the (mobile-only) settings chip. */
-  right?: React.ReactNode;
+  /** Page heading: "Home" or the space name. */
+  title: string;
+  /** Identity colour shown beside a space title. */
+  titleColor?: string;
+  /** Quiet line under the title (item count, description). */
+  subtitle?: string;
+  /** Pinned sites, shown as a labelled launcher row under the heading. */
+  pinnedLinks?: LinkWithTag[];
+  onPinnedOpen?: (link: LinkWithTag) => void;
+  /** Heading-row actions (space edit, Notes to Self toggle). */
+  actions?: ReactNode;
 }
 
-// const SelectIcon = () => (
-//   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-//     <path d="M3 3.25h6.5v1.5H4.5v5H3v-6.5Z" />
-//     <path d="M13 12.75H6.5v-1.5h5v-5H13v6.5Z" />
-//   </svg>
-// );
-
-// const DoneIcon = () => (
-//   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-//     <path d="M4 8.25 6.5 10.75 12 5.25" />
-//   </svg>
-// );
-
-const faviconInitials = (link: LinkWithTag) => {
-  const label =
-    link.title?.trim() ||
-    link.url.replace(/^https?:\/\//, '').split('/')[0] ||
-    '?';
-  return (
-    label
-      .replace(/[^a-zA-Z0-9 ]/g, ' ')
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join('') || '◆'
-  );
+/** Short launcher label: the site name before any " | tagline" / " - tagline". */
+const pinLabel = (link: LinkWithTag) => {
+  const title = link.title?.trim();
+  if (!title) return getHostname(link.url);
+  return title.split(/\s[|·—–-]\s|\s[|·—–]|[|·—–]\s/)[0].trim() || getHostname(link.url);
 };
 
-const SuperFavoriteButton = ({
-  link,
-  onOpen,
-}: {
-  link: LinkWithTag;
-  onOpen: (link: LinkWithTag) => void;
-}) => {
+const PinnedLink = ({ link, onOpen }: { link: LinkWithTag; onOpen: (link: LinkWithTag) => void }) => {
   const [failed, setFailed] = useState(false);
-  const favicon = link.favicon_url;
-  const label = link.title?.trim() || link.url;
-
+  const label = pinLabel(link);
   return (
     <button
       type="button"
-      className="bookmark-toolbar-super-fav"
+      className="memex-launch-chip"
       onClick={() => onOpen(link)}
-      title={label}
-      aria-label={`Open ${label}`}
+      title={link.title?.trim() || link.url}
     >
-      {favicon && !failed ? (
-        <img src={favicon} alt="" onError={() => setFailed(true)} />
-      ) : (
-        <span className="bookmark-toolbar-super-fav-initials">
-          {faviconInitials(link)}
-        </span>
-      )}
+      <span className="memex-launch-chip-icon" aria-hidden="true">
+        {link.favicon_url && !failed ? (
+          <img src={link.favicon_url} alt="" onError={() => setFailed(true)} />
+        ) : (
+          label.slice(0, 1).toUpperCase()
+        )}
+      </span>
+      <span className="memex-launch-chip-label">{label}</span>
     </button>
   );
 };
 
 const AppHeader = ({
   user,
-  superFavoriteLinks = [],
-  onSuperFavoriteOpen,
-  center,
-  right,
+  title,
+  titleColor,
+  subtitle,
+  pinnedLinks = [],
+  onPinnedOpen,
+  actions,
 }: AppHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTokensOpen, setIsTokensOpen] = useState(false);
@@ -115,7 +91,6 @@ const AppHeader = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isMenuOpen, isNarrow]);
 
-  const openDrawer = () => setIsMenuOpen(true);
   const closeDrawer = () => {
     cue('dismiss');
     setIsMenuOpen(false);
@@ -130,57 +105,15 @@ const AppHeader = ({
     }
   };
 
-  const userLabel =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.email ||
-    'Signed in';
-
-  const handleSuperFav = (link: LinkWithTag) => {
-    if (onSuperFavoriteOpen) {
-      onSuperFavoriteOpen(link);
-    }
-  };
-
-  const menuSections = (
-    <>
-      <div className="bookmark-account-menu-section">
-        <p className="bookmark-account-menu-kicker">SIGNED IN</p>
-        <p className="bookmark-account-menu-value">{userLabel}</p>
-        {user?.email && user?.email !== userLabel && (
-          <p className="bookmark-account-menu-meta">{user.email}</p>
-        )}
-      </div>
-      <div className="bookmark-account-menu-section">
-        <CanvasColorPicker />
-        <DarkModeToggle className="bookmark-account-menu-action" />
-        <SoundToggle className="bookmark-account-menu-action" />
-        <button
-          type="button"
-          className="bookmark-account-menu-action"
-          onClick={() => {
-            setIsMenuOpen(false);
-            setIsTokensOpen(true);
-          }}
-        >
-          ACCESS TOKENS…
-        </button>
-        <button type="button" className="bookmark-account-menu-action" onClick={handleLogout}>
-          LOG OUT
-        </button>
-      </div>
-    </>
-  );
-
   return (
-    <header className="bookmark-toolbar">
-      <div className="bookmark-toolbar-brand-wrap">
-        {isNarrow ? (
+    <header className="memex-page-header">
+      <div className="memex-page-header-row">
+        {isNarrow && (
           /* On phones the wordmark is the settings handle: opens a left drawer */
           <button
             type="button"
             className="bookmark-toolbar-brand-shell bookmark-toolbar-brand-button"
-            onClick={openDrawer}
+            onClick={() => setIsMenuOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={isMenuOpen}
             aria-label="Open settings"
@@ -189,28 +122,28 @@ const AppHeader = ({
               memex
             </span>
           </button>
-        ) : (
-          <div className="bookmark-toolbar-brand-shell">
-            <span className="bookmark-toolbar-brand" translate="no">
-              memex
-            </span>
-          </div>
         )}
+
+        <div className="memex-page-heading">
+          <h1 className="memex-page-title">
+            {titleColor && (
+              <span className="memex-space-dot" style={{ background: titleColor }} aria-hidden="true" />
+            )}
+            <span className="memex-page-title-text">{title}</span>
+          </h1>
+          {subtitle && <p className="memex-page-subtitle">{subtitle}</p>}
+        </div>
+
+        <div className="memex-page-actions">{actions}</div>
       </div>
 
-      {center ? (
-        <div className="bookmark-toolbar-center">{center}</div>
-      ) : (
-        <div className="bookmark-toolbar-center" aria-label="Super favorites">
-          <div className="bookmark-toolbar-super-favorites">
-            {superFavoriteLinks.map((link) => (
-              <SuperFavoriteButton key={link.id} link={link} onOpen={handleSuperFav} />
-            ))}
-          </div>
-        </div>
+      {pinnedLinks.length > 0 && onPinnedOpen && (
+        <nav className="memex-launcher" aria-label="Pinned sites">
+          {pinnedLinks.map((link) => (
+            <PinnedLink key={link.id} link={link} onOpen={onPinnedOpen} />
+          ))}
+        </nav>
       )}
-
-      <div className="bookmark-toolbar-status">{right}</div>
 
       {/* Phone settings drawer — portaled to <body> so it sits above the
           fixed bottom bar (the header lives in a lower stacking layer) */}
@@ -243,7 +176,16 @@ const AppHeader = ({
                   <CloseIcon />
                 </button>
               </div>
-              <div className="memex-settings-drawer-body">{menuSections}</div>
+              <div className="memex-settings-drawer-body">
+                <SettingsMenu
+                  user={user}
+                  onOpenTokens={() => {
+                    setIsMenuOpen(false);
+                    setIsTokensOpen(true);
+                  }}
+                  onLogout={handleLogout}
+                />
+              </div>
             </aside>
           </>,
           document.body,

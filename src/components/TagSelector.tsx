@@ -224,7 +224,7 @@ const TagSelector = ({
             className="tag-selector-create-button"
             disabled={!newTagName.trim()}
           >
-            CREATE
+            Create
           </button>
         </div>
 

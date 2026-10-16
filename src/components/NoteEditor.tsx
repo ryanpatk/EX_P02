@@ -2,32 +2,32 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MarkdownText, MarkdownTextarea } from './ui';
 import type { MarkdownTextareaHandle } from './ui/MarkdownTextarea';
 import type { NoteWithTags, UpdateNoteData } from '../types/database';
+import { Ellipsis, Trash2 } from 'lucide-react';
+import { relativeTime } from '../utils/timeGroups';
 
 type SaveStatus = 'saved' | 'saving';
 
 const AUTOSAVE_DELAY_MS = 800;
 
-const CheckIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3.5 8.5 6.5 11.5 12.5 5" />
-  </svg>
-);
-
-const SpinnerIcon = () => (
-  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="memex-spinner">
-    <circle cx="8" cy="8" r="5.5" opacity="0.25" />
-    <path d="M13.5 8a5.5 5.5 0 0 0-5.5-5.5" />
-  </svg>
-);
-
 interface NoteEditorProps {
   note: NoteWithTags;
+  /** Where Back returns to ("Home", a space name). */
+  backLabel?: string;
+  /** Spaces the note lives in, for the metadata line. */
+  spaceNames?: string[];
   onBack: () => void;
   onSave: (id: string, updates: UpdateNoteData) => Promise<unknown>;
   onDelete: (id: string) => void;
 }
 
-const NoteEditor = ({ note, onBack, onSave, onDelete }: NoteEditorProps) => {
+const countWords = (text: string) => {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+};
+
+const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave, onDelete }: NoteEditorProps) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const [isEditing, setIsEditing] = useState(!note.body.trim());
@@ -129,10 +129,25 @@ const NoteEditor = ({ note, onBack, onSave, onDelete }: NoteEditorProps) => {
     onBack();
   };
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  // Deletion is undoable from the toast, so no confirm dialog here
   const handleDelete = () => {
-    if (!window.confirm('Delete this note permanently? This cannot be undone.')) {
-      return;
-    }
+    setMenuOpen(false);
     // Neutralize any pending auto-save so it can't fire against the deleted note
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
@@ -164,40 +179,41 @@ const NoteEditor = ({ note, onBack, onSave, onDelete }: NoteEditorProps) => {
   };
 
   const showEditor = isEditing || !body.trim();
+  const words = countWords(body);
 
   return (
     <div className="memex-note-editor">
       <div className="memex-note-editor-toolbar">
         <button type="button" className="bookmark-link-details-back" onClick={handleBack}>
-          ← Back to notes
+          ← {backLabel}
         </button>
 
-        <span
-          className="memex-note-editor-status"
-          role="status"
-          aria-label={status === 'saving' ? 'Saving' : 'Saved'}
-          title={status === 'saving' ? 'Saving…' : 'Saved'}
-        >
-          {status === 'saving' ? <SpinnerIcon /> : <CheckIcon />}
+        <span className="memex-note-editor-status" role="status" aria-live="polite">
+          {status === 'saving' ? 'Saving…' : 'Saved'}
         </span>
 
-        <button
-          type="button"
-          className="memex-note-delete"
-          onClick={handleDelete}
-          aria-label="Delete note"
-          title="Delete note"
-        >
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M3 4.5h10" />
-            <path d="M6.5 4.5V3.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75V4.5" />
-            <path d="M4.5 4.5 5.2 13a.75.75 0 0 0 .75.7h4.1a.75.75 0 0 0 .75-.7l.7-8.5" />
-            <path d="M6.75 7v4.5" />
-            <path d="M9.25 7v4.5" />
-          </svg>
-        </button>
+        <div className="memex-popover-anchor" ref={menuRef}>
+          <button
+            type="button"
+            className="memex-icon-button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Note actions"
+          >
+            <Ellipsis aria-hidden="true" />
+          </button>
+          {menuOpen && (
+            <div className="memex-menu memex-menu--end" role="menu">
+              <button type="button" role="menuitem" className="is-danger" onClick={handleDelete}>
+                <Trash2 aria-hidden="true" /> Delete note
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
+      <div className="memex-note-doc">
       <input
         type="text"
         className="memex-note-title-input"
@@ -208,6 +224,20 @@ const NoteEditor = ({ note, onBack, onSave, onDelete }: NoteEditorProps) => {
         autoComplete="off"
         spellCheck={false}
       />
+
+      <p className="memex-note-meta">
+        <span>Edited {relativeTime(note.updated_at)}</span>
+        {spaceNames.length > 0 && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{spaceNames.join(', ')}</span>
+          </>
+        )}
+        <span aria-hidden="true">·</span>
+        <span>
+          {words} word{words === 1 ? '' : 's'}
+        </span>
+      </p>
 
       <div className="memex-note-editor-body">
         {showEditor ? (
@@ -237,6 +267,7 @@ const NoteEditor = ({ note, onBack, onSave, onDelete }: NoteEditorProps) => {
             <MarkdownText>{body}</MarkdownText>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

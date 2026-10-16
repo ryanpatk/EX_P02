@@ -36,6 +36,7 @@ const FilterChip = ({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-pressed={active}
       data-cuelume-hover="tick"
       className={`${base} ${active ? 'is-active' : ''}${
         bulkTarget ? ' is-bulk-target' : ''

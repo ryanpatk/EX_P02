@@ -24,18 +24,19 @@ import type { LinkWithTag, NoteWithTags, Tag, TaskWithTags } from '../types/data
 import { isUrlLike } from '../utils/urlInput';
 
 const COLOR_TOKENS: { token: string; label: string }[] = [
-  { token: '--bookmark-canvas-base', label: 'canvas base' },
-  { token: '--bookmark-surface', label: 'surface' },
-  { token: '--bookmark-surface-muted', label: 'surface muted' },
-  { token: '--bookmark-text', label: 'text' },
-  { token: '--bookmark-muted', label: 'text muted' },
-  { token: '--bookmark-secondary-text', label: 'secondary text' },
-  { token: '--bookmark-accent', label: 'accent (focus)' },
-  { token: '--bookmark-active-bg', label: 'active bg' },
-  { token: '--bookmark-active-fg', label: 'active fg' },
-  { token: '--bookmark-prominent-bg', label: 'prominent bg' },
-  { token: '--bookmark-prominent-fg', label: 'prominent fg' },
-  { token: '--bookmark-border-ink', label: 'border ink' },
+  { token: '--bookmark-canvas-base', label: 'canvas (swatch)' },
+  { token: '--color-1', label: 'color-1 (swatch accent)' },
+  { token: '--cte-accent-text', label: 'on color-1' },
+  { token: '--color-1-ink', label: 'accent text' },
+  { token: '--neutral-1', label: 'neutral-1 surface' },
+  { token: '--neutral-2', label: 'neutral-2 surface' },
+  { token: '--neutral-3', label: 'neutral-3 muted' },
+  { token: '--neutral-4', label: 'neutral-4 field edge' },
+  { token: '--neutral-7', label: 'neutral-7 text muted' },
+  { token: '--neutral-10', label: 'neutral-10 text' },
+  { token: '--success', label: 'success' },
+  { token: '--warning', label: 'warning' },
+  { token: '--error', label: 'error' },
 ];
 
 const demoTag = (id: string, name: string, color: string): Tag => ({
@@ -194,7 +195,7 @@ const StyleguidePage = () => {
           </div>
         </Section>
 
-        <Section title="Color tokens" note="Core --bookmark-* roles at their current computed values.">
+        <Section title="Color tokens" note="Pastel Sky roles at their current computed values (src/styles/pastel-sky.css).">
           <div className="memex-styleguide-swatch-grid">
             {COLOR_TOKENS.map(({ token, label }) => (
               <div key={token} className="memex-styleguide-swatch">
@@ -209,18 +210,18 @@ const StyleguidePage = () => {
           </div>
         </Section>
 
-        <Section title="Typography" note="Two Weekend Go everywhere; fixed UI scale.">
+        <Section title="Typography" note="Inter for every role; Pastel Sky size, line height, and tracking steps.">
           <div className="memex-styleguide-type-specimens">
-            <p className="bookmark-toolbar-brand">memex — brand, 21–24px italic 500</p>
-            <p className="memex-styleguide-type-heading">Heading small — 14px, 600–700</p>
-            <p className="memex-styleguide-type-ui">UI text — 13px, 500 (chips, rows, omnibar)</p>
-            <p className="memex-styleguide-type-caption">CAPTION — 12PX, 600 (COUNTS, KICKERS)</p>
+            <p className="bookmark-toolbar-brand">memex — brand, L italic medium</p>
+            <p className="memex-styleguide-type-heading">Heading — M, medium</p>
+            <p className="memex-styleguide-type-ui">UI text — S, medium (chips, rows, omnibar)</p>
+            <p className="memex-styleguide-type-caption">Caption — XS, regular (counts, metadata)</p>
           </div>
         </Section>
 
         <Section
           title="Filter chips"
-          note="Idle chips are grey ink on transparent; color arrives on selection. Dashed accent border marks bulk-assign targets."
+          note="Toggle treatment: transparent at rest, neutral-3 when pressed. A dashed accent outline marks bulk-assign targets."
         >
           <div className="memex-styleguide-demo-row">
             <FilterChip
@@ -250,7 +251,7 @@ const StyleguidePage = () => {
 
         <Section
           title="Action chips"
-          note="Fixed 6.75rem chips. Prominent fills derive from the canvas theme."
+          note="Button treatment. Primary fills use color-1, driven by the canvas swatch."
         >
           <div className="memex-styleguide-demo-row">
             <ActionChip variant="primary">Select</ActionChip>

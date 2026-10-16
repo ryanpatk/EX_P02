@@ -4,12 +4,12 @@ import { getTagsForLink } from '../utils/linkTags';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import StreamCard from './StreamCard';
 import { getInitials } from '../utils/streamCardFormat';
-import { PanelRight } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 interface LinkGridCardProps {
   link: LinkWithTag;
+  /** Card body: expand details, or toggle selection in selection mode. */
   onActivate: () => void;
-  onOpenDetails?: () => void;
   isDetailsActive?: boolean;
   isSelected?: boolean;
   selectionMode?: boolean;
@@ -20,7 +20,6 @@ interface LinkGridCardProps {
 const LinkGridCard = ({
   link,
   onActivate,
-  onOpenDetails,
   isDetailsActive = false,
   isSelected = false,
   selectionMode = false,
@@ -57,20 +56,18 @@ const LinkGridCard = ({
       selectionMode={selectionMode}
       isDetailsActive={isDetailsActive}
       actions={
-        !hideActions && onOpenDetails ? (
-          <button
-            type="button"
-            className={`bookmark-list-row-action ${isDetailsActive ? 'is-open' : ''}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenDetails();
-            }}
-            aria-label="Link details"
-            title="Link details"
-            aria-pressed={isDetailsActive}
+        !hideActions ? (
+          <a
+            className="bookmark-list-row-action"
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`Open ${title} in a new tab`}
+            title="Open link"
           >
-            <PanelRight aria-hidden="true" />
-          </button>
+            <ExternalLink aria-hidden="true" />
+          </a>
         ) : undefined
       }
     />

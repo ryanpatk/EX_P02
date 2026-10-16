@@ -4,10 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
  * Link preview card captions (title + host over the image):
  * - 'hover'  — image-first; the frosted caption slides up on hover/focus (7C)
  * - 'always' — the frosted caption is always overlaid (7A)
+ * - 'inset'  — the image sits inset like a mounted print, caption beneath (7E)
  * Touch devices always show captions. Flip the default here, or per user in
- * Settings → “Link titles”.
+ * Settings → “Link cards”.
  */
-export type LinkCaptionMode = 'hover' | 'always';
+export type LinkCaptionMode = 'hover' | 'always' | 'inset';
+
+export const LINK_CAPTION_MODES: { value: LinkCaptionMode; label: string }[] = [
+  { value: 'hover', label: 'Hover' },
+  { value: 'always', label: 'Overlay' },
+  { value: 'inset', label: 'Inset' },
+];
 
 export const DEFAULT_LINK_CAPTION_MODE: LinkCaptionMode = 'hover';
 
@@ -17,7 +24,7 @@ const EVENT = 'memex:link-captions';
 export const getLinkCaptionMode = (): LinkCaptionMode => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === 'hover' || stored === 'always') return stored;
+    if (stored === 'hover' || stored === 'always' || stored === 'inset') return stored;
   } catch {
     /* storage unavailable */
   }

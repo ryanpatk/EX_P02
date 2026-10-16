@@ -42,8 +42,6 @@ export const NOTE_PARAM = 'note';
 export const LINK_PARAM = 'link';
 /** URL param for the stream layout: absent/`grid` = masonry, `list` = reading list. */
 export const VIEW_PARAM = 'view';
-/** URL param for the day shown in the Today column (YYYY-MM-DD; absent = today). */
-export const DAY_PARAM = 'day';
 
 /**
  * Tag UI is parked while the core stream is refined: hides the tag chip row

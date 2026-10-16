@@ -10463,9 +10463,10 @@ textarea,
 }
 
 @media (min-width: 900px) {
+  /* Above main so the settings popover can overhang the grid */
   .memex-shell > .memex-sidebar {
     position: relative;
-    z-index: 1;
+    z-index: 2;
   }
 }
 

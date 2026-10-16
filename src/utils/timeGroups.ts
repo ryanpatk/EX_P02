@@ -51,7 +51,7 @@ export const groupByTime = <T,>(items: T[], getDate: (item: T) => string) => {
   }));
 };
 
-/** Local calendar day as YYYY-MM-DD (the ?day= URL value). */
+/** Local calendar day as YYYY-MM-DD. */
 export const toDayKey = (date: Date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -71,6 +71,3 @@ export const shiftDay = (key: string, delta: number) => {
 };
 
 export const dayKeyOf = (iso: string) => toDayKey(new Date(iso));
-
-export const isDayKey = (value: string | null): value is string =>
-  !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);

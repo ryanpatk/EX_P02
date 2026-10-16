@@ -1656,3 +1656,122 @@
   font-size: var(--size-xs);
   line-height: var(--line-xs);
 }
+
+/* Round 4 — journal list with daily activity */
+.mk-split-main--wide {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.mk-journal-tools {
+  display: inline-flex;
+  gap: var(--space-s);
+  color: var(--neutral-7);
+}
+
+.mk-journal-feed--log {
+  gap: var(--space-l);
+}
+
+.mk-log-dayhead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding: 0 var(--space-xs) var(--space-xxs);
+  box-shadow: 0 var(--border-s) 0 var(--neutral-3);
+  margin-bottom: var(--space-xxs);
+}
+
+.mk-log-dayhead-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.mk-log-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: center;
+  padding: 2px var(--space-xs);
+}
+
+.mk-log-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-s);
+}
+
+.mk-log-verb {
+  flex-shrink: 0;
+  color: var(--neutral-6);
+}
+
+.mk-log-row--done .mk-ellipsis {
+  text-decoration: line-through;
+  text-decoration-color: var(--neutral-5);
+}
+
+.mk-log-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin: var(--space-xxs) 0 0 calc(56px + var(--space-xs) * 2);
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-s);
+  background: var(--neutral-2);
+  color: var(--neutral-8);
+  font-size: var(--size-xs);
+  line-height: var(--line-s);
+}
+
+.mk-log-row .mk-log-summary {
+  margin: 0;
+}
+
+.mk-log-summary.is-open .mk-glyph:last-child {
+  transform: rotate(180deg);
+}
+
+.mk-fav-stack {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.mk-fav-stack .mk-fav + .mk-fav {
+  margin-left: -6px;
+}
+
+.mk-fav-stack .mk-fav {
+  box-shadow: 0 0 0 2px var(--neutral-2);
+  border-radius: var(--radius-xs);
+}
+
+.mk-log-more {
+  margin-left: calc(56px + var(--space-xs) * 2);
+  color: var(--neutral-6);
+  font-size: var(--size-xs);
+  line-height: var(--line-s);
+}
+
+.mk-journal-feed--log .mk-jot,
+.mk-log-row {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.mk-journal-feed--log .mk-jot-time {
+  white-space: nowrap;
+}
+
+.mk-journal-feed--log .mk-log-summary,
+.mk-journal-feed--log .mk-log-more {
+  margin-left: calc(64px + var(--space-xs) * 2);
+}
+
+.mk-journal-feed--log .mk-log-row .mk-log-summary {
+  margin-left: 0;
+}

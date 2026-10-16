@@ -6,7 +6,7 @@ Working checklist to keep memex moving. Updated 2026-09-07 — prune freely as t
 
 These unlock everything built this session. Roughly 10 minutes total, in order:
 
-- [ ] **Apply the Notes to Self + per-space super favorite migrations** — `supabase db push` (adds `self_messages` and `profile_links.is_super_favorite`; until then the Today column shows no jots and sending fails)
+- [ ] **Apply the Notes to Self + per-space super favorite migrations** — `supabase db push` (adds `self_messages` and `profile_links.is_super_favorite`; until then the Journal shows no jots and sending fails)
 - [x] **Migrate legacy Notes to Self** — 322 messages migrated into Home ✓ 2026-09-07 (`node --env-file=.env.migrate scripts/migrate-self-messages.mjs --email …`; `.env.migrate` holds the keys, gitignored — keep it for the notes migration, delete after)
 - [x] **Migrate legacy notes** — 85 notes migrated into the root, no space association by decision ✓ 2026-09-07 (`scripts/migrate-notes.mjs`; legacy collections ignored). `.env.migrate` can be deleted now unless more legacy data is coming.
 - [x] **Apply the token migration** — `supabase db push` ✓ 2026-09-06
@@ -39,7 +39,7 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 ## 🎨 UX redesign (decided 2026-10-15 via `/mocks`, built same day)
 
 - [x] **Stream** — masonry (1A) ⇄ reading list (1C) toggle; `?view=list`, remembered per browser. Tasks are a checklist band (grid) or inline rows (list), time-grouped in list view
-- [x] **Link preview cards** — 7C image-first with frosted caption on hover; Settings → “Link titles” flips to always-shown (7A). Default lives in `src/utils/linkCaptions.ts`
+- [x] **Link preview cards** — 7C image-first with frosted caption on hover; Settings → “Link cards” picks Hover (7C), Overlay (7A), or Inset (7E). Default lives in `src/utils/linkCaptions.ts`
 - [x] **Pinned sites** — 2C labelled launcher row under the page heading; footer bar removed, settings at the sidebar foot (phones: wordmark → drawer)
 - [x] **Link details** — 3C expand in place (`?link=`), neighbours animate via `MasonryLayout`. *Evaluate the feel; fallback is 3A side panel*
 - [x] **Search & capture** — 4A command palette (`CommandBar`): ⌘↵ note, ⇧⌘↵ task, Add link for URLs, cross-type results, “/” to focus
@@ -49,12 +49,12 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 - [ ] **Per-space colour picker / description** — needs `profiles.color` / `profiles.description` columns (migration)
 - [ ] **“Why I saved this” note on links** — needs a `links.note` column (migration)
 - [ ] **Retire** `LinkDetailsPanel`, `Omnibar` (only `/styleguide` now), `TaskGridCard`, the old `.memex-grid` CSS and `/mocks` once the new surfaces settle
-- [x] **Notes to Self → Today column** (8D + jot → note/task from 8A; 9A labelled header button, shortcut T) ✓ 2026-10-15; `NotesToSelfPanel` removed
+- [x] **Notes to Self → Journal** (10B: continuous jot list by day with each day's activity folded; jot → note/task; 9A labelled header button, shortcut J) ✓ 2026-10-15; replaced the short-lived 8D Today column; `NotesToSelfPanel` / `TodayPanel` removed
 - [ ] **Round 4 mocks** — mobile layout, tags (ship or remove), swatch presence
 
 ## 🔨 Next build tasks (ask Claude, no credentials needed)
 
-- [ ] **Today polish**: edit a jot in place, move a jot between scopes, jots in the command palette, markdown-lite in jots, month view for jumping further back
+- [ ] **Journal polish**: edit a jot in place, move a jot between scopes, jots in the command palette, markdown-lite in jots
 - [x] **JOYFUL pass** ✓ 2026-09-08: color model (hue-keyed neutrals, paper-first canvas, tint pairs), Geist Mono for data, press travel, canvas grain, capture pop-in — listen/look test in both themes; next candidates: a hue per space, haptics on mobile
 - [ ] **Stream refinements** (layout refactor landed 2026-09-07): visual pass on note/task cards vs. the link card; ~~space rename/delete from the sidebar~~ ✓ 2026-09-08; empty-space onboarding copy; keyboard nav across cards
 - [ ] **Remove list-view leftovers** — `ViewToggleFab`, `useViewMode`, `LinksList`, `LinkListRow`/`NoteListRow`/`TaskListRow`, `BookmarkOmnibar` now only serve `/styleguide` (and `LinkDetailsPanel` uses `LinkListRow` for its preview row); update the styleguide to showcase `StreamCard`

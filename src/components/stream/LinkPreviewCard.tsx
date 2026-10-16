@@ -1,12 +1,12 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { Check, PanelRight } from 'lucide-react';
+import { Check, ExternalLink } from 'lucide-react';
 import type { LinkWithTag } from '../../types/database';
 import { getHostname, getLinkTitle } from '../../utils/linkDisplay';
 
 interface LinkPreviewCardProps {
   link: LinkWithTag;
+  /** Card body: expand details, or toggle selection in selection mode. */
   onActivate: () => void;
-  onOpenDetails: () => void;
   /** Image failed to load — the stream swaps in the compact card. */
   onImageError: () => void;
   isSelected?: boolean;
@@ -21,7 +21,6 @@ interface LinkPreviewCardProps {
 const LinkPreviewCard = ({
   link,
   onActivate,
-  onOpenDetails,
   onImageError,
   isSelected = false,
   selectionMode = false,
@@ -31,7 +30,7 @@ const LinkPreviewCard = ({
   const title = getLinkTitle(link);
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
-    if ((event.target as HTMLElement).closest('button')) return;
+    if ((event.target as HTMLElement).closest('button, a')) return;
     onActivate();
   };
 
@@ -57,7 +56,7 @@ const LinkPreviewCard = ({
       }`}
       role="button"
       tabIndex={0}
-      aria-label={selectionMode ? `Select ${title}` : `Open ${title}`}
+      aria-label={selectionMode ? `Select ${title}` : `Details for ${title}`}
       aria-pressed={selectionMode ? isSelected : undefined}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -92,18 +91,17 @@ const LinkPreviewCard = ({
         </span>
       ) : (
         <div className="memex-pv-actions">
-          <button
-            type="button"
+          <a
             className="memex-pv-action"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenDetails();
-            }}
-            aria-label={`Details for ${title}`}
-            title="Details"
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`Open ${title} in a new tab`}
+            title="Open link"
           >
-            <PanelRight aria-hidden="true" />
-          </button>
+            <ExternalLink aria-hidden="true" />
+          </a>
         </div>
       )}
     </article>

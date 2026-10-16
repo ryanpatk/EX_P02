@@ -6,6 +6,7 @@ import {
   BookOpen,
   CalendarDays,
   ChevronDown,
+  CircleCheck,
   CircleUser,
   Copy,
   CornerDownLeft,
@@ -120,7 +121,7 @@ interface ArtboardProps {
   chosen?: boolean;
 }
 
-const CHOSEN = new Set(['1A', '1C', '2C', '3C', '4A', '5A', '6A', '7C']);
+const CHOSEN = new Set(['1A', '1C', '2C', '3C', '4A', '5A', '6A', '7C', '9A', '10B']);
 
 const Artboard = ({ id, title, summary, pros, cons, children, height }: ArtboardProps) => (
   <article className={`mk-artboard ${CHOSEN.has(id) ? 'is-chosen' : ''}`} id={`mock-${id}`}>
@@ -387,6 +388,175 @@ const JotCard = ({ jot }: { jot: SelfMessage }) => (
   </div>
 );
 
+/* ------------------------------------------------------------------ */
+/* Round 4 — Journal list with daily activity                          */
+/* ------------------------------------------------------------------ */
+
+type LogEntry =
+  | { kind: 'jot'; at: string; jot: SelfMessage }
+  | { kind: 'link'; at: string; link: LinkWithTag }
+  | { kind: 'note'; at: string; note: NoteWithTags }
+  | { kind: 'done'; at: string; task: TaskWithTags };
+
+type LogDay = { key: string; label: string; weekday: string; entries: LogEntry[] };
+
+const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+
+const localDayKey = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** Every jot plus that day's captures and completions, grouped by day, newest first. */
+const buildDayLog = (
+  jots: SelfMessage[],
+  links: LinkWithTag[],
+  notes: NoteWithTags[],
+  tasks: TaskWithTags[],
+  maxDays = 8,
+): LogDay[] => {
+  const entries: LogEntry[] = [
+    ...jots.map((jot) => ({ kind: 'jot' as const, at: jot.created_at, jot })),
+    ...links.map((link) => ({ kind: 'link' as const, at: link.created_at, link })),
+    ...notes.map((note) => ({ kind: 'note' as const, at: note.created_at, note })),
+    ...tasks.filter((t) => t.is_done).map((task) => ({ kind: 'done' as const, at: task.updated_at, task })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
+  const days: LogDay[] = [];
+  for (const entry of entries) {
+    const key = localDayKey(entry.at);
+    let day = days[days.length - 1];
+    if (!day || day.key !== key) {
+      if (days.length === maxDays) break;
+      day = { key, label: dayLabel(entry.at), weekday: weekdayFmt.format(new Date(entry.at)), entries: [] };
+      days.push(day);
+    }
+    day.entries.push(entry);
+  }
+  return days;
+};
+
+const activityOf = (day: LogDay) => day.entries.filter((e) => e.kind !== 'jot');
+const jotsOf = (day: LogDay) =>
+  day.entries.filter((e): e is Extract<LogEntry, { kind: 'jot' }> => e.kind === 'jot');
+
+const LogActivityRow = ({ entry, showTime = true }: { entry: LogEntry; showTime?: boolean }) => {
+  if (entry.kind === 'jot') return null;
+  const title =
+    entry.kind === 'link' ? getLinkTitle(entry.link) : entry.kind === 'note' ? entry.note.title || 'Untitled' : entry.task.title;
+  const verb = entry.kind === 'link' ? 'Saved' : entry.kind === 'note' ? 'Wrote' : 'Done';
+  return (
+    <div className={`mk-log-row mk-log-row--${entry.kind}`}>
+      <span className="mk-jot-time">{showTime ? timeOnly.format(new Date(entry.at)) : ''}</span>
+      <span className="mk-log-main">
+        {entry.kind === 'link' ? (
+          <Fav link={entry.link} size="s" />
+        ) : entry.kind === 'note' ? (
+          <StickyNote aria-hidden="true" className="mk-glyph" />
+        ) : (
+          <CircleCheck aria-hidden="true" className="mk-glyph" />
+        )}
+        <span className="mk-log-verb">{verb}</span>
+        <span className="mk-ellipsis">{title}</span>
+      </span>
+    </div>
+  );
+};
+
+const FavStack = ({ links }: { links: LinkWithTag[] }) => (
+  <span className="mk-fav-stack" aria-hidden="true">
+    {links.slice(0, 4).map((link) => (
+      <Fav key={link.id} link={link} size="s" />
+    ))}
+  </span>
+);
+
+const activitySummary = (activity: LogEntry[]) => {
+  const n = { link: 0, note: 0, done: 0 };
+  activity.forEach((e) => {
+    if (e.kind !== 'jot') n[e.kind] += 1;
+  });
+  return [
+    n.link && `${n.link} ${n.link === 1 ? 'link' : 'links'} saved`,
+    n.note && `${n.note} ${n.note === 1 ? 'note' : 'notes'}`,
+    n.done && `${n.done} done`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+};
+
+const LogSummaryRow = ({ activity, open }: { activity: LogEntry[]; open?: boolean }) => (
+  <div className={`mk-log-summary${open ? ' is-open' : ''}`}>
+    <FavStack links={activity.flatMap((e) => (e.kind === 'link' ? [e.link] : []))} />
+    <span className="mk-ellipsis">{activitySummary(activity)}</span>
+    <ChevronDown aria-hidden="true" className="mk-glyph mk-push" />
+  </div>
+);
+
+const DayHead = ({ day, trailing }: { day: LogDay; trailing?: ReactNode }) => (
+  <div className="mk-log-dayhead">
+    <span className="mk-label">{day.label}</span>
+    {day.label !== day.weekday && <span className="mk-meta">{day.weekday}</span>}
+    {trailing && <span className="mk-push mk-log-dayhead-trail">{trailing}</span>}
+  </div>
+);
+
+/** Consecutive non-jot entries collapse into one run (10C). */
+const toRuns = (entries: LogEntry[]) => {
+  const out: ({ kind: 'jot'; entry: LogEntry } | { kind: 'run'; entries: LogEntry[] })[] = [];
+  entries.forEach((entry) => {
+    const last = out[out.length - 1];
+    if (entry.kind === 'jot') out.push({ kind: 'jot', entry });
+    else if (last && last.kind === 'run') last.entries.push(entry);
+    else out.push({ kind: 'run', entries: [entry] });
+  });
+  return out;
+};
+
+const JournalHead = () => (
+  <div className="mk-journal-head">
+    <span className="mk-journal-title">Journal</span>
+    <span className="mk-meta">Home</span>
+    <span className="mk-push mk-journal-tools">
+      <Search aria-hidden="true" className="mk-glyph" />
+      <CalendarDays aria-hidden="true" className="mk-glyph" />
+    </span>
+  </div>
+);
+
+const JournalFrame = ({
+  spaces,
+  items,
+  children,
+}: {
+  spaces: string[];
+  items: Item[];
+  children: ReactNode;
+}) => (
+  <div className="mk-shell">
+    <SidebarMini spaces={spaces} identity />
+    <div className="mk-shell-main">
+      <div className="mk-topbar">
+        <h2 className="mk-heading">Home</h2>
+        <span className="mk-toggle-label is-on">
+          <BookOpen aria-hidden="true" className="mk-glyph" /> Journal
+          <span className="mk-kbd">J</span>
+        </span>
+      </div>
+      <div className="mk-split-main mk-split-main--wide">
+        <div className="mk-stream mk-stream--flush">
+          <StreamBackdrop items={items} />
+        </div>
+        <aside className="mk-journal">
+          <JournalHead />
+          <JotComposer />
+          <div className="mk-journal-feed mk-journal-feed--log">{children}</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+);
+
 /* Mini app frame for chrome mocks */
 const SidebarMini = ({
   spaces,
@@ -464,6 +634,10 @@ const MocksPage = () => {
   }, [sortedLinks, notes]);
 
   const pinned = useMemo(() => links.filter((l) => l.is_super_favorite), [links]);
+  const dayLog = useMemo(
+    () => buildDayLog(homeJots, links, notes, tasks, 10),
+    [homeJots, links, notes, tasks],
+  );
   const spaces = profiles.map((p) => p.name);
   const featured = sortedLinks.find((l) => l.preview_image_url && l.description) ?? sortedLinks[0];
   const longNote = [...notes].sort((a, b) => (b.body?.length ?? 0) - (a.body?.length ?? 0))[3] ?? notes[0];
@@ -489,8 +663,8 @@ const MocksPage = () => {
         <p className="mk-page-kicker">memex · design mocks</p>
         <h1 className="mk-page-title">Choose a direction</h1>
         <p className="mk-page-lede">
-          Round 3: where Notes to Self lives (8) and how you reach it (9). Reply with an 8x and a
-          9x ID, a mix, or ask for another pass. Earlier picks are marked below.
+          Round 4: the journal as one continuous list with each day's activity folded in (10).
+          Reply with a 10x ID, a mix, or ask for another pass. Earlier picks are marked below.
         </p>
         <div className="mk-decided" aria-label="Decided so far">
           {[
@@ -501,6 +675,8 @@ const MocksPage = () => {
             ['5A', 'Document column'],
             ['6A', 'Colour dot + heading'],
             ['7C', 'Caption on hover (7A fallback)'],
+            ['9A', 'Labelled header button'],
+            ['10B', 'Journal, activity folded'],
           ].map(([id, label]) => (
             <span key={id} className="mk-decided-chip">
               <Check aria-hidden="true" className="mk-glyph" />
@@ -509,7 +685,7 @@ const MocksPage = () => {
           ))}
         </div>
         <nav className="mk-toc" aria-label="Decisions">
-          {['Stream layout', 'Header & pinned sites', 'Link details', 'Search & capture', 'Note editor', 'Space identity', 'Link preview cards', 'Notes to Self', 'Notes to Self toggle'].map(
+          {['Stream layout', 'Header & pinned sites', 'Link details', 'Search & capture', 'Note editor', 'Space identity', 'Link preview cards', 'Notes to Self', 'Notes to Self toggle', 'Journal with activity'].map(
             (label, i) => (
               <a key={label} href={`#decision-${i + 1}`}>
                 <span>{i + 1}</span>
@@ -521,6 +697,105 @@ const MocksPage = () => {
       </header>
 
 
+
+      {/* 10 — Journal list with daily activity (round 4) ---------------- */}
+      <Section
+        n={10}
+        title="Journal with daily activity"
+        question="8D's day log hid your jots behind one-day-at-a-time paging. Back to 8A's continuous list — every jot, newest first, under day headers — with each day also showing what you saved, wrote and finished. How loud should that activity be?"
+      >
+        <Artboard
+          id="10A"
+          title="One timeline"
+          summary="Each day is a single chronological thread: jots read as writing, and captures sit between them as quieter one-line rows (favicon · Saved · title). You see what you were reading when you had the thought."
+          pros={['Thoughts sit beside what sparked them', 'Nothing hidden', 'Simplest model — it is just time']}
+          cons={['Busy capture days push jots apart', 'Long scroll on heavy days']}
+          height={700}
+        >
+          <JournalFrame spaces={spaces} items={firstItems}>
+            {dayLog.map((day) => (
+              <div key={day.key} className="mk-journal-day">
+                <DayHead day={day} />
+                {(() => {
+                  // Every jot shows; activity rows cap at 6 per day
+                  const shownActivity = new Set(activityOf(day).slice(0, 6));
+                  const hidden = activityOf(day).length - shownActivity.size;
+                  return (
+                    <>
+                      {day.entries.map((entry) =>
+                        entry.kind === 'jot' ? (
+                          <JotEntry key={entry.jot.id} jot={entry.jot} />
+                        ) : shownActivity.has(entry) ? (
+                          <LogActivityRow key={`${entry.kind}-${entry.at}`} entry={entry} />
+                        ) : null,
+                      )}
+                      {hidden > 0 && <span className="mk-log-more">{hidden} more saved…</span>}
+                    </>
+                  );
+                })()}
+              </div>
+            ))}
+          </JournalFrame>
+        </Artboard>
+
+        <Artboard
+          id="10B"
+          title="Jots first, activity folded"
+          summary="Jots stay the main read. Under each day's jots, one folded line sums up the rest — favicons, “4 links saved · 1 note · 2 done” — that opens in place. Days with no jots shrink to just that line."
+          pros={['Jots stay dense and scannable', 'Quiet days take one line', 'Activity is a click away']}
+          cons={['Loses the “what was I reading” timing', 'One more click to see captures']}
+          height={700}
+        >
+          <JournalFrame spaces={spaces} items={firstItems}>
+            {dayLog.map((day, di) => {
+              const activity = activityOf(day);
+              const open = di === 0;
+              return (
+                <div key={day.key} className="mk-journal-day">
+                  <DayHead day={day} />
+                  {jotsOf(day).map((entry) => (
+                    <JotEntry key={entry.jot.id} jot={entry.jot} />
+                  ))}
+                  {activity.length > 0 && <LogSummaryRow activity={activity} open={open} />}
+                  {open &&
+                    activity.slice(0, 5).map((entry) => (
+                      <LogActivityRow key={`${entry.kind}-${entry.at}`} entry={entry} />
+                    ))}
+                </div>
+              );
+            })}
+          </JournalFrame>
+        </Artboard>
+
+        <Artboard
+          id="10C"
+          title="Timeline with grouped runs"
+          summary="Chronological like 10A, but back-to-back captures fold into one row (“Saved 3 links” + favicons) placed where they happened. Single captures stay as one line. Keeps the timing without the clutter."
+          pros={['Keeps thought ↔ capture timing', 'Bursts of saving stay one line', 'Reads calmly on busy days']}
+          cons={['Slightly more to learn than 10A', 'Runs need a click to see every item']}
+          height={700}
+        >
+          <JournalFrame spaces={spaces} items={firstItems}>
+            {dayLog.map((day) => (
+              <div key={day.key} className="mk-journal-day">
+                <DayHead day={day} />
+                {toRuns(day.entries).map((part, pi) =>
+                  part.kind === 'jot' ? (
+                    part.entry.kind === 'jot' && <JotEntry key={part.entry.jot.id} jot={part.entry.jot} />
+                  ) : part.entries.length === 1 ? (
+                    <LogActivityRow key={`run-${pi}`} entry={part.entries[0]} />
+                  ) : (
+                    <div key={`run-${pi}`} className="mk-log-row">
+                      <span className="mk-jot-time">{timeOnly.format(new Date(part.entries[0].at))}</span>
+                      <LogSummaryRow activity={part.entries} />
+                    </div>
+                  ),
+                )}
+              </div>
+            ))}
+          </JournalFrame>
+        </Artboard>
+      </Section>
 
       {/* 8 — Notes to Self integration (round 3) ------------------------- */}
       <Section

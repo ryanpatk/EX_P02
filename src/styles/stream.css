@@ -339,6 +339,7 @@
 
 .memex-sidebar-settings {
   position: absolute;
+  top: auto; /* .bookmark-account-menu opens downward; this one opens up */
   bottom: calc(100% + var(--space-xxs));
   left: var(--space-xxs);
   z-index: 60;
@@ -564,6 +565,59 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Settings: segmented choice (link cards)                             */
+/* ------------------------------------------------------------------ */
+
+.memex-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+}
+
+.memex-segmented {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-xxs);
+  padding: var(--space-xxs);
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+}
+
+.memex-segmented button {
+  min-height: 28px;
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--neutral-7);
+  font: inherit;
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  font-weight: var(--weight-ui-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.memex-segmented button:hover {
+  color: var(--neutral-10);
+}
+
+.memex-segmented button.is-active {
+  background: var(--neutral-1);
+  color: var(--neutral-10);
+  box-shadow: var(--shadow-s);
+}
+
+.memex-segmented button:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------------ */
 /* View toggle (grid ⇄ list)                                           */
 /* ------------------------------------------------------------------ */
 
@@ -744,6 +798,9 @@
   flex-direction: column;
   gap: var(--space-xxs);
   padding: var(--space-xl) var(--space-s) var(--space-s);
+  /* Match the card's corners: backdrop-filter layers escape the parent's
+     rounded overflow clip in Chromium/WebKit */
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
   color: var(--on-image-foreground);
   pointer-events: none;
 }
@@ -753,6 +810,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  border-radius: inherit;
   background: linear-gradient(
     to top,
     color-mix(in oklab, var(--on-image-scrim) 72%, transparent) 0%,
@@ -801,30 +859,79 @@ html[data-link-captions='always'] .memex-pv-badge {
   display: none;
 }
 
-/* 'hover' (7C): caption slides up on hover/focus; the badge yields */
-html:not([data-link-captions='always']) .memex-pv-caption {
+/* 'hover' (7C): caption slides up on hover/focus; the badge yields.
+   The fade lives on the caption's children, never the caption itself:
+   opacity < 1 on an ancestor makes it a backdrop root, so the frosted
+   ::before would blur nothing until the fade finished, then snap. */
+html[data-link-captions='hover'] .memex-pv-caption {
   transform: translateY(100%);
-  opacity: 0;
-  transition:
-    transform var(--motion-large-duration) var(--motion-large-easing),
-    opacity var(--motion-duration) var(--motion-easing);
+  transition: transform var(--motion-large-duration) var(--motion-large-easing);
 }
 
-html:not([data-link-captions='always']) .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption,
-html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-caption {
+html[data-link-captions='hover'] .memex-pv-caption::before,
+html[data-link-captions='hover'] .memex-pv-caption > * {
+  opacity: 0;
+  transition: opacity var(--motion-duration) var(--motion-easing);
+}
+
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption,
+html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption {
   transform: none;
+}
+
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption::before,
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption > *,
+html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption::before,
+html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption > * {
   opacity: 1;
 }
 
-html:not([data-link-captions='always']) .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-badge,
-html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-badge {
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-badge,
+html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-badge {
   opacity: 0;
+}
+
+/* 'inset' (7E): the image sits inset like a mounted print; the caption
+   moves below it onto the card surface */
+html[data-link-captions='inset'] .memex-pv {
+  padding: var(--space-xs);
+  background: var(--neutral-1);
+}
+
+html[data-link-captions='inset'] .memex-pv-image {
+  border-radius: calc(var(--radius-m) - var(--space-xs));
+  box-shadow: 0 0 0 var(--border-s) var(--neutral-4-transparent);
+}
+
+html[data-link-captions='inset'] .memex-pv-badge,
+html[data-link-captions='inset'] .memex-pv-caption::before {
+  display: none;
+}
+
+html[data-link-captions='inset'] .memex-pv-caption {
+  position: static;
+  padding: var(--space-xs) var(--space-xxs) var(--space-xxs);
+  border-radius: 0;
+  color: var(--neutral-10);
+}
+
+html[data-link-captions='inset'] .memex-pv-host {
+  opacity: 1;
+  color: var(--neutral-7);
+}
+
+html[data-link-captions='inset'] .memex-pv-title {
+  text-shadow: none;
 }
 
 /* Touch: no hover, so captions are always on */
 @media (hover: none) {
-  html:not([data-link-captions='always']) .memex-pv-caption {
+  html[data-link-captions='hover'] .memex-pv-caption {
     transform: none;
+  }
+
+  html[data-link-captions='hover'] .memex-pv-caption::before,
+  html[data-link-captions='hover'] .memex-pv-caption > * {
     opacity: 1;
   }
 
@@ -956,6 +1063,7 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
 }
 
 .memex-expanded-media {
+  position: relative;
   overflow: hidden;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
   background: var(--neutral-3);
@@ -966,6 +1074,12 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   width: 100%;
   max-height: 360px;
   object-fit: cover;
+}
+
+.memex-expanded-media-close {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
 }
 
 .memex-expanded-body {
@@ -1197,7 +1311,9 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   }
 
   .memex-masonry.is-animating .memex-masonry-cell,
-  html:not([data-link-captions='always']) .memex-pv-caption {
+  html[data-link-captions='hover'] .memex-pv-caption,
+  html[data-link-captions='hover'] .memex-pv-caption::before,
+  html[data-link-captions='hover'] .memex-pv-caption > * {
     transition: none;
   }
 }
@@ -1839,10 +1955,10 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
 }
 
 /* ------------------------------------------------------------------ */
-/* Today column (8D) + labelled toggle (9A)                            */
+/* Journal (10B) + labelled toggle (9A)                                */
 /* ------------------------------------------------------------------ */
 
-.memex-today-toggle {
+.memex-journal-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
@@ -1866,31 +1982,31 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
     transform var(--transition-fast);
 }
 
-.memex-today-toggle svg {
+.memex-journal-toggle svg {
   width: 16px;
   height: 16px;
 }
 
-.memex-today-toggle:hover {
+.memex-journal-toggle:hover {
   --edge: var(--neutral-7-transparent);
   background-color: var(--neutral-2);
 }
 
-.memex-today-toggle.is-active {
+.memex-journal-toggle.is-active {
   background: var(--neutral-3);
   box-shadow: inset 0 0 0 var(--border-s) var(--neutral-6-transparent);
 }
 
-.memex-today-toggle:active {
+.memex-journal-toggle:active {
   transform: translateY(var(--motion-press-distance));
 }
 
-.memex-today-toggle:focus-visible {
+.memex-journal-toggle:focus-visible {
   outline: var(--focus-ring-outline);
   outline-offset: 2px;
 }
 
-.memex-today-toggle-count {
+.memex-journal-toggle-count {
   display: inline-grid;
   place-items: center;
   min-width: 20px;
@@ -1906,7 +2022,7 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
 }
 
 /* Panel */
-.memex-today {
+.memex-journal {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1918,22 +2034,15 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   font-family: var(--font-ui);
 }
 
-.memex-today-head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  padding: var(--space-s) var(--space-s) var(--space-xs);
-  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
-}
-
-.memex-today-title-row {
+.memex-journal-head {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  min-height: 52px;
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-s);
 }
 
-.memex-today-title {
-  position: relative;
+.memex-journal-title {
   display: flex;
   align-items: baseline;
   gap: var(--space-xs);
@@ -1941,7 +2050,7 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   min-width: 0;
 }
 
-.memex-today-title h2 {
+.memex-journal-title h2 {
   margin: 0;
   color: var(--neutral-10);
   font-size: var(--size-m);
@@ -1950,39 +2059,42 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   font-weight: var(--weight-ui-heavy);
 }
 
-.memex-today-date {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-  padding: 0 var(--space-xxs);
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: transparent;
+.memex-journal-scope {
+  min-width: 0;
+  overflow: hidden;
   color: var(--neutral-7);
-  font-family: var(--font-data);
   font-size: var(--size-s);
   line-height: var(--line-s);
-  cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.memex-today-date svg {
-  width: 14px;
-  height: 14px;
+.memex-journal-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  flex: none;
 }
 
-.memex-today-date:hover {
-  background: var(--neutral-3);
-  color: var(--neutral-10);
+.memex-journal-head .memex-icon-button {
+  width: 28px;
+  height: 28px;
 }
 
-.memex-today-date:focus-visible {
-  outline: var(--focus-ring-outline);
+.memex-journal-head .memex-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.memex-journal-date {
+  position: relative;
+  display: inline-flex;
 }
 
 /* The native date input only supplies the picker; the button is its face */
-.memex-today-date-input {
+.memex-journal-date-input {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: 0;
   width: 1px;
   height: 1px;
@@ -1990,197 +2102,183 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   pointer-events: none;
 }
 
-.memex-today-nav {
+.memex-journal-search {
   display: flex;
   align-items: center;
-  gap: var(--space-xxs);
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+  color: var(--neutral-7);
+}
+
+.memex-journal-search > svg {
+  width: 16px;
+  height: 16px;
   flex: none;
 }
 
-.memex-today-nav .memex-icon-button {
-  width: 28px;
-  height: 28px;
-}
-
-.memex-today-nav .memex-icon-button svg {
-  width: 16px;
-  height: 16px;
-}
-
-.memex-today-nav .memex-icon-button:disabled {
-  color: var(--neutral-5);
-  background: transparent;
-  cursor: default;
-}
-
-.memex-today-jump {
-  padding: var(--space-xxs) var(--space-xs);
+.memex-journal-search input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
   border: 0;
-  border-radius: var(--radius-s);
-  background: var(--option-badge-background);
-  color: var(--option-badge-foreground);
-  font: inherit;
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-medium);
-  cursor: pointer;
-}
-
-.memex-today-jump:focus-visible {
-  outline: var(--focus-ring-outline);
-}
-
-/* Week strip */
-.memex-today-week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--space-xxs);
-}
-
-.memex-today-weekday {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: var(--space-xxs) 0;
-  border: 0;
-  border-radius: var(--radius-s);
   background: transparent;
   color: var(--neutral-10);
   font: inherit;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-
-.memex-today-weekday:hover:not(:disabled) {
-  background: var(--neutral-3);
-}
-
-.memex-today-weekday:disabled {
-  color: var(--neutral-5);
-  cursor: default;
-}
-
-.memex-today-weekday.is-selected {
-  background: var(--navigation-active-background);
-}
-
-.memex-today-weekday:focus-visible {
-  outline: var(--focus-ring-outline);
-}
-
-.memex-today-weekday-letter {
-  color: var(--neutral-6);
-  font-size: var(--size-xxs);
-  line-height: var(--line-xxs);
-  font-weight: var(--weight-ui-medium);
-}
-
-.memex-today-weekday-num {
-  font-family: var(--font-data);
   font-size: var(--size-s);
   line-height: var(--line-s);
-  font-variant-numeric: tabular-nums;
 }
 
-.memex-today-weekday.is-today .memex-today-weekday-num {
-  color: var(--color-1-ink);
-  font-weight: var(--weight-data-heavy);
+.memex-journal-search input:focus {
+  outline: none;
 }
 
-.memex-today-weekday-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: transparent;
+.memex-journal-search:focus-within {
+  color: var(--neutral-10);
 }
 
-.memex-today-weekday-dot.is-on {
-  background: var(--neutral-6);
-}
-
-.memex-today-weekday.is-selected .memex-today-weekday-dot.is-on {
-  background: var(--color-1-ink);
-}
-
-/* Body */
-.memex-today-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  padding: var(--space-s) var(--space-s) var(--space-l);
-}
-
-.memex-today-composer {
+.memex-journal-composer {
   display: flex;
   flex-direction: column;
   gap: var(--space-xxs);
+  padding: 0 var(--space-s) var(--space-xs);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
 }
 
-.memex-today-composer textarea {
+.memex-journal-composer textarea {
   width: 100%;
   resize: none;
   min-height: 40px;
 }
 
-.memex-today-composer-hint {
+.memex-journal-composer-hint {
   color: var(--neutral-6);
   font-size: var(--size-xxs);
   line-height: var(--line-xxs);
   text-align: right;
 }
 
-.memex-today-section {
+.memex-journal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs);
+  gap: var(--space-l);
+  padding: var(--space-s) var(--space-s) var(--space-l);
 }
 
-.memex-today-label {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-xs);
+.memex-journal-empty {
   margin: 0;
-  color: var(--neutral-7);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-medium);
-}
-
-.memex-today-count {
-  color: var(--neutral-6);
-  font-family: var(--font-data);
-  font-weight: var(--weight-data-regular);
-  font-variant-numeric: tabular-nums;
-}
-
-.memex-today-empty {
-  margin: 0;
+  padding: var(--space-xl) var(--space-s);
   color: var(--neutral-6);
   font-size: var(--size-s);
   line-height: var(--line-s);
-}
-
-.memex-today-empty.is-day {
-  padding: var(--space-xl) 0;
   text-align: center;
+  text-wrap: balance;
 }
 
-.memex-today-more {
-  margin: 0;
-  padding-left: var(--space-xs);
-  color: var(--neutral-6);
+/* Day */
+.memex-journal-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  scroll-margin-top: var(--space-s);
+}
+
+.memex-journal-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-xxs);
+  padding: 0 var(--space-xs) var(--space-xxs);
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
+  color: var(--neutral-8);
   font-size: var(--size-xs);
   line-height: var(--line-xs);
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-journal-weekday {
+  color: var(--neutral-6);
+  font-weight: var(--weight-ui-regular);
+}
+
+/* Activity fold */
+.memex-journal-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  min-height: 32px;
+  margin-left: calc(56px + var(--space-xs) * 2);
+  padding: var(--space-xxs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--neutral-2);
+  color: var(--neutral-8);
+  font: inherit;
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.memex-journal-fold:hover {
+  background: var(--neutral-3);
+  color: var(--neutral-10);
+}
+
+.memex-journal-fold:focus-visible {
+  outline: var(--focus-ring-outline);
+}
+
+.memex-journal-fold-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memex-journal-fold-chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.memex-journal-fold.is-open .memex-journal-fold-chevron {
+  transform: rotate(180deg);
+}
+
+.memex-journal-favicons {
+  display: inline-flex;
+  flex: none;
+}
+
+.memex-journal-favicons img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+  background: var(--neutral-1);
+  box-shadow: 0 0 0 2px var(--neutral-2);
+}
+
+.memex-journal-favicons img + img {
+  margin-left: -5px;
+}
+
+.memex-journal-fold:hover .memex-journal-favicons img {
+  box-shadow: 0 0 0 2px var(--neutral-3);
 }
 
 /* Jots */
 .memex-jots,
-.memex-today-items {
+.memex-journal-activity {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2296,91 +2394,87 @@ html:not([data-link-captions='always']) .memex-pv.is-selection-mode .memex-pv-ba
   outline: var(--focus-ring-outline);
 }
 
-/* Captured / completed / open tasks */
-.memex-today-item,
-.memex-today-task {
-  display: flex;
+/* Activity rows */
+.memex-journal-item {
+  display: grid;
+  grid-template-columns: 56px 18px auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-xs);
+  column-gap: var(--space-xs);
   width: 100%;
   min-width: 0;
-  padding: var(--space-xxs) var(--space-xs);
+  padding: 2px var(--space-xs);
   border: 0;
   border-radius: var(--radius-s);
   background: transparent;
-  color: var(--neutral-10);
+  color: var(--neutral-8);
   font: inherit;
-  font-size: var(--size-s);
+  font-size: var(--size-xs);
   line-height: var(--line-s);
   text-align: left;
-}
-
-button.memex-today-item {
   cursor: pointer;
 }
 
-button.memex-today-item:hover {
-  background: var(--neutral-2);
+.memex-journal-item .memex-jot-time {
+  padding-top: 0;
 }
 
-button.memex-today-item:focus-visible {
+.memex-journal-item:hover {
+  background: var(--neutral-2);
+  color: var(--neutral-10);
+}
+
+.memex-journal-item:focus-visible {
   outline: var(--focus-ring-outline);
 }
 
-.memex-today-item.is-done .memex-today-item-title {
-  color: var(--neutral-7);
-  text-decoration: line-through;
-}
-
-.memex-today-item-icon {
+.memex-journal-item-icon {
   display: inline-grid;
   place-items: center;
-  flex: none;
   width: 18px;
   height: 18px;
   color: var(--neutral-7);
 }
 
-.memex-today-item-icon img {
+.memex-journal-item-icon img {
   width: 16px;
   height: 16px;
   object-fit: contain;
   border-radius: var(--radius-xs);
 }
 
-.memex-today-item-icon svg {
+.memex-journal-item-icon svg {
   width: 14px;
   height: 14px;
 }
 
-.memex-today-item-title {
-  flex: 1;
+.memex-journal-item-verb {
+  color: var(--neutral-6);
+}
+
+.memex-journal-item-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.memex-today-task .memex-task-check {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  flex: none;
+.memex-journal-item.is-done .memex-journal-item-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--neutral-5);
 }
 
-.memex-today-task .memex-task-check svg {
-  width: 12px;
-  height: 12px;
+.memex-journal-more {
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 899px) {
-  .memex-today-toggle span:not(.memex-today-toggle-count),
-  .memex-today-toggle-kbd {
+  .memex-journal-toggle span:not(.memex-journal-toggle-count),
+  .memex-journal-toggle-kbd {
     display: none;
   }
 
-  .memex-today-toggle {
+  .memex-journal-toggle {
     padding: 0 var(--space-xs);
   }
 }
@@ -2388,5 +2482,9 @@ button.memex-today-item:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .memex-jot.is-new {
     animation: none;
+  }
+
+  .memex-journal-fold-chevron {
+    transition: none;
   }
 }

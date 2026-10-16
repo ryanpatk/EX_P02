@@ -11,7 +11,7 @@ import LinkPreviewCard from '../components/stream/LinkPreviewCard';
 import MasonryLayout, { type MasonryItem } from '../components/stream/MasonryLayout';
 import StreamRow from '../components/stream/StreamRow';
 import TaskBand from '../components/stream/TaskBand';
-import TodayPanel from '../components/stream/TodayPanel';
+import JournalPanel from '../components/stream/JournalPanel';
 import NoteEditor from '../components/NoteEditor';
 import NoteGridCard from '../components/NoteGridCard';
 import SpaceDetailsModal from '../components/SpaceDetailsModal';
@@ -21,7 +21,6 @@ import {
   HOME_PATH,
   ITEM_TYPES,
   ItemType,
-  DAY_PARAM,
   LINK_PARAM,
   NOTE_PARAM,
   VIEW_PARAM,
@@ -65,16 +64,16 @@ import {
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import { markdownExcerpt, noteDisplayTitle } from '../utils/markdown';
-import { dayKeyOf, groupByTime, isDayKey, relativeTime, toDayKey } from '../utils/timeGroups';
+import { dayKeyOf, groupByTime, relativeTime, toDayKey } from '../utils/timeGroups';
 import { useSpaceColors } from '../hooks/useSpaceColors';
 import type { RescrapeResult } from '../components/LinkDetailsPanel';
 import {
-  CalendarDays,
+  BookOpen,
   Check,
   ChevronRight,
+  ExternalLink,
   LayoutGrid,
   Link as LinkIcon,
-  PanelRight,
   Pencil,
   Plus,
   Rows3,
@@ -190,9 +189,7 @@ const StreamPage = () => {
   const includeUntagged = searchParams.get(UNTAGGED_PARAM) === '1';
   const openNoteId = searchParams.get(NOTE_PARAM);
   const expandedLinkId = searchParams.get(LINK_PARAM);
-  const dayParam = searchParams.get(DAY_PARAM);
   const todayKey = toDayKey(new Date());
-  const viewedDay = isDayKey(dayParam) && dayParam <= todayKey ? dayParam : todayKey;
   const viewParam = searchParams.get(VIEW_PARAM);
   const view: StreamView =
     viewParam === 'list' || viewParam === 'grid' ? viewParam : readStoredView();
@@ -263,15 +260,6 @@ const StreamPage = () => {
     [updateParams],
   );
 
-  const setViewedDay = useCallback(
-    (day: string) =>
-      updateParams((params) => {
-        if (day === toDayKey(new Date())) params.delete(DAY_PARAM);
-        else params.set(DAY_PARAM, day);
-      }, true),
-    [updateParams],
-  );
-
   const setView = useCallback(
     (next: StreamView) => {
       try {
@@ -332,10 +320,10 @@ const StreamPage = () => {
     }
   }, []);
 
-  // "T" toggles the Today column from anywhere outside a text field
+  // "J" toggles the Journal from anywhere outside a text field
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key.toLowerCase() !== 't' || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() !== 'j' || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
       event.preventDefault();
@@ -1027,7 +1015,7 @@ const StreamPage = () => {
     [updateNoteAsync],
   );
 
-  /* ---------- Today column: jots ---------- */
+  /* ---------- Journal: jots ---------- */
 
   const hiddenJotIds = useMemo(
     () =>
@@ -1087,7 +1075,7 @@ const StreamPage = () => {
     [addNotesToProfile, addTasksToProfile, createNote, createTask, deleteSelfMessage, flash, openNote, spaceId],
   );
 
-  const handleOpenTodayItem = useCallback(
+  const handleOpenJournalItem = useCallback(
     (item: StreamItem) => {
       if (item.type === 'link') openUrlInBackgroundTab(item.link.url);
       else if (item.type === 'note') openNote(item.id);
@@ -1287,7 +1275,7 @@ const StreamPage = () => {
     if (item.type === 'link') {
       if (expandedLinkId === item.id) return renderExpanded(item.link, 'card');
       const activate = () =>
-        selectionMode ? handleToggleSelect(item) : handleOpenLink(item.link);
+        selectionMode ? handleToggleSelect(item) : handleOpenLinkDetails(item.link);
       if (item.link.preview_image_url && !brokenPreviews.has(item.id)) {
         return (
           <LinkPreviewCard
@@ -1295,7 +1283,6 @@ const StreamPage = () => {
             isSelected={isSelected}
             selectionMode={selectionMode}
             onActivate={activate}
-            onOpenDetails={() => handleOpenLinkDetails(item.link)}
             onImageError={() => markPreviewBroken(item.id)}
           />
         );
@@ -1306,7 +1293,6 @@ const StreamPage = () => {
           isSelected={isSelected}
           selectionMode={selectionMode}
           onActivate={activate}
-          onOpenDetails={() => handleOpenLinkDetails(item.link)}
         />
       );
     }
@@ -1356,22 +1342,26 @@ const StreamPage = () => {
               </>
             }
             thumbnail={brokenPreviews.has(link.id) ? null : link.preview_image_url}
-            onActivate={() => (selectionMode ? handleToggleSelect(item) : handleOpenLink(link))}
+            onActivate={() =>
+              selectionMode ? handleToggleSelect(item) : handleOpenLinkDetails(link)
+            }
             selectionMode={selectionMode}
             isSelected={isSelected}
             isNew={link.id.startsWith('temp-')}
-            ariaLabel={selectionMode ? `Select ${getLinkTitle(link)}` : `Open ${getLinkTitle(link)}`}
+            ariaLabel={
+              selectionMode ? `Select ${getLinkTitle(link)}` : `Details for ${getLinkTitle(link)}`
+            }
             actions={
-              <button
-                type="button"
-                className={`bookmark-list-row-action${isExpanded ? ' is-open' : ''}`}
-                onClick={() => handleOpenLinkDetails(link)}
-                aria-label={`Details for ${getLinkTitle(link)}`}
-                aria-expanded={isExpanded}
-                title="Details"
+              <a
+                className="bookmark-list-row-action"
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${getLinkTitle(link)} in a new tab`}
+                title="Open link"
               >
-                <PanelRight aria-hidden="true" />
-              </button>
+                <ExternalLink aria-hidden="true" />
+              </a>
             }
           />
           {isExpanded && renderExpanded(link, 'row')}
@@ -1501,21 +1491,21 @@ const StreamPage = () => {
             )}
             <button
               type="button"
-              className={`memex-today-toggle${selfNotesOpen ? ' is-active' : ''}`}
+              className={`memex-journal-toggle${selfNotesOpen ? ' is-active' : ''}`}
               onClick={toggleSelfNotes}
               aria-pressed={selfNotesOpen}
-              aria-keyshortcuts="T"
-              title={selfNotesOpen ? 'Close Today (T)' : 'Open Today (T)'}
+              aria-keyshortcuts="J"
+              title={selfNotesOpen ? 'Close journal (J)' : 'Open journal (J)'}
             >
-              <CalendarDays aria-hidden="true" />
-              <span>Today</span>
+              <BookOpen aria-hidden="true" />
+              <span>Journal</span>
               {todayJotCount > 0 && (
-                <span className="memex-today-toggle-count" aria-label={`${todayJotCount} jots today`}>
+                <span className="memex-journal-toggle-count" aria-label={`${todayJotCount} jots today`}>
                   {todayJotCount}
                 </span>
               )}
-              <kbd className="memex-kbd memex-today-toggle-kbd" aria-hidden="true">
-                T
+              <kbd className="memex-kbd memex-journal-toggle-kbd" aria-hidden="true">
+                J
               </kbd>
             </button>
           </>
@@ -1531,7 +1521,7 @@ const StreamPage = () => {
           <button
             type="button"
             className="bookmark-mobile-scrim"
-            aria-label="Close Today"
+            aria-label="Close journal"
             onClick={closeSelfNotes}
           />
         )}
@@ -1680,17 +1670,14 @@ const StreamPage = () => {
             className={`bookmark-rail bookmark-rail--tags memex-self-notes-rail${
               isNarrow ? ' is-mobile-open' : ''
             }`}
-            aria-label="Today"
+            aria-label="Journal"
           >
-            <TodayPanel
+            <JournalPanel
               scopeId={spaceId ?? null}
               scopeName={contextName}
-              day={viewedDay}
-              onChangeDay={setViewedDay}
               items={scopedItems}
               hiddenJotIds={hiddenJotIds}
-              onOpenItem={handleOpenTodayItem}
-              onToggleTask={handleToggleTaskDone}
+              onOpenItem={handleOpenJournalItem}
               onConvertJot={(jot, kind) => void handleConvertJot(jot, kind)}
               onDeleteJot={handleDeleteJot}
               onClose={closeSelfNotes}

@@ -189,6 +189,16 @@ const LinkExpandedCard = ({
       {hasImage && (
         <div className="memex-expanded-media">
           <img src={link.preview_image_url} alt="" onError={() => setImageFailed(true)} />
+          {/* Same corner as the collapsed card's open-link button */}
+          <button
+            type="button"
+            className="memex-pv-action memex-expanded-media-close"
+            onClick={onClose}
+            aria-label="Close details"
+            title="Close"
+          >
+            <X aria-hidden="true" />
+          </button>
         </div>
       )}
 
@@ -244,14 +254,16 @@ const LinkExpandedCard = ({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="memex-icon-button"
-              onClick={onClose}
-              aria-label="Close details"
-            >
-              <X aria-hidden="true" />
-            </button>
+            {!hasImage && (
+              <button
+                type="button"
+                className="memex-icon-button"
+                onClick={onClose}
+                aria-label="Close details"
+              >
+                <X aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
 

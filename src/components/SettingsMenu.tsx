@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import CanvasColorPicker from './CanvasColorPicker';
 import DarkModeToggle from './DarkModeToggle';
 import SoundToggle from './SoundToggle';
-import { useLinkCaptionMode } from '../utils/linkCaptions';
+import { LINK_CAPTION_MODES, useLinkCaptionMode } from '../utils/linkCaptions';
 import { userDisplayName } from '../utils/userDisplay';
 
 interface SettingsMenuProps {
@@ -29,14 +29,25 @@ const SettingsMenu = ({ user, onOpenTokens, onLogout }: SettingsMenuProps) => {
         <CanvasColorPicker />
         <DarkModeToggle className="bookmark-account-menu-action" />
         <SoundToggle className="bookmark-account-menu-action" />
-        <button
-          type="button"
-          className="bookmark-account-menu-action"
-          aria-pressed={captionMode === 'hover'}
-          onClick={() => setCaptionMode(captionMode === 'hover' ? 'always' : 'hover')}
-        >
-          Link titles: {captionMode === 'hover' ? 'on hover' : 'always shown'}
-        </button>
+        <div className="memex-settings-field">
+          <p className="bookmark-account-menu-kicker" id="link-cards-label">
+            Link cards
+          </p>
+          <div className="memex-segmented" role="radiogroup" aria-labelledby="link-cards-label">
+            {LINK_CAPTION_MODES.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={captionMode === option.value}
+                className={captionMode === option.value ? 'is-active' : undefined}
+                onClick={() => setCaptionMode(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button type="button" className="bookmark-account-menu-action" onClick={onOpenTokens}>
           Access tokens…
         </button>

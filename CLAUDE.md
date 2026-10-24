@@ -9,7 +9,9 @@ EX_P02 is the codebase for **memex**, a personal working-memory system built as 
 ## Documentation Map
 
 - `TODO.md` — living checklist: the user's pending ops steps (deploys, migrations, secrets) and next build tasks. Check it at session start; update it as work lands.
-- `VISION.md` — production vision: modules, primitives, spaces model, data-model evolution, phasing. Product truth for where we're going.
+- `ROADMAP.md` — **the north star; read it before any non-trivial task.** memex closes a loop: total capture → visual display → agent analysis. Requirements: Journal as home (Library and space boards behind it); a markdown vault you own as the source of truth, written by one Durable Object and synced to local replicas (Supabase goes away); a walk-away guarantee (everything, images included, lives in files); a React Native app; rich automatic capture; a Tauri desktop app with a re-sync safety net and the `~/memex` mirror; agent access via MCP. Also: phases, difficulty, guardrails for interim work (§6), decisions (§8). Wins over `VISION.md` where they disagree. UI mockups: `docs/mocks/2026-10-24-journal-first.html`.
+- `CONTEXT.md` — domain language (Journal, Entry, Jot, Item, Space, Library, Source, Capture, Vault, Writer…) with words to avoid. Use these terms in code, copy and docs.
+- `VISION.md` — production vision: primitives, spaces model, non-goals. Its shell and data-model sections are superseded by `ROADMAP.md`.
 - `PRODUCT.md` — positioning, users, brand personality, design principles.
 - `DESIGN.md` — design-system truth. The live Links dashboard is the canonical surface and the template every new module inherits. When code and `DESIGN.md` diverge, the dashboard implementation wins; update the doc.
 - `JOYFUL_SYSTEMS.md` — the abstract JOYFUL_SYSTEMS design language (palette, spacing, radius, contrast, motion, sound). Product-agnostic; memex's canvas swatches and future color decisions derive from it.
@@ -100,10 +102,16 @@ Planned (per `VISION.md`): **notes** (markdown body), **tasks**, and per-primiti
 On 2026-10-15 the app adopted the **Pastel Sky** theme and a redesigned stream (directions chosen via `/mocks`, recorded in `TODO.md`). `StreamPage` now has: a page header (title, space dot, count, Edit space, Journal) with a labelled pinned-sites launcher row; a command palette (`src/components/stream/CommandBar.tsx`) in place of the omnibar; a masonry ⇄ list view toggle (`?view=`); image-first link preview cards in three styles — caption on hover, always overlaid, or an inset print with the caption beneath (Settings → “Link cards”); links that expand in place inside the grid (`?link=`, `MasonryLayout` animates neighbours); a task checklist band; undoable deletes (toast + Undo, no confirms); and a centered document-column note editor; and the Journal column (every jot by day, with each day's activity folded in). The footer bar is gone; settings live at the sidebar foot (phones: the wordmark opens a drawer). Stream styles are in `src/styles/stream.css`. On 2026-10-16 the legacy stream components (`LinkDetailsPanel`, `Omnibar`/`BookmarkOmnibar`, `TaskGridCard`, the list-row components, `ViewToggleFab`/`useViewMode`, `TagSelector`) and their CSS were removed; `/styleguide` now shows the live stream cards. The same day the dead CSS was pruned (`index.css` 8.6k → 4.6k lines; verified by diffing computed styles across the stream, Journal, palette, settings, selection, expanded link, note editor, list view, dark mode, styleguide and phone width) and a surface audit unified the icon buttons (`.memex-icon-button`, `.is-compact`), put the Journal toggle on `btn-secondary btn-compact`, mapped small outline buttons to the theme's outline colours, completed type roles (size + line + letter-spacing), and moved the note editor's leftover `index.css` rules into `stream.css`.
 
 ### Direction of Travel
-1. ~~App shell~~ → ~~per-module tabs~~ → **unified stream** done; profiles → spaces rename (DB + copy) still pending
-2. Refine the stream: card polish per type, space rename/delete from the sidebar, post-capture tag/space editing, keyboard navigation
-3. Attach-to-space flows beyond selection mode; retire legacy projects and list-view components
-4. Cross-primitive search is now inherent to the stream; next: encryption, mobile polish
+Set by `ROADMAP.md` (2026-10-24). In short:
+1. **Phase 1** — Journal-first web on today's stack: the Journal becomes `/`, the stream becomes the Library (`/library`), spaces become working boards
+2. **Phase 2** — monorepo + `packages/core` (`Repository` interface, Supabase as one adapter, first Vitest tests) + `docs/vault-format.md` + an export script that writes today's data as a vault folder (walk-away guarantee from here on)
+3. **Phase 3** (parallel) — extension: deploy v0.2, `source`/`sourceId`/`lists` data model, YouTube likes, post-capture filing
+4. **Phase 4** — leave Supabase: vault in R2 as source of truth, one Durable Object writer with journaled writes and a change feed, local replicas + outbox, passkey + device pairing
+5. **Phase 5** — Tauri desktop app: re-sync safety net for X / Pinterest / YouTube (can start after Phase 3), `~/memex` mirror (after Phase 4), global jot shortcut
+6. **Phase 6** — Expo React Native app on `packages/core`
+7. **Phase 7** — agents: remote MCP server on the Worker (read tools, images, Inbox proposals, semantic search); agents can already read the exported files from Phase 2
+
+Until those land, follow the guardrails in `ROADMAP.md` §6: no new `supabase` imports in components, no Supabase-only features, anything the user makes or chooses needs a home in the vault format, keep non-UI logic in plain TS modules.
 
 ### Conventions
 - New features integrate with existing auth, routing, and React Query patterns; add providers in `src/Providers.tsx`

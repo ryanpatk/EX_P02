@@ -1,5 +1,7 @@
 # memex — Production Vision
 
+> **2026-10-24:** `ROADMAP.md` now sets the big picture and wins where the two disagree. It makes the Journal the home view (the stream becomes the Library and space boards), replaces Supabase with files you own synced like a database (§7 here is superseded), adds a React Native mobile app, and extends automatic capture. The primitives, spaces, tags, capture rule and non-goals below still hold.
+
 **Status:** North-star product vision. Supersedes the "Superlinks single-purpose bookmark workbench" framing in `PRODUCT.md`. The current dashboard remains the canonical design surface; this document describes the larger product it becomes one module of.
 
 ---

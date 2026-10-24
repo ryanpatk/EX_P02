@@ -1,0 +1,346 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+  :root{--ink:#1d2127;--ink2:#4c5157;--muted:#6a6f75;--faint:#8f959c;--line:rgba(29,33,39,.08);
+    --acc:#4a68e6;--acc-ink:#3550c4;--acc-t:rgba(80,119,255,.11);
+    --coral:#ef4f64;--gold:#c99a00;--violet:#9466f0;--green:#1f9a3a;--pink:#e46aae;--cyan:#0aa3d6;
+    --ring:0 0 0 1px rgba(29,33,39,.08);--sh-s:0 .25px .75px #1d21270d,0 1px 3px #1d212713;--sh-m:0 1px 4px #1d21270b,0 4px 16px #1d212710;}
+  body{margin:0}
+  .page{display:flex;flex-direction:column;gap:28px;font-family:var(--font-sans,Inter,system-ui)}
+  .cap{display:flex;flex-direction:column;gap:4px}
+  .cap h3{margin:0;font-size:15px;line-height:22px;font-weight:600;color:var(--foreground)}
+  .cap p{margin:0;font-size:13px;line-height:19px;color:var(--muted-foreground);text-wrap:pretty}
+  .frame{position:relative;width:100%;overflow:hidden;border-radius:var(--radius,10px)}
+  .stage{position:absolute;top:0;left:0;transform-origin:0 0}
+  /* ---------- mock world ---------- */
+  .m{font-family:Inter,system-ui,sans-serif;color:var(--ink);font-size:14px;line-height:20px;letter-spacing:-.005em;
+     background:radial-gradient(900px 520px at 18% -10%,#dfe6fb 0%,transparent 70%),radial-gradient(700px 500px at 100% 100%,#f3e9f3 0%,transparent 70%),#f1f2f4;
+     padding:16px;box-sizing:border-box;border-radius:14px;font-variant-numeric:tabular-nums}
+  .m *{box-sizing:border-box}
+  .row{display:flex;align-items:center}
+  .ic{width:16px;height:16px;stroke-width:1.75;flex:none}
+  .ic.s{width:14px;height:14px}
+  .wm{font-style:italic;font-weight:600;font-size:20px;letter-spacing:-.02em}
+  .side{width:212px;flex:none;display:flex;flex-direction:column;gap:2px;padding:6px 4px}
+  .nav{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;color:var(--ink2);font-weight:500}
+  .nav .n{margin-left:auto;font-size:12px;color:var(--faint);font-weight:500}
+  .nav.on{background:var(--acc-t);color:var(--acc-ink)}
+  .nav.on .n{color:var(--acc-ink)}
+  .lab{font-size:11px;line-height:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:16px 10px 6px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--h)}
+  .sp{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:9px;color:var(--ink2)}
+  .sp.on{background:color-mix(in srgb,var(--h) 14%,transparent);color:color-mix(in srgb,var(--h) 70%,#000)}
+  .sp .n{margin-left:auto;font-size:12px;color:var(--faint)}
+  .surface{background:#fff;border-radius:16px;box-shadow:var(--ring),var(--sh-m)}
+  .chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;line-height:16px;font-weight:500;color:var(--ink2);background:#f1f2f4;white-space:nowrap}
+  .chip.on{background:var(--acc-t);color:var(--acc-ink)}
+  .chip.space{background:color-mix(in srgb,var(--h) 12%,#fff);color:color-mix(in srgb,var(--h) 72%,#000)}
+  .chip.space .dot{width:7px;height:7px}
+  .chip.ghost{background:transparent;box-shadow:inset 0 0 0 1px rgba(29,33,39,.12);color:var(--muted)}
+  .chip.sug{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--h) 45%,transparent);color:color-mix(in srgb,var(--h) 72%,#000);border:0}
+  .k{font-size:11px;color:var(--faint);font-weight:500;padding:1px 5px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(29,33,39,.12)}
+  .t{font-size:12px;color:var(--faint);width:42px;flex:none;padding-top:2px}
+  .meta{font-size:12px;line-height:16px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .src{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+  .img{border-radius:10px;background:var(--g);position:relative;overflow:hidden}
+  .day{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--muted);margin:6px 0 2px}
+  .day::after{content:"";flex:1;height:1px;background:var(--line)}
+  .fold{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f6f7f8;border-radius:9px}
+  .entry{display:flex;gap:10px;align-items:flex-start}
+  .bubble{background:#f6f7f9;border-radius:14px 14px 14px 4px;padding:9px 12px;max-width:520px}
+  .card{background:#fff;border-radius:12px;box-shadow:var(--ring),var(--sh-s);overflow:hidden}
+  .cb{width:16px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1.5px #c0c6cd;flex:none;margin-top:2px}
+  .cb.done{background:var(--acc);box-shadow:none}
+  .filed{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .comp{border-radius:14px;background:#fff;box-shadow:var(--ring),0 0 0 4px var(--acc-t),var(--sh-m);padding:10px 12px}
+  .tok{color:var(--acc-ink);background:var(--acc-t);border-radius:5px;padding:0 3px}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;font-size:13px;font-weight:500;background:var(--acc);color:#fff}
+  .btn.sec{background:#fff;color:var(--ink2);box-shadow:var(--ring),var(--sh-s)}
+  .play{position:absolute;inset:0;display:grid;place-items:center}
+  .play span{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;color:#fff}
+  .h1{font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.02em}
+  .sub{font-size:13px;color:var(--muted)}
+  table.db{border-collapse:collapse;width:100%;font-size:13px}
+  table.db th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.db td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:middle;white-space:nowrap}
+  .thumb{width:34px;height:24px;border-radius:5px;background:var(--g);flex:none}
+  .col{background:rgba(255,255,255,.55);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--ring)}
+  .colh{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);padding:2px 4px}
+  .phone{width:360px;height:740px;border-radius:44px;background:#0d0f12;padding:10px;flex:none;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+  .scr{width:100%;height:100%;border-radius:35px;overflow:hidden;position:relative;display:flex;flex-direction:column;
+     background:radial-gradient(500px 300px at 10% -5%,#dfe6fb,transparent 70%),#f1f2f4}
+  .stat{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:14px;font-weight:600;flex:none}
+  .tabs{display:flex;justify-content:space-around;padding:8px 0 26px;background:rgba(255,255,255,.85);box-shadow:0 -1px 0 var(--line);flex:none}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--faint);font-weight:500}
+  .tab.on{color:var(--acc-ink)}
+  .note{font-size:12px;color:var(--muted)}
+  .ann{position:absolute;font-family:Inter,system-ui;font-size:12px;line-height:16px;font-weight:600;color:#fff;background:#1d2127;border-radius:8px;padding:5px 9px;box-shadow:var(--sh-m);display:flex;gap:6px;align-items:center;z-index:5}
+  .ann b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--acc);font-size:11px}
+</style></head>
+<body><div class="page">
+
+<!-- ================= A ================= -->
+<div class="cap"><h3>A · The Journal is home (desktop)</h3>
+<p>One chat-style feed, newest at the bottom, composer always docked. Everything lands here first: jots, links, notes, tasks, and auto-saves from X, Pinterest and YouTube. Each entry shows where it was filed, and unfiled items get a suggested space. The right rail is the back office: what got filed today, plus an inbox of things still waiting.</p></div>
+<div class="frame" data-w="1240"><div class="stage">
+<div class="m" style="width:1240px;height:800px;display:flex;gap:14px">
+  <div class="side">
+    <div class="row" style="gap:8px;padding:4px 10px 14px"><span class="wm">memex</span></div>
+    <div class="nav on"><i data-lucide="message-square-text" class="ic"></i>Journal<span class="n">12 today</span></div>
+    <div class="nav"><i data-lucide="layout-grid" class="ic"></i>Library<span class="n">1,284</span></div>
+    <div class="nav"><i data-lucide="search" class="ic"></i>Search<span class="n"><span class="k">⌘K</span></span></div>
+    <div class="lab">Spaces</div>
+    <div class="sp" style="--h:var(--coral)"><span class="dot"></span>Job search<span class="n">48</span></div>
+    <div class="sp" style="--h:var(--gold)"><span class="dot"></span>Home reno<span class="n">131</span></div>
+    <div class="sp" style="--h:var(--violet)"><span class="dot"></span>memex<span class="n">207</span></div>
+    <div class="sp" style="--h:var(--green)"><span class="dot"></span>Reading<span class="n">319</span></div>
+    <div class="sp" style="--h:var(--pink)"><span class="dot"></span>Inspiration<span class="n">402</span></div>
+    <div class="sp" style="color:var(--faint)"><i data-lucide="plus" class="ic s"></i>New space</div>
+    <div style="margin-top:auto" class="nav"><i data-lucide="settings-2" class="ic"></i>Settings</div>
+  </div>
+
+  <div class="surface" style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="row" style="padding:16px 22px 12px;gap:12px;border-bottom:1px solid var(--line)">
+      <div><div class="h1">Journal</div><div class="sub">Friday, October 24 · Home</div></div>
+      <div class="row" style="margin-left:auto;gap:6px">
+        <span class="chip on">All</span><span class="chip">Jots</span><span class="chip">Links</span><span class="chip">Notes</span><span class="chip">Tasks</span><span class="chip"><i data-lucide="zap" class="ic s"></i>Auto-saved</span>
+        <span class="chip ghost"><i data-lucide="calendar" class="ic s"></i>Jump to</span>
+      </div>
+    </div>
+    <div style="flex:1;overflow:hidden;padding:12px 22px;display:flex;flex-direction:column;gap:12px;justify-content:flex-end">
+      <div class="day">Yesterday</div>
+      <div class="fold"><i data-lucide="chevron-right" class="ic s"></i>9 jots · 6 links saved · 2 notes · 3 tasks done</div>
+      <div class="day">Today</div>
+      <div class="entry"><span class="t">9:12</span><div>
+        <div class="bubble">idea: the journal is the front door. everything else is the back office. capture first, file later (or never).</div>
+        <div class="filed"><span class="chip space" style="--h:var(--violet)"><span class="dot"></span>memex</span><span class="chip">#product</span></div></div></div>
+      <div class="entry"><span class="t">9:40</span><div style="width:520px">
+        <div class="card row" style="align-items:stretch">
+          <div style="padding:10px 12px;flex:1;min-width:0">
+            <div class="meta"><i data-lucide="twitter" class="ic s"></i>@frankchimero · Bookmarked on X</div>
+            <div style="margin-top:4px;font-size:13px;line-height:19px">The best interfaces feel like a desk you already know where everything is on. Nothing to learn, just reach.</div>
+          </div>
+          <div class="img" style="--g:linear-gradient(135deg,#c9d6f7,#e8d9f2);width:120px;border-radius:0"></div>
+        </div>
+        <div class="filed"><span class="src"><i data-lucide="zap" class="ic s"></i>auto</span><span class="chip space" style="--h:var(--pink)"><span class="dot"></span>Inspiration</span></div></div></div>
+      <div class="entry"><span class="t">10:05</span><div>
+        <div class="bubble row" style="gap:9px;align-items:flex-start"><span class="cb"></span><span>Email Dana re: offer letter <span class="meta" style="display:inline-flex;margin-left:6px"><i data-lucide="calendar" class="ic s"></i>Mon</span></span></div>
+        <div class="filed"><span class="chip space" style="--h:var(--coral)"><span class="dot"></span>Job search</span></div></div></div>
+      <div class="entry"><span class="t">11:30</span><div>
+        <div class="row" style="gap:8px">
+          <div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);width:120px;height:150px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#d7e3d1,#9fb894);width:120px;height:150px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#efe6dc,#cdbba8);width:120px;height:150px"></div>
+        </div>
+        <div class="filed"><span class="src"><i data-lucide="pin" class="ic s"></i>3 pins saved on Pinterest · auto</span><span class="chip space" style="--h:var(--gold)"><span class="dot"></span>Home reno</span></div></div></div>
+      <div class="entry"><span class="t">14:20</span><div style="width:520px">
+        <div class="card row" style="align-items:stretch">
+          <div class="img" style="--g:linear-gradient(135deg,#2b2f3a,#59607a);width:150px;border-radius:0;height:84px"><div class="play"><span><i data-lucide="play" class="ic s"></i></span></div></div>
+          <div style="padding:10px 12px;flex:1;min-width:0">
+            <div class="meta"><i data-lucide="youtube" class="ic s"></i>Liked on YouTube · 18:42</div>
+            <div style="margin-top:3px;font-size:13px;font-weight:500">Local-first software, five years later</div>
+          </div>
+        </div>
+        <div class="filed"><span class="src"><i data-lucide="zap" class="ic s"></i>auto · unfiled</span><span class="chip sug" style="--h:var(--violet)"><i data-lucide="sparkles" class="ic s"></i>File to memex?</span><span class="chip ghost">Not now</span></div></div></div>
+    </div>
+    <div style="padding:12px 22px 18px">
+      <div class="comp">
+        <div style="font-size:14px;line-height:21px">Kitchen: go with the <span class="tok">@Home reno</span> walnut option, ask about lead time <span class="tok">#todo</span><span style="display:inline-block;width:1.5px;height:17px;background:var(--acc);vertical-align:-3px;margin-left:1px"></span></div>
+        <div class="row" style="gap:8px;margin-top:8px">
+          <span class="chip ghost"><i data-lucide="link" class="ic s"></i>Link</span><span class="chip ghost"><i data-lucide="square-check" class="ic s"></i>Task</span><span class="chip ghost"><i data-lucide="file-text" class="ic s"></i>Note</span>
+          <span class="note" style="margin-left:auto">↵ jot · ⌘↵ note · ⇧⌘↵ task</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:290px;flex:none;display:flex;flex-direction:column;gap:12px">
+    <div class="surface" style="padding:14px 16px">
+      <div class="row" style="justify-content:space-between"><b style="font-size:13px">Filed today</b><span class="note">14 items</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        <div class="row" style="gap:10px;--h:var(--gold)"><span class="dot"></span><span style="flex:1">Home reno</span><div class="row" style="gap:3px"><span class="thumb" style="--g:#e2cfb2;width:22px"></span><span class="thumb" style="--g:#c7d7c0;width:22px"></span><span class="thumb" style="--g:#e8ddd0;width:22px"></span></div><span class="note">+5</span></div>
+        <div class="row" style="gap:10px;--h:var(--pink)"><span class="dot"></span><span style="flex:1">Inspiration</span><div class="row" style="gap:3px"><span class="thumb" style="--g:#d3dcf6;width:22px"></span><span class="thumb" style="--g:#efd3e5;width:22px"></span></div><span class="note">+2</span></div>
+        <div class="row" style="gap:10px;--h:var(--violet)"><span class="dot"></span><span style="flex:1">memex</span><span class="note">2 jots</span></div>
+        <div class="row" style="gap:10px;--h:var(--coral)"><span class="dot"></span><span style="flex:1">Job search</span><span class="note">1 task</span></div>
+      </div>
+    </div>
+    <div class="surface" style="padding:14px 16px">
+      <div class="row" style="justify-content:space-between"><b style="font-size:13px">Inbox</b><span class="note">3 unfiled</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;font-size:13px">
+        <div><div>Local-first software, five years later</div><div class="filed" style="margin-top:4px"><span class="chip sug" style="--h:var(--violet)">memex</span><span class="chip sug" style="--h:var(--green)">Reading</span></div></div>
+        <div><div>are.na/block/31… “Soft brutalism”</div><div class="filed" style="margin-top:4px"><span class="chip sug" style="--h:var(--pink)">Inspiration</span></div></div>
+      </div>
+      <div class="btn sec" style="margin-top:12px;width:100%;justify-content:center">Review inbox</div>
+    </div>
+    <div class="surface" style="padding:14px 16px">
+      <b style="font-size:13px">Open tasks</b>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;font-size:13px">
+        <div class="row" style="gap:9px;align-items:flex-start"><span class="cb"></span>Email Dana re: offer letter</div>
+        <div class="row" style="gap:9px;align-items:flex-start"><span class="cb"></span>Ask about cabinet lead time</div>
+        <div class="row" style="gap:9px;align-items:flex-start;color:var(--faint);text-decoration:line-through"><span class="cb done"></span>Renew passport</div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- ================= B ================= -->
+<div class="cap"><h3>B · A space is a working board</h3>
+<p>Open a space and the Journal narrows to a side column scoped to that space, so you can keep jotting while you work. The board is what got filed there: pinned sites, open tasks, notes and a gallery of saves. Drag anything from the Journal onto the board to file it.</p></div>
+<div class="frame" data-w="1240"><div class="stage">
+<div class="m" style="width:1240px;height:720px;display:flex;gap:14px">
+  <div class="side" style="width:180px">
+    <div class="row" style="padding:4px 10px 14px"><span class="wm">memex</span></div>
+    <div class="nav"><i data-lucide="message-square-text" class="ic"></i>Journal</div>
+    <div class="nav"><i data-lucide="layout-grid" class="ic"></i>Library</div>
+    <div class="lab">Spaces</div>
+    <div class="sp" style="--h:var(--coral)"><span class="dot"></span>Job search</div>
+    <div class="sp on" style="--h:var(--gold)"><span class="dot"></span>Home reno</div>
+    <div class="sp" style="--h:var(--violet)"><span class="dot"></span>memex</div>
+    <div class="sp" style="--h:var(--green)"><span class="dot"></span>Reading</div>
+    <div class="sp" style="--h:var(--pink)"><span class="dot"></span>Inspiration</div>
+  </div>
+  <div class="surface" style="width:330px;flex:none;display:flex;flex-direction:column;padding:14px 16px;gap:10px;position:relative">
+    <div class="row" style="gap:8px"><b>Journal</b><span class="chip space" style="--h:var(--gold)"><span class="dot"></span>Home reno</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:flex-end;font-size:13px;line-height:19px">
+      <div class="day">Tuesday</div>
+      <div class="bubble">contractor says permits take ~3 wks</div>
+      <div class="day">Today</div>
+      <div class="bubble">walnut is $$ but the sample looks right</div>
+      <div class="row" style="gap:6px"><div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);width:70px;height:88px"></div><div class="img" style="--g:linear-gradient(160deg,#d7e3d1,#9fb894);width:70px;height:88px;box-shadow:0 0 0 2px var(--acc),0 8px 20px rgba(0,0,0,.18);transform:rotate(-3deg) translate(14px,-6px)"></div></div>
+      <div class="bubble row" style="gap:8px"><span class="cb"></span>Ask about cabinet lead time</div>
+    </div>
+    <div class="comp" style="font-size:13px;color:var(--faint)">Jot to Home reno…</div>
+    <div class="ann" style="left:150px;top:420px"><b>1</b>Drag to file</div>
+  </div>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="gap:10px;padding:4px 4px 0;--h:var(--gold)"><span class="dot" style="width:12px;height:12px"></span><span class="h1">Home reno</span><span class="sub">131 items · kitchen first, then the deck</span>
+      <div class="row" style="margin-left:auto;gap:6px"><span class="chip on">Board</span><span class="chip">Grid</span><span class="chip">Table</span><span class="btn sec"><i data-lucide="pencil" class="ic s"></i>Edit space</span></div></div>
+    <div class="row" style="gap:8px">
+      <span class="chip" style="background:#fff;box-shadow:var(--ring)"><i data-lucide="globe" class="ic s"></i>Houzz board</span><span class="chip" style="background:#fff;box-shadow:var(--ring)"><i data-lucide="globe" class="ic s"></i>Permit portal</span><span class="chip" style="background:#fff;box-shadow:var(--ring)"><i data-lucide="file-spreadsheet" class="ic s"></i>Budget sheet</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:12px;flex:1;min-height:0">
+      <div class="col"><div class="colh"><i data-lucide="square-check" class="ic s"></i>Tasks<span style="margin-left:auto">4 open</span></div>
+        <div class="card" style="padding:9px 11px;font-size:13px;display:flex;gap:8px"><span class="cb"></span>Ask about cabinet lead time</div>
+        <div class="card" style="padding:9px 11px;font-size:13px;display:flex;gap:8px"><span class="cb"></span>Book permit inspection</div>
+        <div class="card" style="padding:9px 11px;font-size:13px;display:flex;gap:8px"><span class="cb"></span>Pick grout colour</div>
+        <div class="card" style="padding:9px 11px;font-size:13px;display:flex;gap:8px"><span class="cb"></span>Measure deck footprint</div>
+      </div>
+      <div class="col"><div class="colh"><i data-lucide="file-text" class="ic s"></i>Notes<span style="margin-left:auto">6</span></div>
+        <div class="card" style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Kitchen layout options</div><div class="note" style="margin-top:3px;line-height:17px">Galley vs. L-shape. L keeps the window, loses 40cm of counter…</div></div>
+        <div class="card" style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Contractor quotes</div><div class="note" style="margin-top:3px;line-height:17px">Three quotes, $18–26k. Ask each for a line item on…</div></div>
+        <div class="card" style="padding:10px 12px"><div style="font-weight:600;font-size:13px">Deck materials</div><div class="note" style="margin-top:3px">Composite vs. cedar</div></div>
+      </div>
+      <div class="col" style="box-shadow:0 0 0 2px var(--acc),0 0 0 6px var(--acc-t)"><div class="colh"><i data-lucide="images" class="ic s"></i>Saves<span style="margin-left:auto">121</span></div>
+        <div style="columns:3;column-gap:8px">
+          <div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);height:120px;margin-bottom:8px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#dcd3c8,#a99883);height:80px;margin-bottom:8px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#efe6dc,#cdbba8);height:96px;margin-bottom:8px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#cfd9e0,#93a6b4);height:130px;margin-bottom:8px"></div>
+          <div class="img" style="--g:repeating-linear-gradient(135deg,var(--acc-t) 0 8px,transparent 8px 16px);height:90px;margin-bottom:8px;box-shadow:inset 0 0 0 1.5px var(--acc)"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#e3e0d6,#bdb6a0);height:70px;margin-bottom:8px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#f0dcc8,#d4a77c);height:110px;margin-bottom:8px"></div>
+          <div class="img" style="--g:linear-gradient(160deg,#d9e2d5,#a8bf9e);height:84px;margin-bottom:8px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- ================= C ================= -->
+<div class="cap"><h3>C · The Library: a visual database behind the Journal</h3>
+<p>Everything you've ever captured, as one database. Gallery (today's masonry), Table and Board are three views of the same records, and every view can be saved. Source, space and type are columns, so “everything I bookmarked on X this month and never filed” is just a filter.</p></div>
+<div class="frame" data-w="1240"><div class="stage">
+<div class="m" style="width:1240px;height:560px;display:flex;gap:14px">
+  <div class="side" style="width:180px">
+    <div class="row" style="padding:4px 10px 14px"><span class="wm">memex</span></div>
+    <div class="nav"><i data-lucide="message-square-text" class="ic"></i>Journal</div>
+    <div class="nav on"><i data-lucide="layout-grid" class="ic"></i>Library</div>
+    <div class="lab">Saved views</div>
+    <div class="nav"><i data-lucide="inbox" class="ic"></i>Unfiled<span class="n">23</span></div>
+    <div class="nav"><i data-lucide="twitter" class="ic"></i>From X<span class="n">388</span></div>
+    <div class="nav"><i data-lucide="youtube" class="ic"></i>Watch list<span class="n">41</span></div>
+    <div class="nav"><i data-lucide="square-check" class="ic"></i>Open tasks<span class="n">17</span></div>
+  </div>
+  <div class="surface" style="flex:1;min-width:0;padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="gap:10px"><span class="h1">Library</span><span class="sub">1,284 items</span>
+      <div class="row" style="margin-left:auto;gap:6px"><span class="chip"><i data-lucide="layout-dashboard" class="ic s"></i>Gallery</span><span class="chip on"><i data-lucide="table-2" class="ic s"></i>Table</span><span class="chip"><i data-lucide="kanban" class="ic s"></i>Board</span></div></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">
+      <span class="chip on">Type: Link</span><span class="chip on">Source: X, YouTube</span><span class="chip on">Space: none</span><span class="chip ghost"><i data-lucide="plus" class="ic s"></i>Filter</span><span class="chip ghost" style="margin-left:auto"><i data-lucide="bookmark-plus" class="ic s"></i>Save view</span>
+    </div>
+    <table class="db">
+      <tr><th style="width:48%">Title</th><th>Source</th><th>Spaces</th><th>Tags</th><th style="text-align:right">Saved</th></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#2b2f3a,#59607a)"></span>Local-first software, five years later</div></td><td><span class="src"><i data-lucide="youtube" class="ic s"></i>YouTube like</span></td><td><span class="chip sug" style="--h:var(--violet)"><i data-lucide="sparkles" class="ic s"></i>memex?</span></td><td>—</td><td style="text-align:right">2:20 PM</td></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#c9d6f7,#e8d9f2)"></span>“The best interfaces feel like a desk…”</div></td><td><span class="src"><i data-lucide="twitter" class="ic s"></i>X bookmark</span></td><td>—</td><td><span class="chip">design</span></td><td style="text-align:right">9:40 AM</td></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#dfe6d6,#9db48f)"></span>Typed SQLite on the edge, a field report</div></td><td><span class="src"><i data-lucide="twitter" class="ic s"></i>X bookmark</span></td><td>—</td><td>—</td><td style="text-align:right">Oct 22</td></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#f1d9c4,#d39b6d)"></span>Building a calm notification system</div></td><td><span class="src"><i data-lucide="youtube" class="ic s"></i>YouTube like</span></td><td>—</td><td><span class="chip">sound</span></td><td style="text-align:right">Oct 21</td></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#d7dcef,#8d98c9)"></span>Thread: why we moved off Electron</div></td><td><span class="src"><i data-lucide="twitter" class="ic s"></i>X bookmark</span></td><td>—</td><td>—</td><td style="text-align:right">Oct 19</td></tr>
+      <tr><td><div class="row" style="gap:10px"><span class="thumb" style="--g:linear-gradient(135deg,#e9e3f6,#b6a2e6)"></span>Pastel interfaces and the case for softness</div></td><td><span class="src"><i data-lucide="twitter" class="ic s"></i>X bookmark</span></td><td>—</td><td><span class="chip">design</span></td><td style="text-align:right">Oct 17</td></tr>
+    </table>
+    <div class="row" style="gap:8px;margin-top:auto"><span class="note">6 of 23 · select rows to file them in bulk</span><span class="btn sec" style="margin-left:auto"><i data-lucide="folder-input" class="ic s"></i>File selected…</span></div>
+  </div>
+</div></div></div>
+
+<!-- ================= D ================= -->
+<div class="cap"><h3>D · Mobile (React Native): Journal first, capture from anywhere</h3>
+<p>The phone is mostly a Journal: open it, scroll, jot with your thumb. The iOS/Android share sheet drops anything into the same feed, with an optional space. The Library is the second tab, and Spaces sit inside it.</p></div>
+<div class="frame" data-w="1240"><div class="stage">
+<div class="m" style="width:1240px;height:800px;display:flex;gap:40px;justify-content:center;align-items:center">
+  <div class="phone"><div class="scr">
+    <div class="stat"><span>9:41</span><span class="row" style="gap:5px"><i data-lucide="signal" class="ic s"></i><i data-lucide="wifi" class="ic s"></i><i data-lucide="battery-full" class="ic s"></i></span></div>
+    <div class="row" style="padding:4px 18px 10px;gap:8px"><span class="wm" style="font-size:22px">Journal</span><span class="chip" style="margin-left:auto"><span class="dot" style="--h:var(--acc)"></span>Home</span><i data-lucide="search" class="ic"></i></div>
+    <div style="flex:1;padding:0 14px;display:flex;flex-direction:column;gap:10px;justify-content:flex-end;font-size:14px;line-height:20px;overflow:hidden">
+      <div class="day">Today</div>
+      <div class="bubble">idea: journal is the front door, everything else is the back office</div>
+      <div class="filed" style="margin-top:-4px"><span class="chip space" style="--h:var(--violet)"><span class="dot"></span>memex</span></div>
+      <div class="card row" style="align-items:stretch"><div style="padding:9px 11px;flex:1"><div class="meta"><i data-lucide="twitter" class="ic s"></i>Bookmarked on X</div><div style="font-size:13px;line-height:18px;margin-top:2px">The best interfaces feel like a desk you already…</div></div><div class="img" style="--g:linear-gradient(135deg,#c9d6f7,#e8d9f2);width:74px;border-radius:0"></div></div>
+      <div class="row" style="gap:6px"><div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);width:96px;height:120px"></div><div class="img" style="--g:linear-gradient(160deg,#d7e3d1,#9fb894);width:96px;height:120px"></div><div class="img" style="--g:linear-gradient(160deg,#efe6dc,#cdbba8);width:96px;height:120px"></div></div>
+      <div class="bubble row" style="gap:9px"><span class="cb"></span>Email Dana re: offer letter</div>
+    </div>
+    <div style="padding:10px 12px 8px"><div class="comp row" style="gap:8px;padding:8px 8px 8px 14px;border-radius:22px"><span style="color:var(--faint);flex:1">Jot anything…</span><span class="row" style="width:32px;height:32px;border-radius:50%;background:var(--acc);color:#fff;justify-content:center"><i data-lucide="arrow-up" class="ic"></i></span></div></div>
+    <div class="tabs"><div class="tab on"><i data-lucide="message-square-text" class="ic"></i>Journal</div><div class="tab"><i data-lucide="layout-grid" class="ic"></i>Library</div><div class="tab"><i data-lucide="square-check" class="ic"></i>Tasks</div></div>
+  </div></div>
+
+  <div class="phone"><div class="scr" style="background:#3a3f48">
+    <div class="stat" style="color:#fff"><span>9:41</span><span></span></div>
+    <div style="margin:10px 14px;height:250px;border-radius:16px;background:linear-gradient(160deg,#e9d6b8,#c7a77d);opacity:.55"></div>
+    <div style="margin-top:auto;background:#f6f7f9;border-radius:22px 22px 0 0;padding:16px 16px 34px;display:flex;flex-direction:column;gap:12px">
+      <div class="row" style="justify-content:space-between"><span class="note">Cancel</span><b>Save to memex</b><span style="color:var(--acc-ink);font-weight:600;font-size:14px">Save</span></div>
+      <div class="card row" style="gap:10px;padding:10px"><div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);width:52px;height:64px"></div><div style="min-width:0"><div style="font-size:13px;font-weight:600">Warm walnut galley kitchen</div><div class="note">pinterest.com</div></div></div>
+      <div class="card" style="padding:10px 12px;color:var(--faint);font-size:14px">Add a note… (optional)</div>
+      <div><div class="note" style="margin-bottom:6px">Space</div><div class="row" style="gap:6px;flex-wrap:wrap">
+        <span class="chip space" style="--h:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)"><span class="dot"></span>Home reno</span>
+        <span class="chip"><span class="dot" style="--h:var(--pink)"></span>Inspiration</span><span class="chip"><span class="dot" style="--h:var(--violet)"></span>memex</span><span class="chip ghost">Just the Journal</span></div></div>
+    </div>
+  </div></div>
+
+  <div class="phone"><div class="scr">
+    <div class="stat"><span>9:41</span><span></span></div>
+    <div class="row" style="padding:4px 18px 10px"><span class="wm" style="font-size:22px">Library</span><i data-lucide="sliders-horizontal" class="ic" style="margin-left:auto"></i></div>
+    <div class="row" style="gap:8px;padding:0 14px 12px;overflow:hidden">
+      <div style="flex:none;width:118px;border-radius:14px;padding:10px;background:color-mix(in srgb,var(--gold) 14%,#fff)"><span class="dot" style="--h:var(--gold)"></span><div style="font-weight:600;margin-top:16px;font-size:13px">Home reno</div><div class="note">131</div></div>
+      <div style="flex:none;width:118px;border-radius:14px;padding:10px;background:color-mix(in srgb,var(--coral) 12%,#fff)"><span class="dot" style="--h:var(--coral)"></span><div style="font-weight:600;margin-top:16px;font-size:13px">Job search</div><div class="note">48</div></div>
+      <div style="flex:none;width:118px;border-radius:14px;padding:10px;background:color-mix(in srgb,var(--violet) 12%,#fff)"><span class="dot" style="--h:var(--violet)"></span><div style="font-weight:600;margin-top:16px;font-size:13px">memex</div><div class="note">207</div></div>
+    </div>
+    <div class="row" style="gap:6px;padding:0 14px 10px"><span class="chip on">All</span><span class="chip">Links</span><span class="chip">Notes</span><span class="chip">Unfiled</span></div>
+    <div style="flex:1;padding:0 14px;columns:2;column-gap:8px;overflow:hidden">
+      <div class="img" style="--g:linear-gradient(160deg,#e9d6b8,#c7a77d);height:150px;margin-bottom:8px"></div>
+      <div class="card" style="padding:10px;margin-bottom:8px;break-inside:avoid"><div style="font-weight:600;font-size:13px">Kitchen layout options</div><div class="note" style="line-height:16px">Galley vs. L-shape…</div></div>
+      <div class="img" style="--g:linear-gradient(135deg,#2b2f3a,#59607a);height:90px;margin-bottom:8px"></div>
+      <div class="img" style="--g:linear-gradient(160deg,#cfd9e0,#93a6b4);height:120px;margin-bottom:8px"></div>
+      <div class="img" style="--g:linear-gradient(135deg,#c9d6f7,#e8d9f2);height:100px;margin-bottom:8px"></div>
+      <div class="img" style="--g:linear-gradient(160deg,#d7e3d1,#9fb894);height:140px;margin-bottom:8px"></div>
+    </div>
+    <div class="tabs"><div class="tab"><i data-lucide="message-square-text" class="ic"></i>Journal</div><div class="tab on"><i data-lucide="layout-grid" class="ic"></i>Library</div><div class="tab"><i data-lucide="square-check" class="ic"></i>Tasks</div></div>
+  </div></div>
+</div></div></div>
+
+</div>
+<script>
+  if (window.lucide) lucide.createIcons();
+  function fit(){document.querySelectorAll('.frame').forEach(f=>{const w=+f.dataset.w,st=f.querySelector('.stage'),s=f.clientWidth/w;st.style.width=w+'px';st.style.transform='scale('+s+')';f.style.height=(st.firstElementChild.offsetHeight*s)+'px';});}
+  fit(); addEventListener('resize',fit); document.fonts&&document.fonts.ready.then(fit);
+</script>
+</body></html>

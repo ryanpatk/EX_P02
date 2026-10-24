@@ -69,14 +69,16 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 - [ ] Image proxy route on the scraper worker if preview hotlinking breaks for some domains
 - [ ] Per-device token names/revocation polish (Settings modal exists; lean per-device early)
 
-## 🗺 Standing roadmap (from VISION.md / CLAUDE.md)
+## 🗺 Standing roadmap — now lives in `ROADMAP.md` (2026-10-24)
 
-- [ ] Profiles → spaces rename (DB + UI)
-- [ ] Attach-to-space modals; retire legacy project views
-- [ ] Cross-primitive search
-- [ ] Supabase exit: grow `api/` worker into the real backend (D1/Neon + auth) — extension already routes through it, so clients won't notice
-- [ ] Encryption; mobile polish (PWA hardening landed 2026-09-19 — re-add to home screen to pick up the new manifest/meta; test bottom bar, safe areas, and input zoom on device)
-- [ ] Testing setup (Vitest + Playwright) — still none configured
+Phases there: 1 Journal-first web → 2 `packages/core` seam + vault export → 3 extension (parallel) → 4 vault backend (leave Supabase) → 5 Tauri desktop (re-sync + mirror) → 6 React Native app → 7 agents (MCP). Older items, re-homed:
+
+- [ ] Profiles → spaces rename: **UI copy only**. Skip the DB rename; the tables go away in Phase 4 and the vault uses `spaces/` from the start
+- [ ] Attach-to-space modals → replaced by filing in the Journal + Inbox (Phase 1); retire legacy project views
+- [x] Cross-primitive search — inherent to the stream / Library
+- [ ] Supabase exit → `ROADMAP.md` Phase 4 (local-first event log + markdown vault in R2, not D1/Neon tables)
+- [ ] Encryption → Later; mobile polish → the PWA bridges until the Expo app (Phase 6). PWA hardening landed 2026-09-19: re-add to home screen to pick up the new manifest/meta; test bottom bar, safe areas, and input zoom on device
+- [ ] Testing setup → Vitest arrives with `packages/core` (Phase 2); Playwright later
 
 ## 📌 Parking lot / open questions
 

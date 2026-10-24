@@ -31,8 +31,8 @@ Save anything to memex without copy-paste:
 | Unsave / unbookmark | Does **not** remove the link from memex | memex keeps what you saved |
 | Token storage | `chrome.storage.local`, not `sync` | Don't copy the token to every browser on the Google account |
 | Browsers | Chrome first; a Firefox build exists but is untested; Safari only if asked | Safari needs an Xcode wrapper |
-| Phone capture | Later, together with the mobile / React Native work | User decision 2026-10-18 |
-| Account sync (pond-style import of existing saves using your login) | Not doing it | Fragile, needs `<all_urls>` + cookies; prefer one-time import from the sites' data exports |
+| Phone capture | Later, together with the mobile / React Native work (`ROADMAP.md` Phase 6) | User decision 2026-10-18 |
+| Account sync (pond-style walk of your saved lists using your login) | ~~Not doing it~~ **Reversed 2026-10-24:** the Tauri desktop app does it as a periodic re-sync safety net, not the extension (`ROADMAP.md` §3.5, Phase 5). The extension stays the instant path; the server dedupes on `(source, sourceId)` | Catches saves the extension missed (browser closed, other device, phone app) without giving the extension `<all_urls>` + cookies |
 
 ## Ops checklist — get v0.2 running (needs your accounts)
 
@@ -87,7 +87,7 @@ Save anything to memex without copy-paste:
 
 ## Later / maybe
 
-- [ ] More sites, cheapest first: Are.na, Cosmos, YouTube (watch later / playlist add), Reddit save — pond has working matchers for each (`apps/extension/sources/*` in raphaelsalaja/pond, MIT)
+- [ ] YouTube likes moved up to `ROADMAP.md` Phase 3. More sites, cheapest first: Are.na, Cosmos, Reddit save — pond has working matchers for each (`apps/extension/sources/*` in raphaelsalaja/pond, MIT)
 - [ ] Instagram / Threads save — pond supports them, but they rely on Meta's internal operation names and English labels; brittle
 - [ ] One-time import of existing X bookmarks / Pinterest boards from the sites' data exports
 - [ ] Popup search across links/notes/tasks (mini command palette)

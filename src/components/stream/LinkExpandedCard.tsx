@@ -23,7 +23,8 @@ import { relativeTime } from '../../utils/timeGroups';
 import { useSpaceColors } from '../../hooks/useSpaceColors';
 import { isUrlLike, normalizeUrlInput } from '../../utils/urlInput';
 import { cue } from '../../utils/sound';
-import type { RescrapeResult } from '../LinkDetailsPanel';
+
+export type RescrapeResult = 'updated' | 'unchanged' | 'failed';
 
 interface LinkExpandedCardProps {
   link: LinkWithTag;

@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import BookmarkOmnibar from '../components/BookmarkOmnibar';
 import CanvasColorPicker from '../components/CanvasColorPicker';
 import DarkModeToggle from '../components/DarkModeToggle';
 import LinkGridCard from '../components/LinkGridCard';
-import LinkListRow from '../components/LinkListRow';
 import NoteGridCard from '../components/NoteGridCard';
-import NoteListRow from '../components/NoteListRow';
-import TaskGridCard from '../components/TaskGridCard';
-import TaskListRow from '../components/TaskListRow';
-import type { ViewMode } from '../hooks/useViewMode';
+import LinkPreviewCard from '../components/stream/LinkPreviewCard';
+import StreamRow from '../components/stream/StreamRow';
+import TaskBand from '../components/stream/TaskBand';
 import {
   ActionChip,
   EmptyState,
@@ -17,11 +14,10 @@ import {
   FrostedStack,
   InlineCreateForm,
   MarkdownText,
-  ViewToggleFab,
 } from '../components/ui';
 import type { FeedbackToastPhase } from '../components/ui';
 import type { LinkWithTag, NoteWithTags, Tag, TaskWithTags } from '../types/database';
-import { isUrlLike } from '../utils/urlInput';
+import { StickyNote } from 'lucide-react';
 
 const COLOR_TOKENS: { token: string; label: string }[] = [
   { token: '--bookmark-canvas-base', label: 'canvas (swatch)' },
@@ -71,6 +67,10 @@ const demoLink = (
   tags,
 });
 
+const DEMO_PREVIEW_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='640' height='420'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#b9d3ea'/><stop offset='1' stop-color='#e9c7d6'/></linearGradient></defs><rect width='640' height='420' fill='url(#g)'/><circle cx='470' cy='130' r='70' fill='#fff' fill-opacity='.55'/></svg>",
+)}`;
+
 const DEMO_LINKS: LinkWithTag[] = [
   demoLink(
     'l1',
@@ -80,6 +80,11 @@ const DEMO_LINKS: LinkWithTag[] = [
   ),
   demoLink('l2', 'https://worrydream.com/refs/Bush%20-%20As%20We%20May%20Think.pdf', 'As We May Think', []),
 ];
+
+const DEMO_PREVIEW_LINK: LinkWithTag = {
+  ...demoLink('l3', 'https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/', 'As We May Think — The Atlantic', []),
+  preview_image_url: DEMO_PREVIEW_IMAGE,
+};
 
 const demoTask = (
   id: string,
@@ -134,11 +139,9 @@ const StyleguidePage = () => {
   const [spaceSelected, setSpaceSelected] = useState(true);
   const [tagSelected, setTagSelected] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [omnibarValue, setOmnibarValue] = useState('');
   const [toast, setToast] = useState<{ message: string; phase: FeedbackToastPhase } | null>(
     null,
   );
-  const [demoViewMode, setDemoViewMode] = useState<ViewMode>('grid');
   const [demoTasks, setDemoTasks] = useState<TaskWithTags[]>([
     demoTask('task1', 'Review the styleguide page', false, DEMO_TAGS.slice(0, 2), '2026-08-14'),
     demoTask('task2', 'Ship the tasks module', false, []),
@@ -212,7 +215,7 @@ const StyleguidePage = () => {
 
         <Section title="Typography" note="Inter for every role; Pastel Sky size, line height, and tracking steps.">
           <div className="memex-styleguide-type-specimens">
-            <p className="bookmark-toolbar-brand">memex — brand, L italic medium</p>
+            <p className="bookmark-toolbar-brand">memex — brand, L italic 760, swatch ink</p>
             <p className="memex-styleguide-type-heading">Heading — M, medium</p>
             <p className="memex-styleguide-type-ui">UI text — S, medium (chips, rows, omnibar)</p>
             <p className="memex-styleguide-type-caption">Caption — XS, regular (counts, metadata)</p>
@@ -296,61 +299,61 @@ const StyleguidePage = () => {
         </Section>
 
         <Section
-          title="Omnibar"
-          note="Search + capture. Type a URL-ish value to reveal the prominent add action."
+          title="Stream cards"
+          note="Every grid item shares one surface: neutral-1, hairline edge ring, small elevation; hover lifts to M; selection adds a color-1 ring, the selection tint, and a check. Links with a preview image are image-first (style set in Settings → Link cards); everything else renders through StreamCard."
         >
-          <BookmarkOmnibar
-            value={omnibarValue}
-            onChange={setOmnibarValue}
-            showAdd={isUrlLike(omnibarValue.trim())}
-            onAdd={() => setOmnibarValue('')}
-            placeholder="Search 128 bookmarks…"
+          <div className="memex-styleguide-cards">
+            <LinkPreviewCard link={DEMO_PREVIEW_LINK} onActivate={noop} onImageError={noop} />
+            <LinkGridCard link={DEMO_LINKS[0]} onActivate={noop} />
+            <NoteGridCard note={DEMO_NOTE} onOpen={noop} onDelete={noop} />
+            <LinkPreviewCard
+              link={DEMO_PREVIEW_LINK}
+              onActivate={noop}
+              onImageError={noop}
+              selectionMode
+              isSelected
+            />
+            <LinkGridCard link={DEMO_LINKS[1]} onActivate={noop} selectionMode isSelected />
+            <NoteGridCard note={DEMO_NOTE} onOpen={noop} selectionMode />
+          </div>
+        </Section>
+
+        <Section
+          title="Task band"
+          note="Open tasks as a checklist above the grid, on the same card surface. Done tasks fold away beneath."
+        >
+          <TaskBand
+            openTasks={demoTasks.filter((task) => !task.is_done)}
+            doneTasks={demoTasks.filter((task) => task.is_done)}
+            onToggleDone={(t) =>
+              setDemoTasks((prev) =>
+                prev.map((p) => (p.id === t.id ? { ...p, is_done: !p.is_done } : p)),
+              )
+            }
+            onDelete={noop}
+            onCreate={noop}
           />
         </Section>
 
         <Section
           title="List rows"
-          note="Transparent rows with hairline dividers inside the frosted stack; hover uses a theme tint."
+          note="The reading-list view (?view=list): icon · title / meta · thumbnail · hover actions."
         >
-          <div className="memex-styleguide-list">
-            {DEMO_LINKS.map((link, index) => (
-              <LinkListRow
-                key={link.id}
-                link={link}
-                index={index}
-                onOpen={noop}
-                onToggleSelect={noop}
-              />
-            ))}
-          </div>
-        </Section>
-
-        <Section
-          title="Task rows"
-          note="Sibling of the link row: checkbox + title + tag pills + optional due date. Done state fills the checkbox from the theme."
-        >
-          <div className="memex-styleguide-list">
-            {demoTasks.map((task) => (
-              <TaskListRow
-                key={task.id}
-                task={task}
-                onToggleDone={(t) =>
-                  setDemoTasks((prev) =>
-                    prev.map((p) => (p.id === t.id ? { ...p, is_done: !p.is_done } : p)),
-                  )
-                }
-                onDelete={noop}
-              />
-            ))}
-          </div>
-        </Section>
-
-        <Section
-          title="Note rows"
-          note="Title + plain-text excerpt + tags + relative timestamp. Click opens the editor."
-        >
-          <div className="memex-styleguide-list">
-            <NoteListRow note={DEMO_NOTE} onOpen={noop} onDelete={noop} />
+          <div className="memex-list">
+            <StreamRow
+              leading={<StickyNote aria-hidden="true" />}
+              title={DEMO_NOTE.title ?? 'Untitled'}
+              meta="Jul 30"
+              onActivate={noop}
+            />
+            <StreamRow
+              leading={<StickyNote aria-hidden="true" />}
+              title="Selected row"
+              meta="Jul 30"
+              onActivate={noop}
+              selectionMode
+              isSelected
+            />
           </div>
         </Section>
 
@@ -359,27 +362,6 @@ const StyleguidePage = () => {
           note="Notes are stored as markdown source; this is the rendered reading view (GFM)."
         >
           <MarkdownText>{DEMO_NOTE.body}</MarkdownText>
-        </Section>
-
-        <Section
-          title="Grid view"
-          note="Every module list can switch to a card grid via the corner fab (bottom-left of the app; shown inline here). The fab shows the view you would switch to. Cards share one anatomy: header / title / excerpt / tag footer."
-        >
-          <div className="memex-styleguide-demo-row memex-styleguide-fab-demo">
-            <ViewToggleFab mode={demoViewMode} onChange={setDemoViewMode} />
-          </div>
-          <div className="memex-grid">
-            <LinkGridCard link={DEMO_LINKS[0]} onActivate={noop} />
-            <NoteGridCard note={DEMO_NOTE} onOpen={noop} />
-            <TaskGridCard
-              task={demoTasks[0]}
-              onToggleDone={(t) =>
-                setDemoTasks((prev) =>
-                  prev.map((p) => (p.id === t.id ? { ...p, is_done: !p.is_done } : p)),
-                )
-              }
-            />
-          </div>
         </Section>
 
         <Section title="Empty state">

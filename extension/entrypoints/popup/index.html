@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Save to memex</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <div id="state-setup" class="state" hidden>
+      <p class="headline">almost there</p>
+      <p class="detail">memex capture needs your API address and an access token.</p>
+      <button class="btn btn-primary open-options" type="button">Open settings…</button>
+    </div>
+
+    <div id="state-saving" class="state" hidden>
+      <p class="headline"><span class="pulse-dot" aria-hidden="true"></span> saving…</p>
+      <p class="detail" data-field="url"></p>
+    </div>
+
+    <div id="state-saved" class="state" hidden>
+      <p class="headline saved" data-field="headline">saved <span aria-hidden="true">✓</span></p>
+      <p class="detail" data-field="title"></p>
+      <div class="row">
+        <button id="undo" class="btn" type="button">Undo</button>
+        <a class="btn open-app" target="_blank" rel="noopener">Open in memex</a>
+      </div>
+    </div>
+
+    <div id="state-duplicate" class="state" hidden>
+      <p class="headline duplicate">already in memex</p>
+      <p class="detail" data-field="title"></p>
+      <div class="row">
+        <a class="btn open-app" target="_blank" rel="noopener">Open in memex</a>
+      </div>
+    </div>
+
+    <div id="state-queued" class="state" hidden>
+      <p class="headline queued">saved for later</p>
+      <p class="detail" data-field="message"></p>
+      <div class="row">
+        <button class="btn open-options" type="button">Settings…</button>
+      </div>
+    </div>
+
+    <div id="state-error" class="state" hidden>
+      <p class="headline error" data-field="headline">couldn’t save</p>
+      <p class="detail" data-field="message"></p>
+      <div class="row">
+        <button id="retry" class="btn btn-primary" type="button">Retry</button>
+        <button class="btn open-options" type="button">Settings…</button>
+      </div>
+    </div>
+  </main>
+  <section class="auto" aria-labelledby="auto-heading">
+    <h2 id="auto-heading">Auto-save</h2>
+    <label class="switch-row">
+      <span>X bookmarks</span>
+      <input id="site-x" type="checkbox" role="switch" />
+    </label>
+    <label class="switch-row">
+      <span>Pinterest saves</span>
+      <input id="site-pinterest" type="checkbox" role="switch" />
+    </label>
+  </section>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

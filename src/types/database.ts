@@ -56,6 +56,8 @@ export interface Link {
   preview_image_url?: string
   tag_id?: string
   is_super_favorite?: boolean
+  /** Capture origin set by memex-api ('extension', 'x:bookmark', 'pinterest:save'); null = saved in the app. */
+  source?: string | null
   created_at: string
   updated_at: string
   order_index: number

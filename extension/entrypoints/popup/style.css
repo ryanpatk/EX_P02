@@ -3,6 +3,7 @@
   --blue: #5077ff;
   --green: #00c500;
   --coral: #ff5a6f;
+  --amber: #e09400;
   --bg: oklch(0.988 0.002 264);
   --text: oklch(0.28 0.01 264);
   --muted: oklch(0.55 0.012 264);
@@ -41,6 +42,10 @@ body {
   gap: 8px;
 }
 
+.state[hidden] {
+  display: none;
+}
+
 .headline {
   margin: 0;
   font-size: 14px;
@@ -56,6 +61,14 @@ body {
 
 .headline.error {
   color: var(--coral);
+}
+
+.headline.duplicate {
+  color: var(--blue);
+}
+
+.headline.queued {
+  color: var(--amber);
 }
 
 .detail {
@@ -77,6 +90,9 @@ body {
 
 .btn {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   min-height: 32px;
   padding: 4px 14px;
   border-radius: 999px;
@@ -93,6 +109,11 @@ body {
 
 .btn:hover {
   border-color: var(--blue);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .btn:active {
@@ -129,6 +150,81 @@ body {
     animation: none;
   }
   .btn {
+    transition: none;
+  }
+}
+
+/* Auto-save switches: always visible under whatever state the save is in. */
+.auto {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.auto h2 {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.switch-row input {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.switch-row input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.25);
+  transition: transform 140ms ease-out;
+}
+
+.switch-row input:checked {
+  background: var(--green);
+}
+
+.switch-row input:checked::after {
+  transform: translateX(14px);
+}
+
+.switch-row input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.switch-row:hover input:not(:checked) {
+  background: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-row input,
+  .switch-row input::after {
     transition: none;
   }
 }

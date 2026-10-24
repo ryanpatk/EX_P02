@@ -11,6 +11,7 @@ import LinkPreviewCard from '../components/stream/LinkPreviewCard';
 import MasonryLayout, { type MasonryItem } from '../components/stream/MasonryLayout';
 import StreamRow from '../components/stream/StreamRow';
 import TaskBand from '../components/stream/TaskBand';
+import SelectionBar from '../components/stream/SelectionBar';
 import JournalPanel from '../components/stream/JournalPanel';
 import NoteEditor from '../components/NoteEditor';
 import NoteGridCard from '../components/NoteGridCard';
@@ -31,6 +32,7 @@ import {
 } from '../constants/modules';
 import { useSession } from '../context/SessionContext';
 import { useFeedbackToast } from '../hooks/useFeedbackToast';
+import { useAddToSpace } from '../hooks/useAddToSpace';
 import { useAllLinks, useCreateLink, useDeleteLink, useUpdateLink } from '../hooks/useLinks';
 import { useSetLinkTags } from '../hooks/useLinkTags';
 import { useAllNotes, useCreateNote, useDeleteNote, useUpdateNote } from '../hooks/useNotes';
@@ -50,7 +52,7 @@ import { useSetTaskTags } from '../hooks/useTaskTags';
 import { urlScraperApi } from '../hooks/useUrlScraper';
 import { useAppStore } from '../store';
 import { LinkWithTag, NoteWithTags, SelfMessage, TaskWithTags, UpdateNoteData } from '../types/database';
-import { openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
+import { handleBackgroundLinkClick, openUrlInBackgroundTab } from '../utils/openUrlInBackgroundTab';
 import { cue } from '../utils/sound';
 import {
   StreamItem,
@@ -64,9 +66,9 @@ import {
 import { isUrlLike, normalizeUrlInput } from '../utils/urlInput';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import { markdownExcerpt, noteDisplayTitle } from '../utils/markdown';
-import { dayKeyOf, groupByTime, relativeTime, toDayKey } from '../utils/timeGroups';
+import { dayKeyOf, dueDateIso, groupByTime, relativeTime, toDayKey } from '../utils/timeGroups';
 import { useSpaceColors } from '../hooks/useSpaceColors';
-import type { RescrapeResult } from '../components/LinkDetailsPanel';
+import type { RescrapeResult } from '../components/stream/LinkExpandedCard';
 import {
   BookOpen,
   Check,
@@ -144,6 +146,7 @@ const StreamPage = () => {
   const selectedItemKeys = useAppStore((state) => state.selectedItemKeys);
   const setSelectionMode = useAppStore((state) => state.setSelectionMode);
   const toggleItemSelection = useAppStore((state) => state.toggleItemSelection);
+  const setItemSelection = useAppStore((state) => state.setItemSelection);
   const clearItemSelection = useAppStore((state) => state.clearItemSelection);
 
   const { data: allLinks } = useAllLinks();
@@ -540,18 +543,19 @@ const StreamPage = () => {
 
   const bulkAssignActive = selectionMode && selectedItemKeys.length > 0;
 
+  // Selection survives filters and search (gather across several views);
+  // only switching space starts over
   useEffect(() => {
     clearItemSelection();
     setSelectionMode(false);
-  }, [
-    clearItemSelection,
-    includeUntagged,
-    searchQuery,
-    selectedTagIds,
-    selectedTypes,
-    setSelectionMode,
-    spaceId,
-  ]);
+  }, [clearItemSelection, setSelectionMode, spaceId]);
+
+  // Drop keys whose items are gone (deleted here or elsewhere)
+  useEffect(() => {
+    if (selectedItemKeys.length === 0) return;
+    const present = selectedItemKeys.filter((key) => itemsByKey.has(key));
+    if (present.length !== selectedItemKeys.length) setItemSelection(present);
+  }, [itemsByKey, selectedItemKeys, setItemSelection]);
 
   // Leaving the stream (unmount) must not leave the sidebar in bulk mode
   useEffect(() => () => setSelectionMode(false), [setSelectionMode]);
@@ -900,39 +904,61 @@ const StreamPage = () => {
     };
   }, []);
 
-  const scheduleDelete = useCallback(
-    (key: string, label: string, commit: () => void) => {
+  // Hide every key now; one Undo restores them all, otherwise each commits
+  const scheduleDeletes = useCallback(
+    (entries: { key: string; commit: () => void }[], message: string) => {
+      if (entries.length === 0) return;
       cue('dismiss');
-      setHiddenKeys((prev) => new Set(prev).add(key));
-      const finish = () => {
-        pendingDeletes.current.delete(key);
-        commit();
+      const keys = entries.map((entry) => entry.key);
+      const unhide = () =>
         setHiddenKeys((prev) => {
           const next = new Set(prev);
-          next.delete(key);
+          keys.forEach((key) => next.delete(key));
           return next;
         });
-      };
-      const timer = setTimeout(finish, UNDO_WINDOW_MS);
-      pendingDeletes.current.set(key, { timer, commit });
-      flash(`Deleted “${label}”.`, {
-        label: 'Undo',
-        onClick: () => {
-          const entry = pendingDeletes.current.get(key);
-          if (!entry) return;
-          clearTimeout(entry.timer);
+      setHiddenKeys((prev) => {
+        const next = new Set(prev);
+        keys.forEach((key) => next.add(key));
+        return next;
+      });
+      entries.forEach(({ key, commit }) => {
+        const finish = () => {
           pendingDeletes.current.delete(key);
+          commit();
           setHiddenKeys((prev) => {
             const next = new Set(prev);
             next.delete(key);
             return next;
           });
+        };
+        const timer = setTimeout(finish, UNDO_WINDOW_MS);
+        pendingDeletes.current.set(key, { timer, commit });
+      });
+      flash(message, {
+        label: 'Undo',
+        onClick: () => {
+          let restored = false;
+          keys.forEach((key) => {
+            const entry = pendingDeletes.current.get(key);
+            if (!entry) return;
+            clearTimeout(entry.timer);
+            pendingDeletes.current.delete(key);
+            restored = true;
+          });
+          if (!restored) return;
+          unhide();
           cue('confirm');
           dismissToast();
         },
       });
     },
     [dismissToast, flash],
+  );
+
+  const scheduleDelete = useCallback(
+    (key: string, label: string, commit: () => void) =>
+      scheduleDeletes([{ key, commit }], `Deleted “${label}”.`),
+    [scheduleDeletes],
   );
 
   const handleDeleteTask = useCallback(
@@ -1179,6 +1205,158 @@ const StreamPage = () => {
     [deleteLink, expandedLinkId, scheduleDelete, setExpandedLinkId],
   );
 
+  /* ---------- Multi-select ---------- */
+
+  const pageRef = useRef<HTMLDivElement>(null);
+  const selectionAnchorRef = useRef<string | null>(null);
+  const addToSpace = useAddToSpace(flash);
+
+  const visibleKeySet = useMemo(() => new Set(filteredItems.map((item) => item.key)), [filteredItems]);
+  const hiddenSelectedCount = selectedItemKeys.filter((key) => !visibleKeySet.has(key)).length;
+
+  const exitSelection = useCallback(() => {
+    clearItemSelection();
+    setSelectionMode(false);
+    selectionAnchorRef.current = null;
+  }, [clearItemSelection, setSelectionMode]);
+
+  /** Keys of the selectable items on screen, in display order. */
+  const renderedKeys = useCallback(
+    () =>
+      Array.from(
+        pageRef.current?.querySelectorAll<HTMLElement>('.memex-stream-body [data-item-key]') ?? [],
+      )
+        .map((el) => el.dataset.itemKey as string)
+        .filter((key) => !key.includes(':temp-')),
+    [],
+  );
+
+  const handleBulkDelete = useCallback(() => {
+    const items = selectedItemKeys
+      .map((key) => itemsByKey.get(key))
+      .filter((item): item is StreamItem => !!item && !isPendingItem(item));
+    if (items.length === 0) return;
+    if (items.some((item) => item.type === 'note' && item.id === openNoteId)) closeNote();
+    if (items.some((item) => item.type === 'link' && item.id === expandedLinkId)) setExpandedLinkId(null);
+    const entries = items.map((item) => ({
+      key: item.key,
+      commit:
+        item.type === 'link'
+          ? () => deleteLink.mutate(item.id)
+          : item.type === 'note'
+            ? () => deleteNote.mutate(item.id)
+            : () => deleteTask.mutate(item.id),
+    }));
+    const label =
+      items.length === 1
+        ? `Deleted “${items[0].type === 'link' ? getLinkTitle(items[0].link) : items[0].type === 'note' ? noteDisplayTitle(items[0].note) : items[0].task.title}”.`
+        : `Deleted ${items.length} items.`;
+    exitSelection();
+    scheduleDeletes(entries, label);
+  }, [
+    closeNote,
+    deleteLink,
+    deleteNote,
+    deleteTask,
+    exitSelection,
+    expandedLinkId,
+    itemsByKey,
+    openNoteId,
+    scheduleDeletes,
+    selectedItemKeys,
+    setExpandedLinkId,
+  ]);
+
+  // Esc leaves selection mode; ⌘/Ctrl A selects everything on screen
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const editing =
+        !!target &&
+        (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      if (editing || openNoteId || document.querySelector('dialog[open]')) return;
+      if (event.key === 'Escape' && selectionMode) {
+        event.preventDefault();
+        exitSelection();
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+        const keys = renderedKeys();
+        if (keys.length === 0) return;
+        event.preventDefault();
+        setExpandedLinkId(null);
+        setSelectionMode(true);
+        setItemSelection(keys);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [
+    exitSelection,
+    openNoteId,
+    renderedKeys,
+    selectionMode,
+    setExpandedLinkId,
+    setItemSelection,
+    setSelectionMode,
+  ]);
+
+  // Modifier clicks on any card or row: ⌘/Ctrl toggles (and starts selecting),
+  // Shift selects the range from the last item clicked. Plain clicks in
+  // selection mode fall through to the card's own toggle and set the anchor.
+  useEffect(() => {
+    const body = pageRef.current;
+    if (!body) return;
+    const keyFor = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const el = target.closest<HTMLElement>('[data-item-key]');
+      if (!el || !el.closest('.memex-stream-body')) return null;
+      // Links and controls inside a card keep their own behaviour
+      // (⌘-click on the open-link button still opens a new tab)
+      const control = target.closest('a, button, input, textarea');
+      if (control && control !== el && el.contains(control)) return null;
+      const key = el.dataset.itemKey as string;
+      return key.includes(':temp-') ? null : key;
+    };
+    const onMouseDown = (event: MouseEvent) => {
+      // Keep Shift/⌘ clicks from selecting text across cards
+      if ((event.shiftKey || event.metaKey || event.ctrlKey) && keyFor(event)) event.preventDefault();
+    };
+    const onClick = (event: MouseEvent) => {
+      const key = keyFor(event);
+      if (!key) return;
+      const state = useAppStore.getState();
+      if (event.shiftKey && (state.selectionMode || selectionAnchorRef.current)) {
+        event.preventDefault();
+        event.stopPropagation();
+        const order = renderedKeys();
+        const from = order.indexOf(selectionAnchorRef.current ?? key);
+        const to = order.indexOf(key);
+        const range = from === -1 ? [key] : order.slice(Math.min(from, to), Math.max(from, to) + 1);
+        if (!state.selectionMode) setSelectionMode(true);
+        setItemSelection([...state.selectedItemKeys, ...range]);
+        selectionAnchorRef.current = key;
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!state.selectionMode) {
+          setExpandedLinkId(null);
+          setSelectionMode(true);
+        }
+        toggleItemSelection(key);
+        selectionAnchorRef.current = key;
+        return;
+      }
+      if (state.selectionMode) selectionAnchorRef.current = key;
+    };
+    body.addEventListener('mousedown', onMouseDown, true);
+    body.addEventListener('click', onClick, true);
+    return () => {
+      body.removeEventListener('mousedown', onMouseDown, true);
+      body.removeEventListener('click', onClick, true);
+    };
+  }, [renderedKeys, setExpandedLinkId, setItemSelection, setSelectionMode, toggleItemSelection]);
+
   const markPreviewBroken = useCallback((linkId: string) => {
     setBrokenPreviews((prev) => (prev.has(linkId) ? prev : new Set(prev).add(linkId)));
   }, []);
@@ -1227,7 +1405,6 @@ const StreamPage = () => {
     ? `Search “${space.name}” or capture…`
     : `Search ${scopedItems.length} item${scopedItems.length === 1 ? '' : 's'} or capture…`;
 
-  const selectedCount = selectedItemKeys.length;
 
   const openNoteSpaces = useMemo(() => {
     if (!openNoteItem) return [];
@@ -1326,6 +1503,7 @@ const StreamPage = () => {
       return (
         <div key={item.key} className={`memex-row-wrap${isExpanded ? ' is-expanded' : ''}`}>
           <StreamRow
+            itemKey={item.key}
             leading={
               link.favicon_url ? (
                 <img src={link.favicon_url} alt="" />
@@ -1353,10 +1531,11 @@ const StreamPage = () => {
             }
             actions={
               <a
-                className="bookmark-list-row-action"
+                className="memex-icon-button"
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleBackgroundLinkClick}
                 aria-label={`Open ${getLinkTitle(link)} in a new tab`}
                 title="Open link"
               >
@@ -1373,6 +1552,7 @@ const StreamPage = () => {
       const excerpt = markdownExcerpt(note.body, 140);
       return (
         <StreamRow
+          itemKey={item.key}
           key={item.key}
           leading={<StickyNote aria-hidden="true" />}
           title={noteDisplayTitle(note)}
@@ -1389,7 +1569,7 @@ const StreamPage = () => {
           actions={
             <button
               type="button"
-              className="bookmark-list-row-action"
+              className="memex-icon-button"
               onClick={() => handleDeleteNote(note.id)}
               aria-label={`Delete “${noteDisplayTitle(note)}”`}
               title="Delete note"
@@ -1403,6 +1583,7 @@ const StreamPage = () => {
     const task = item.task;
     return (
       <StreamRow
+        itemKey={item.key}
         key={item.key}
         leading={
           <button
@@ -1417,7 +1598,7 @@ const StreamPage = () => {
           </button>
         }
         title={task.title}
-        meta={task.due_date ? `Due ${relativeTime(task.due_date)}` : relativeTime(item.updatedAt)}
+        meta={task.due_date ? `Due ${relativeTime(dueDateIso(task.due_date))}` : relativeTime(item.updatedAt)}
         onActivate={selectionMode ? () => handleToggleSelect(item) : undefined}
         selectionMode={selectionMode}
         isSelected={isSelected}
@@ -1425,7 +1606,7 @@ const StreamPage = () => {
         actions={
           <button
             type="button"
-            className="bookmark-list-row-action"
+            className="memex-icon-button"
             onClick={() => handleDeleteTask(task.id)}
             aria-label={`Delete “${task.title}”`}
             title="Delete task"
@@ -1469,7 +1650,10 @@ const StreamPage = () => {
   /* ---------- Render ---------- */
 
   return (
-    <div className="bookmark-dashboard memex-stream-page">
+    <div
+      ref={pageRef}
+      className={`bookmark-dashboard memex-stream-page${selectionMode ? ' has-selection-bar' : ''}`}
+    >
       <AppHeader
         user={session?.user ?? null}
         title={contextName}
@@ -1491,7 +1675,7 @@ const StreamPage = () => {
             )}
             <button
               type="button"
-              className={`memex-journal-toggle${selfNotesOpen ? ' is-active' : ''}`}
+              className={`btn-secondary btn-compact memex-journal-toggle${selfNotesOpen ? ' is-active' : ''}`}
               onClick={toggleSelfNotes}
               aria-pressed={selfNotesOpen}
               aria-keyshortcuts="J"
@@ -1568,29 +1752,14 @@ const StreamPage = () => {
                     bulkAssignMode={bulkAssignActive}
                     trailing={
                       <>
-                        {selectionMode && (
-                          <button
-                            type="button"
-                            className="bookmark-tag-new memex-stream-clear"
-                            onClick={clearItemSelection}
-                            disabled={selectedCount === 0}
-                            aria-label={
-                              selectedCount > 0
-                                ? `Clear ${selectedCount} selected item${selectedCount === 1 ? '' : 's'}`
-                                : 'Clear selection'
-                            }
-                          >
-                            {selectedCount > 0 ? `Clear ${selectedCount}` : 'Clear'}
-                          </button>
-                        )}
                         <button
                           type="button"
                           className={`bookmark-tag-chip memex-stream-select${
                             selectionMode ? ' is-active' : ''
                           }`}
-                          onClick={handleToggleSelectionMode}
+                          onClick={selectionMode ? exitSelection : handleToggleSelectionMode}
                           aria-pressed={selectionMode}
-                          title={selectionMode ? 'Finish selecting' : 'Select items to tag or add to a space'}
+                          title={selectionMode ? 'Done selecting (Esc)' : 'Select items to add to a space or delete'}
                         >
                           <span className="bookmark-tag-chip-label">
                             {selectionMode ? 'Done' : 'Select'}
@@ -1695,6 +1864,18 @@ const StreamPage = () => {
           onClose={() => setSpaceDetailsOpen(false)}
           typeTotals={typeTotals}
           onFeedback={flash}
+        />
+      )}
+
+      {selectionMode && (
+        <SelectionBar
+          count={selectedItemKeys.length}
+          hiddenCount={hiddenSelectedCount}
+          spaces={profiles ?? []}
+          spaceColors={spaceColors}
+          onAddToSpace={(id) => void addToSpace(id, selectedItemKeys)}
+          onDelete={handleBulkDelete}
+          onExit={exitSelection}
         />
       )}
 

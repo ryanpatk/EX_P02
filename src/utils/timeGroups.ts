@@ -21,6 +21,10 @@ export const relativeTime = (iso: string, now = Date.now()) => {
     : shortDateYear.format(date);
 };
 
+/** Task due dates are stored as YYYY-MM-DD; read them as local midnight, not UTC. */
+export const dueDateIso = (value: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value;
+
 export type TimeGroupLabel = 'Today' | 'This week' | 'This month' | 'Earlier';
 
 const GROUP_ORDER: TimeGroupLabel[] = ['Today', 'This week', 'This month', 'Earlier'];

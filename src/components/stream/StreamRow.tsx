@@ -12,6 +12,8 @@ interface StreamRowProps {
   isSelected?: boolean;
   isNew?: boolean;
   ariaLabel?: string;
+  /** `${type}:${id}` — lets the stream resolve modifier/range clicks. */
+  itemKey?: string;
 }
 
 /** One line of the reading-list view: icon · title / meta · thumbnail · hover actions. */
@@ -26,6 +28,7 @@ const StreamRow = ({
   isSelected = false,
   isNew = false,
   ariaLabel,
+  itemKey,
 }: StreamRowProps) => {
   const [thumbFailed, setThumbFailed] = useState(false);
 
@@ -49,11 +52,15 @@ const StreamRow = ({
       tabIndex={onActivate ? 0 : undefined}
       aria-pressed={onActivate && selectionMode ? isSelected : undefined}
       aria-label={ariaLabel}
+      data-item-key={itemKey}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
       {selectionMode ? (
-        <span className={`memex-row-select${isSelected ? ' is-on' : ''}`} aria-hidden="true">
+        <span
+          className={`memex-select-check memex-row-select${isSelected ? ' is-on' : ''}`}
+          aria-hidden="true"
+        >
           {isSelected && <Check />}
         </span>
       ) : (

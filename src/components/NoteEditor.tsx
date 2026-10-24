@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MarkdownText, MarkdownTextarea } from './ui';
-import type { MarkdownTextareaHandle } from './ui/MarkdownTextarea';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { MarkdownText } from './ui';
+import type { MarkdownEditorHandle } from './ui/MarkdownEditor';
 import type { NoteWithTags, UpdateNoteData } from '../types/database';
 import { Ellipsis, Trash2 } from 'lucide-react';
 import { relativeTime } from '../utils/timeGroups';
@@ -8,6 +8,9 @@ import { relativeTime } from '../utils/timeGroups';
 type SaveStatus = 'saved' | 'saving';
 
 const AUTOSAVE_DELAY_MS = 800;
+
+// CodeMirror loads with the first opened note, not with the stream
+const MarkdownEditor = lazy(() => import('./ui/MarkdownEditor'));
 
 interface NoteEditorProps {
   note: NoteWithTags;
@@ -30,14 +33,13 @@ const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave
   const menuRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
-  const [isEditing, setIsEditing] = useState(!note.body.trim());
   const [status, setStatus] = useState<SaveStatus>('saved');
 
   const lastSavedRef = useRef({ title: note.title ?? '', body: note.body });
   const draftRef = useRef({ title: note.title ?? '', body: note.body });
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteIdRef = useRef(note.id);
-  const bodyRef = useRef<MarkdownTextareaHandle>(null);
+  const bodyRef = useRef<MarkdownEditorHandle>(null);
 
   // Re-seed when switching to a different note
   useEffect(() => {
@@ -45,7 +47,6 @@ const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave
     noteIdRef.current = note.id;
     setTitle(note.title ?? '');
     setBody(note.body);
-    setIsEditing(!note.body.trim());
     setStatus('saved');
     lastSavedRef.current = { title: note.title ?? '', body: note.body };
     draftRef.current = { title: note.title ?? '', body: note.body };
@@ -157,28 +158,6 @@ const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave
     onDelete(noteIdRef.current);
   };
 
-  const startEditing = (event: React.MouseEvent<HTMLDivElement>) => {
-    // Follow links normally, and don't hijack text-selection drags
-    if ((event.target as HTMLElement).closest('a')) return;
-    if (window.getSelection()?.toString()) return;
-    setIsEditing(true);
-  };
-
-  // Focus the textarea (cursor at end) once it renders
-  useEffect(() => {
-    if (isEditing) {
-      bodyRef.current?.focus();
-    }
-  }, [isEditing]);
-
-  const handleBodyBlur = () => {
-    // Keep empty notes in edit mode — there is nothing to render
-    if (draftRef.current.body.trim()) {
-      setIsEditing(false);
-    }
-  };
-
-  const showEditor = isEditing || !body.trim();
   const words = countWords(body);
 
   return (
@@ -219,6 +198,14 @@ const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave
         className="memex-note-title-input"
         value={title}
         onChange={(event) => handleTitleChange(event.target.value)}
+        onKeyDown={(event) => {
+          // Enter / ↓ move from the title into the body
+          if (event.nativeEvent.isComposing) return;
+          if (event.key === 'Enter' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            bodyRef.current?.focus('start');
+          }
+        }}
         placeholder="Untitled note"
         aria-label="Note title"
         autoComplete="off"
@@ -240,33 +227,17 @@ const NoteEditor = ({ note, backLabel = 'notes', spaceNames = [], onBack, onSave
       </p>
 
       <div className="memex-note-editor-body">
-        {showEditor ? (
-          <MarkdownTextarea
+        <Suspense fallback={<MarkdownText>{body}</MarkdownText>}>
+          <MarkdownEditor
+            key={note.id}
             ref={bodyRef}
             value={body}
             onChange={handleBodyChange}
-            onBlur={handleBodyBlur}
-            placeholder={'Write in markdown…\n\n# Heading\n- list item\n**bold**, *italic*, `code`'}
+            placeholder="Write in markdown…"
             ariaLabel="Note body (markdown)"
             autoFocus={!note.body.trim()}
           />
-        ) : (
-          <div
-            className="memex-note-reading"
-            onClick={startEditing}
-            role="button"
-            tabIndex={0}
-            aria-label="Note body — click to edit"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                setIsEditing(true);
-              }
-            }}
-          >
-            <MarkdownText>{body}</MarkdownText>
-          </div>
-        )}
+        </Suspense>
       </div>
       </div>
     </div>

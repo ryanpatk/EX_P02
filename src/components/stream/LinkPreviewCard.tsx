@@ -2,6 +2,8 @@ import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { Check, ExternalLink } from 'lucide-react';
 import type { LinkWithTag } from '../../types/database';
 import { getHostname, getLinkTitle } from '../../utils/linkDisplay';
+import { itemKey } from '../../utils/streamItems';
+import { handleBackgroundLinkClick } from '../../utils/openUrlInBackgroundTab';
 
 interface LinkPreviewCardProps {
   link: LinkWithTag;
@@ -58,6 +60,7 @@ const LinkPreviewCard = ({
       tabIndex={0}
       aria-label={selectionMode ? `Select ${title}` : `Details for ${title}`}
       aria-pressed={selectionMode ? isSelected : undefined}
+      data-item-key={itemKey('link', link.id)}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
@@ -86,7 +89,10 @@ const LinkPreviewCard = ({
       </div>
 
       {selectionMode ? (
-        <span className="memex-pv-check" aria-hidden="true">
+        <span
+          className={`memex-select-check memex-select-check--on-image${isSelected ? ' is-on' : ''}`}
+          aria-hidden="true"
+        >
           {isSelected && <Check />}
         </span>
       ) : (
@@ -96,7 +102,7 @@ const LinkPreviewCard = ({
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(event) => event.stopPropagation()}
+            onClick={handleBackgroundLinkClick}
             aria-label={`Open ${title} in a new tab`}
             title="Open link"
           >

@@ -328,7 +328,7 @@ const JournalPanel = ({
               spellCheck={false}
               autoComplete="off"
             />
-            <button type="button" className="memex-icon-button" onClick={closeSearch} aria-label="Close search">
+            <button type="button" className="memex-icon-button is-compact" onClick={closeSearch} aria-label="Close search">
               <X aria-hidden="true" />
             </button>
           </div>
@@ -341,7 +341,7 @@ const JournalPanel = ({
             <div className="memex-journal-tools">
               <button
                 type="button"
-                className="memex-icon-button"
+                className="memex-icon-button is-compact"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search jots"
                 title="Search jots"
@@ -351,7 +351,7 @@ const JournalPanel = ({
               <span className="memex-journal-date">
                 <button
                   type="button"
-                  className="memex-icon-button"
+                  className="memex-icon-button is-compact"
                   onClick={openDatePicker}
                   aria-label="Jump to a date"
                   title="Jump to a date"
@@ -368,7 +368,7 @@ const JournalPanel = ({
                   aria-label="Jump to date"
                 />
               </span>
-              <button type="button" className="memex-icon-button" onClick={onClose} aria-label="Close journal">
+              <button type="button" className="memex-icon-button is-compact" onClick={onClose} aria-label="Close journal">
                 <X aria-hidden="true" />
               </button>
             </div>

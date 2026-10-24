@@ -4,6 +4,8 @@ import { getTagsForLink } from '../utils/linkTags';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import StreamCard from './StreamCard';
 import { getInitials } from '../utils/streamCardFormat';
+import { itemKey } from '../utils/streamItems';
+import { handleBackgroundLinkClick } from '../utils/openUrlInBackgroundTab';
 import { ExternalLink } from 'lucide-react';
 
 interface LinkGridCardProps {
@@ -16,7 +18,7 @@ interface LinkGridCardProps {
   hideActions?: boolean;
 }
 
-/** Link as a stream card: favicon + host, title, tag footer, optional preview. */
+/** Link without a preview image as a stream card: favicon + host, title, tag footer. */
 const LinkGridCard = ({
   link,
   onActivate,
@@ -26,20 +28,17 @@ const LinkGridCard = ({
   hideActions = false,
 }: LinkGridCardProps) => {
   const [imageFailed, setImageFailed] = useState(false);
-  const [previewFailed, setPreviewFailed] = useState(false);
 
   const tags = useMemo(() => getTagsForLink(link), [link]);
   const faviconUrl = link.favicon_url;
-  const previewUrl = link.preview_image_url;
   const host = getHostname(link.url);
   const title = getLinkTitle(link);
 
   return (
     <StreamCard
       type="link"
+      itemKey={itemKey('link', link.id)}
       isNew={link.id.startsWith('temp-')}
-      previewUrl={previewFailed ? null : previewUrl}
-      onPreviewError={() => setPreviewFailed(true)}
       leading={
         faviconUrl && !imageFailed ? (
           <img src={faviconUrl} alt="" onError={() => setImageFailed(true)} />
@@ -58,11 +57,11 @@ const LinkGridCard = ({
       actions={
         !hideActions ? (
           <a
-            className="bookmark-list-row-action"
+            className="memex-icon-button"
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(event) => event.stopPropagation()}
+            onClick={handleBackgroundLinkClick}
             aria-label={`Open ${title} in a new tab`}
             title="Open link"
           >

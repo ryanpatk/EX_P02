@@ -12,10 +12,16 @@ All routes require `Authorization: Bearer mx_…` (create tokens in memex under
 
 | Route                  | Method | Body / result                                          |
 | ---------------------- | ------ | ------------------------------------------------------ |
-| `/api/capture`         | POST   | `{ url, title?, note?, spaceId?, tagIds? }` → created link (metadata enriched via memex-scraper when `SCRAPER_URL` is set) |
+| `/api/capture`         | POST   | `{ url, title?, description?, image?, favicon?, note?, source?, spaceId?, tagIds? }` → created link (201), or the existing link with `duplicate: true` (200). Client metadata wins; memex-scraper fills the gaps when `SCRAPER_URL` is set |
 | `/api/links/:id`       | DELETE | undo a capture (scoped to the token's user)            |
 | `/api/spaces`          | GET    | `[{ id, name }]`                                       |
 | `/api/tags`            | GET    | `[{ id, name }]`                                       |
+
+**Dedupe:** before inserting, the worker looks for the same URL (± trailing
+slash). For X posts and Pinterest pins it matches on the post/pin id, so
+`x.com/a/status/1` and `twitter.com/i/web/status/1` count as one link.
+`source` is stored on `links.source` (`extension`, `x:bookmark`,
+`pinterest:save`; NULL = saved in the app).
 
 CORS is wide open (`*`) by design — access control is the token, so clients
 (extension pages, scripts) work from any origin without preregistration.
@@ -34,7 +40,7 @@ Set `SCRAPER_URL` in `wrangler.jsonc` to your deployed memex-scraper URL so
 captures get titles/descriptions/preview images. Apply the token table first:
 
 ```bash
-supabase db push   # applies supabase/migrations/20260906120000_add_api_tokens.sql
+supabase db push   # applies api_tokens + links.source migrations
 ```
 
 ## Local dev

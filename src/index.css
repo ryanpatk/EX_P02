@@ -78,6 +78,10 @@
   --font-display: var(--font-brand);
   --font-content: var(--font-editorial);
   --font-mono: var(--font-data);
+  /* The wordmark is Inter pushed past the UI weights: heavy italic, tight
+     tracking, in the swatch ink — the one place type carries the brand. */
+  --brand-wordmark-weight: 760;
+  --brand-wordmark-tracking: -0.05em;
   --font-code:
     ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
@@ -210,6 +214,9 @@
   --bookmark-footer-offset: 0px;
   --bookmark-omnibar-height: 52px;
   --bookmark-feed-stack-inset: var(--space-s);
+  /* Outer page margin (window → header, stack, Journal). 16px — the inner
+     rhythm (12px gap + 4px focus room) — not --space-m, which is 17px */
+  --page-edge: calc(var(--space-s) + var(--space-xxs));
   /* Canvas: the user's swatch (runtime); these are pre-hydration fallbacks */
   --bookmark-canvas-base: var(--neutral-3);
   --bookmark-experiment-bg: linear-gradient(
@@ -235,13 +242,8 @@
   color-scheme: dark;
 }
 
-.bookmark-list-row-media,
-.bookmark-detail-static-media,
-.bookmark-card-preview,
 .app-modal-title-wrap > img,
-.project-link-card-favicon,
-.link-card-favicon,
-.profile-link-favicon {
+.project-link-card-favicon {
   border: 0;
   --edge-w: var(--border-s);
   --edge: var(--bookmark-brand-bubble-border);
@@ -255,93 +257,24 @@
   box-sizing: border-box;
 }
 
-.bookmark-toolbar-super-fav {
-  border: 0;
-  box-sizing: border-box;
-}
-
-.ui-image-outline,
-.bookmark-list-row-favicon,
-.bookmark-toolbar-super-fav img,
-.bookmark-detail-static-favicon,
-.bookmark-card-favicon,
-.link-card-favicon,
-.profile-link-favicon,
 .app-modal-title-wrap img,
 .project-link-card-favicon {
   outline: none;
 }
 
-.ui-image-outline {
-  outline: 1px solid oklch(0 0 0 / 0.1);
-  outline-offset: -1px;
-}
-
-[data-theme='dark'] .ui-image-outline {
-  outline: 1px solid oklch(1 0 0 / 0.1);
-}
-
-.ui-hit-40,
-.tag-selector-close,
-.bookmark-tool-button,
-.bookmark-profile-main-toggle,
-.bookmark-profile-main-icon,
-.bookmark-profile-preview-remove,
-.bookmark-sidebar-plus,
-.bookmark-sidebar-collapse,
-.bookmark-link-preview-close,
-.bookmark-link-preview-header-button {
+.app-modal-close {
   position: relative;
 }
 
-.app-modal-close,
-.bookmark-toolbar-super-fav,
-.bookmark-card-action {
-  position: relative;
-}
-
-.ui-hit-40::after,
-.app-modal-close::after,
-.tag-selector-close::after,
-.bookmark-tool-button::after,
-.bookmark-toolbar-super-fav::after,
-.bookmark-card-action::after,
-.bookmark-profile-main-toggle::after,
-.bookmark-profile-main-icon::after,
-.bookmark-profile-preview-remove::after,
-.bookmark-sidebar-plus::after,
-.bookmark-sidebar-collapse::after,
-.bookmark-link-preview-close::after,
-.bookmark-link-preview-header-button::after {
+.app-modal-close::after {
   content: '';
   position: absolute;
   inset: -4px;
 }
 
-.bookmark-list-row-action::after {
-  top: -4px;
-  bottom: -4px;
-  left: 0;
-  right: 0;
-}
-
-.ui-press:active:not(:disabled),
-.tag-selector-close:active,
-.tag-selector-create-button:active:not(:disabled),
-.bookmark-tool-button:active,
-.bookmark-view-tab:active,
-.bookmark-composer-button:active:not(:disabled),
-.bookmark-floating-composer-button:active:not(:disabled),
-.bookmark-add-fab:active:not(:disabled),
 .bookmark-selection-fab:active,
-.bookmark-profiles-new-button:active,
-.bookmark-profile-creator-button:active:not(:disabled),
-.bookmark-profile-main-action:active,
-.bookmark-link-preview-header-button:active,
-.bookmark-link-preview-close:active,
 .project-chip:active,
-.project-meta-link:active,
-.bookmark-mobile-rail-tab:active {
+.project-meta-link:active {
   transform: translateY(var(--motion-press-distance));
 }
 
@@ -463,21 +396,6 @@ body:has(.bookmark-dashboard)::before {
   display: none;
 }
 
-.text-brand {
-  font-family: var(--bookmark-font-header);
-  letter-spacing: var(--tracking-xs);
-  text-transform: lowercase;
-  font-weight: var(--weight-ui-heavy);
-  font-style: italic;
-  color: var(--bookmark-text);
-}
-
-.text-chunky,
-.text-display {
-  font-family: var(--bookmark-font-header);
-  letter-spacing: var(--tracking-xs);
-}
-
 .app-surface,
 .page-shell {
   min-height: 100vh;
@@ -544,11 +462,6 @@ body:has(.bookmark-dashboard)::before {
   gap: var(--space-s);
 }
 
-.page-card-actions {
-  display: flex;
-  justify-content: flex-start;
-}
-
 .page-divider {
   padding-top: var(--space-xxs);
   border-top: 0;
@@ -575,12 +488,12 @@ body:has(.bookmark-dashboard)::before {
   border-radius: var(--bookmark-brand-bubble-radius);
   padding: var(--space-xs) var(--space-s);
   background: var(--bookmark-brand-bubble-bg);
-  color: var(--neutral-10);
-  font-family: var(--bookmark-font-header);
+  color: var(--color-1-ink);
+  font-family: var(--font-brand);
   font-size: var(--size-l);
   font-style: italic;
-  font-weight: var(--weight-ui-medium);
-  letter-spacing: var(--tracking-xs);
+  font-weight: var(--brand-wordmark-weight);
+  letter-spacing: var(--brand-wordmark-tracking);
   line-height: 1;
   text-decoration: none;
   box-sizing: border-box;
@@ -697,10 +610,6 @@ body:has(.bookmark-dashboard)::before {
 textarea.input-field {
   min-height: 96px;
   resize: vertical;
-}
-
-.input-field::placeholder {
-  color: var(--bookmark-muted);
 }
 
 .app-modal {
@@ -923,114 +832,6 @@ textarea.input-field {
   display: flex;
   flex-direction: column;
   padding-bottom: var(--space-xxl);
-}
-
-.app-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-m);
-  padding: var(--space-m) var(--layout-gutter);
-  background: linear-gradient(
-    180deg,
-    rgba(9, 15, 27, 0.96),
-    rgba(18, 27, 43, 0.92)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 12px 28px rgba(4, 10, 22, 0.18);
-  backdrop-filter: blur(14px);
-}
-
-.app-topbar::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--color-blue),
-    var(--color-yellow) 66%,
-    var(--color-orange)
-  );
-}
-
-.app-topbar-brand,
-.app-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-}
-
-.app-topbar-brand {
-  min-width: 0;
-}
-
-.app-topbar-actions {
-  margin-left: auto;
-}
-
-.app-topbar-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-}
-
-.app-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-family: var(--bookmark-font-header);
-  font-size: clamp(21px, 4vw, 24px);
-  font-style: italic;
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xs);
-  color: var(--bookmark-text);
-  line-height: 1;
-}
-
-.app-logo-accent {
-  color: inherit;
-}
-
-.app-logo-base {
-  color: inherit;
-}
-
-.app-kicker {
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  letter-spacing: var(--tracking-xl);
-  color: rgba(247, 250, 255, 0.72);
-}
-
-.app-context-pill {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 26px;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: rgba(247, 250, 255, 0.18);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: rgba(247, 250, 255, 0.08);
-  color: rgba(247, 250, 255, 0.92);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
 }
 
 .app-icon-button {
@@ -1313,1648 +1114,7 @@ textarea.input-field {
   color: var(--color-orange);
 }
 
-.split-view {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: var(--space-m);
-  padding: var(--space-m) var(--layout-gutter) var(--space-xxl);
-}
-
-.links-pane,
-.profiles-pane-wrapper {
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(
-    180deg,
-    var(--surface-panel),
-    rgba(255, 255, 255, 0.2)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-lg);
-  overflow: hidden;
-}
-
-.links-pane {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.links-pane::before,
-.profiles-pane-wrapper::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 8px;
-  background: linear-gradient(
-    90deg,
-    var(--color-blue),
-    var(--color-yellow) 68%,
-    var(--color-orange)
-  );
-}
-
-.links-pane-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  padding: var(--layout-panel-padding);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.5),
-    rgba(255, 255, 255, 0.08)
-  );
-}
-
-[data-theme='dark'] .links-pane-header {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.01)
-  );
-}
-
-.links-pane-topline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: var(--space-m);
-  align-items: start;
-}
-
-.links-pane-title {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  min-width: 0;
-}
-
-.pane-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 26px;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--bookmark-border-strong);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--surface-warning);
-  color: var(--color-black);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-}
-
-.pane-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.65rem, 2vw, 2.05rem);
-  line-height: 1;
-  letter-spacing: var(--tracking-xs);
-  color: var(--color-black);
-}
-
-.pane-subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: var(--line-m);
-  max-width: 62ch;
-}
-
-.pane-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-.metric-chip {
-  min-width: 108px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  padding: var(--space-xs) var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-}
-
-.metric-chip-warning {
-  background: linear-gradient(
-    180deg,
-    var(--surface-elevated),
-    var(--surface-warning)
-  );
-}
-
-.metric-label {
-  color: var(--text-faint);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: var(--line-m);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--color-black);
-}
-
-.links-pane-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.links-pane-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(230px, 280px);
-  gap: var(--space-s);
-  align-items: stretch;
-}
-
-.links-pane-status {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-s) var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-}
-
-.links-pane-status-text {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  color: var(--text-muted);
-}
-
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 26px;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: rgba(8, 16, 28, 0.85);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-}
-
-.status-chip.is-ready {
-  background: var(--surface-warning);
-  color: var(--color-black);
-}
-
-.status-chip.is-filtered {
-  background: var(--surface-accent);
-  color: var(--color-blue);
-}
-
-.status-chip.is-armed {
-  background: var(--surface-danger);
-  color: var(--color-orange);
-}
-
-.link-add {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-xs);
-  align-items: center;
-  padding: var(--space-xs);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-lg);
-  background:
-    linear-gradient(135deg, color-mix(in oklch, var(--bookmark-accent) 8%, transparent), transparent 45%),
-    linear-gradient(180deg, var(--surface-panel-strong), var(--surface-panel));
-}
-
-.link-add-input {
-  min-width: 0;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--color-black);
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: var(--line-m);
-}
-
-.link-add-input:focus {
-  outline: none;
-}
-
-.link-add-input::placeholder {
-  color: var(--text-faint);
-}
-
-.link-add-button {
-  min-width: 88px;
-  min-height: 40px;
-  padding: 0 var(--space-m);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: rgba(8, 16, 28, 0.92);
-  border-radius: var(--radius-md);
-  background: var(--color-orange);
-  color: var(--color-white);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    3px 3px 0 rgba(8, 16, 28, 0.14);
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background-color var(--transition-fast);
-}
-
-.link-add-button:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    5px 5px 0 oklch(0.172 0.028 257.964 / 0.18);
-  background: oklch(0.62 0.22 33);
-}
-
-.profiles-toggle-button,
-.profiles-collapse-button,
-.profiles-rail-button,
-.profile-action {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-  color: var(--color-black);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-  cursor: pointer;
-  transition:
-    transform var(--transition-fast),
-    --edge var(--transition-fast),
-    background-color var(--transition-fast);
-}
-
-.profiles-toggle-button:hover,
-.profiles-collapse-button:hover,
-.profiles-rail-button:hover,
-.profile-action:hover {
-  transform: translateY(-1px);
-  --edge: color-mix(in oklch, var(--bookmark-accent) 24%, transparent);
-  background: var(--surface-panel-muted);
-}
-
-.search-bar {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  padding: 0 var(--space-s);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-lg);
-  background: var(--surface-elevated);
-}
-
-.search-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--color-blue);
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--color-black);
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: var(--line-m);
-}
-
-.search-input:focus {
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: var(--text-faint);
-}
-
-.tag-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  padding-top: 2px;
-}
-
-.tag-pill {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: 0 var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-  color: var(--text-soft);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
-  transition:
-    transform var(--transition-fast),
-    --edge var(--transition-fast),
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.tag-pill:hover {
-  transform: translateY(-1px);
-  --edge: color-mix(in oklch, var(--bookmark-accent) 22%, transparent);
-}
-
-.tag-pill-active {
-  background: var(--color-blue);
-  --edge: rgba(8, 16, 28, 0.92);
-  color: var(--color-white);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    3px 3px 0 rgba(246, 249, 30, 0.35);
-}
-
-.tag-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  display: inline-block;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 var(--border-s) var(--neutral-6-transparent);
-}
-
-.links-pane-body {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-.links-grid-scroll {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: var(--space-xxl);
-}
-
-.links-grid-fallback {
-  display: grid;
-  grid-auto-rows: var(--link-card-height, max-content);
-  column-gap: var(--layout-grid-gap-x);
-  row-gap: var(--layout-grid-gap-y);
-  padding: var(--layout-grid-gutter);
-}
-
-.links-grid-fallback > div,
-.links-grid-row > div {
-  min-width: 0;
-}
-
-.links-grid-row {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  column-gap: var(--layout-grid-gap-x);
-  row-gap: var(--layout-grid-gap-y);
-  padding: 0 var(--layout-grid-gutter);
-}
-
-.link-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: var(--link-card-height, auto);
-  overflow: hidden;
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  border-radius: var(--radius-lg);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.72),
-      rgba(255, 255, 255, 0.02)
-    ),
-    linear-gradient(180deg, var(--surface-elevated), var(--surface-panel-muted));
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-soft);
-  cursor: pointer;
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast),
-    --edge var(--transition-fast);
-  animation: fadeUp var(--motion-duration) var(--motion-easing) both;
-}
-
-[data-theme='dark'] .link-card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-    linear-gradient(180deg, var(--surface-elevated), var(--surface-panel-muted));
-}
-
-.link-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-lg);
-}
-
-.link-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-top: 0;
-  --edge-t-w: var(--border-l);
-  --edge-t: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  pointer-events: none;
-  transition: --edge var(--transition-fast);
-}
-
-.link-card:hover::after {
-  border-top-color: var(--color-blue);
-}
-
-.link-card-selected {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--color-blue);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--bookmark-accent) 14%, transparent),
-    rgba(246, 249, 30, 0.08)
-  );
-}
-
-.link-card-media {
-  position: relative;
-  width: 100%;
-  height: var(--link-card-media-height, auto);
-  aspect-ratio: 16 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex: 0 0 var(--link-card-media-height, auto);
-  background:
-    linear-gradient(135deg, color-mix(in oklch, var(--bookmark-accent) 12%, transparent), transparent 42%),
-    linear-gradient(180deg, rgba(8, 16, 28, 0.08), rgba(8, 16, 28, 0.02));
-}
-
-.link-card-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
-  max-width: calc(100% - 72px);
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--bookmark-border-strong);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: rgba(247, 250, 255, 0.88);
-  color: var(--text-soft);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-  backdrop-filter: blur(10px);
-}
-
-[data-theme='dark'] .link-card-badge {
-  background: rgba(13, 22, 40, 0.82);
-  color: var(--text-on-contrast);
-}
-
-.link-card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: opacity var(--transition-medium);
-}
-
-.link-card-fallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-m);
-  text-align: center;
-}
-
-.link-card-favicon {
-  width: 38px;
-  height: 38px;
-  padding: var(--space-xs);
-  object-fit: contain;
-}
-
-.link-card-domain {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--text-soft);
-  overflow-wrap: anywhere;
-}
-
-.link-card-image.is-hidden,
-.link-card-fallback.is-hidden {
-  opacity: 0;
-}
-
-.link-card-delete {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--bookmark-border-strong);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-sm);
-  background: rgba(247, 250, 255, 0.88);
-  color: var(--color-black);
-  opacity: 0;
-  cursor: pointer;
-  transition:
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
-  z-index: 3;
-}
-
-[data-theme='dark'] .link-card-delete {
-  background: rgba(13, 22, 40, 0.82);
-  color: var(--text-on-contrast);
-}
-
-.link-card:hover .link-card-delete {
-  opacity: 1;
-}
-
-.link-card-delete:hover {
-  transform: scale(1.04);
-}
-
-.link-card-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  padding: var(--space-m);
-  background: linear-gradient(
-    180deg,
-    rgba(9, 15, 27, 0.18),
-    rgba(9, 15, 27, 0.86)
-  );
-  opacity: 0;
-  transition: opacity var(--transition-medium);
-}
-
-.link-card-overlay.is-visible {
-  opacity: 1;
-}
-
-.link-card-overlay-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.link-card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: 1.1;
-  color: var(--text-on-contrast);
-  overflow-wrap: anywhere;
-}
-
-.link-card-description,
-.link-card-url {
-  margin: 0;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: rgba(247, 250, 255, 0.78);
-  overflow-wrap: anywhere;
-}
-
-.link-card-footer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  height: var(--link-card-footer-height, auto);
-  flex: 0 0 var(--link-card-footer-height, auto);
-  min-height: 0;
-  padding: var(--space-s);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.42),
-    rgba(255, 255, 255, 0.03)
-  );
-}
-
-[data-theme='dark'] .link-card-footer {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.02),
-    rgba(255, 255, 255, 0)
-  );
-}
-
-.link-card-open {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s);
-  padding: 0 var(--space-s);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  border-radius: var(--radius-md);
-  background: var(--surface-contrast);
-  color: var(--text-on-contrast);
-  cursor: pointer;
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background-color var(--transition-fast);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    3px 3px 0 rgba(8, 16, 28, 0.12);
-}
-
-[data-theme='dark'] .link-card-open {
-  background: rgba(247, 250, 255, 0.08);
-  color: var(--color-black);
-}
-
-.link-card-open:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    5px 5px 0 rgba(8, 16, 28, 0.16);
-}
-
-.link-card-open svg {
-  color: var(--color-yellow);
-  transition: transform var(--transition-fast);
-}
-
-.link-card-open:hover svg {
-  transform: translateX(2px);
-}
-
-.link-card-open-text {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
-}
-
-.link-card-open-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
-.link-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.tag-chip {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: 0 var(--space-xs);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-sm);
-  background: var(--surface-elevated);
-  color: var(--text-soft);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.tag-chip-button {
-  cursor: pointer;
-}
-
-.tag-selector {
-  position: fixed;
-  z-index: 9999;
-  width: 308px;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: var(--bookmark-radius-card);
-  background: var(--bookmark-surface);
-  color: var(--bookmark-text);
-  font-family: var(--bookmark-font-sans);
-  overflow: hidden;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-shadow-border);
-}
-
-.tag-selector-header,
-.tag-selector-search,
-.tag-selector-create {
-  padding: var(--space-xs);
-}
-
-.tag-selector-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-s);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.tag-selector-title,
-.tag-selector-subtitle,
-.tag-selector-section-label {
-  margin: 0;
-}
-
-.tag-selector-title {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-}
-
-.tag-selector-subtitle,
-.tag-selector-section-label {
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.tag-selector-close {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: calc(var(--bookmark-radius-card) - 4px);
-  background: var(--bookmark-surface-muted);
-  color: inherit;
-  padding: 0;
-  font: inherit;
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.tag-selector-search {
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.tag-selector-create {
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.tag-selector-input,
-.tag-selector-create-button {
-  min-height: 40px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--bookmark-radius-input);
-  background: var(--bookmark-surface);
-  color: var(--bookmark-text);
-  font-family: inherit;
-  transition:
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.tag-selector-input {
-  width: 100%;
-  padding: 0 var(--space-xs);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  outline: none;
-}
-
-.tag-selector-input::placeholder {
-  color: var(--bookmark-muted);
-}
-
-.tag-selector-input:focus,
-.tag-selector-create-button:focus-visible,
-.tag-selector-close:focus-visible,
-.tag-selector-delete:focus-visible,
-.tag-selector-color-swatch:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-  --edge: var(--bookmark-accent);
-}
-
-.tag-selector-list {
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.tag-selector-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-xs);
-  color: inherit;
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.tag-selector-item.is-selected {
-  background: color-mix(in srgb, var(--bookmark-accent) 10%, transparent);
-}
-
-.tag-selector-toggle {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  border: 0;
-  --edge-w: 0px;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-  min-width: 0;
-}
-
-.tag-selector-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.tag-selector-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.tag-selector-check {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-accent);
-}
-
-.tag-selector-delete {
-  min-width: 24px;
-  min-height: 24px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-surface-muted);
-  color: var(--color-orange);
-  cursor: pointer;
-  font: inherit;
-}
-
-[data-theme='dark'] .tag-selector-delete {
-  --edge: var(--bookmark-border);
-  background: var(--bookmark-control-bg);
-}
-
-.tag-selector-delete:hover,
-.tag-selector-delete:focus-visible {
-  background: var(--error-transparent);
-}
-
-.tag-selector-delete:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 /* Profile picker popover — same shell as tag selector, list rows match bookmark rail / tag list */
-.tag-selector.profile-picker .tag-selector-list {
-  max-height: 240px;
-}
-
-.tag-selector.profile-picker .tag-selector-item {
-  padding: 0;
-  gap: 0;
-}
-
-.tag-selector.profile-picker .profile-picker-glyph-wrap {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--bookmark-muted);
-}
-
-.profile-picker-glyph {
-  width: 14px;
-  height: 14px;
-}
-
-.profile-picker-glyph path {
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.tag-selector.profile-picker .profile-picker-profile-button {
-  width: 100%;
-  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-s);
-  border-radius: 0;
-  transition: background var(--motion-duration) var(--motion-easing);
-}
-
-.tag-selector.profile-picker
-  .profile-picker-profile-button:hover:not(:disabled) {
-  background: var(--neutral-3);
-}
-
-.tag-selector.profile-picker .profile-picker-profile-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 0 0 var(--border-s) var(--color-1);
-}
-
-.tag-selector.profile-picker .profile-picker-profile-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.tag-selector.profile-picker .tag-selector-empty {
-  text-align: center;
-  line-height: 1.45;
-  max-width: 26em;
-  margin: 0 auto;
-}
-
-.tag-selector-empty {
-  padding: var(--space-s) var(--space-xs);
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.tag-selector-create-row {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.tag-selector-create-button {
-  min-width: 78px;
-  padding: 0 var(--space-xs);
-  cursor: pointer;
-}
-
-.tag-selector-create-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.tag-selector-palette {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-xs);
-}
-
-.tag-selector-color-swatch {
-  height: 24px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  padding: 0;
-  cursor: pointer;
-  color: var(--paper);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: 1;
-}
-
-.tag-selector-color-swatch.is-active {
-  --edge: var(--bookmark-accent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 0 0 var(--border-l) var(--neutral-1);
-}
-
-.tag-selector-color-readout {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-[data-theme='dark'] .tag-selector-color-readout {
-  color: var(--bookmark-muted);
-}
-
-.tag-selector-color-chip {
-  width: 12px;
-  height: 12px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.profiles-pane-wrapper {
-  position: relative;
-  width: min(36vw, 420px);
-  min-width: 320px;
-  max-width: 440px;
-  min-height: 0;
-  transition: width var(--motion-duration) var(--motion-easing);
-}
-
-.profiles-pane-wrapper.is-collapsed {
-  width: 58px;
-  min-width: 58px;
-}
-
-.profiles-pane-inner,
-.profiles-pane {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.profiles-pane {
-  padding: var(--layout-panel-padding);
-  gap: var(--space-m);
-}
-
-.profiles-pane-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-}
-
-.profiles-header-row,
-.profiles-counts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.profiles-count-badge,
-.profile-count-badge {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-sm);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--surface-elevated);
-  color: var(--text-soft);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: var(--tracking-xl);
-}
-
-.profiles-count-badge.is-active {
-  background: var(--surface-danger);
-  color: var(--color-orange);
-}
-
-.profiles-collapse-button {
-  align-self: flex-end;
-  margin: var(--space-s) var(--space-s) 0;
-}
-
-.profiles-rail-button {
-  width: 100%;
-  height: 100%;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  border: 0;
-  --edge-w: 0px;
-  border-radius: 0;
-  background: transparent;
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  letter-spacing: var(--tracking-xl);
-}
-
-.profiles-pane-list {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-.profile-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  padding: var(--space-m);
-  border: 0;
-  --edge-w: var(--border-l);
-  --edge: var(--neutral-6-transparent);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(
-    180deg,
-    var(--surface-elevated),
-    var(--surface-panel-muted)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-soft);
-}
-
-.profile-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 6px;
-  background: linear-gradient(90deg, var(--color-orange), var(--color-yellow));
-}
-
-.profile-card-header,
-.profile-actions,
-.profile-card-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.profile-card-header {
-  justify-content: space-between;
-}
-
-.profile-card-title-row {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-
-.profile-name-input {
-  flex: 1 1 180px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-panel-strong);
-  color: var(--color-black);
-  font-weight: var(--weight-ui-heavy);
-}
-
-.profile-name-input:focus {
-  outline: none;
-  --edge: var(--bookmark-accent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 3px color-mix(in oklch, var(--bookmark-accent) 10%, transparent);
-}
-
-.profile-action-primary {
-  background: var(--color-orange);
-  color: var(--color-white);
-  --edge: rgba(8, 16, 28, 0.92);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    3px 3px 0 rgba(8, 16, 28, 0.12);
-}
-
-.profile-links-row {
-  display: flex;
-  gap: var(--space-s);
-  overflow-x: auto;
-  padding-bottom: var(--space-xxs);
-}
-
-.profile-link-button {
-  padding: 0;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  text-align: left;
-}
-
-.profile-link-tile {
-  position: relative;
-  width: 170px;
-  min-height: 132px;
-  overflow: hidden;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(
-    180deg,
-    var(--surface-panel-strong),
-    var(--surface-panel-muted)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-soft);
-}
-
-.profile-link-image {
-  width: 100%;
-  height: 92px;
-  object-fit: cover;
-}
-
-.profile-link-fallback {
-  min-height: 92px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-s);
-  text-align: center;
-}
-
-.profile-link-footer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 40px;
-  padding: 0 var(--space-xs);
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--border-default-color);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.profile-link-favicon {
-  width: 22px;
-  height: 22px;
-  padding: var(--space-xxs);
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.profile-link-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--text-soft);
-}
-
-.profile-link-remove {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: var(--radius-sm);
-  background: rgba(8, 16, 28, 0.8);
-  color: var(--color-white);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.profile-link-tile:hover .profile-link-remove {
-  opacity: 1;
-}
-
-.profile-empty,
-.profiles-empty {
-  padding: var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-  color: var(--text-muted);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-}
-
-.profiles-create {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.profiles-create-actions {
-  display: flex;
-  gap: var(--space-xs);
-}
 
 .project-topbar {
   position: relative;
@@ -3404,77 +1564,12 @@ textarea.input-field {
   font-weight: var(--weight-ui-heavy);
 }
 
-.desktop-footer {
-  position: fixed;
-  inset: auto 0 0;
-  height: 28px;
-  display: none;
-  align-items: center;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  padding: 0 var(--space-m);
-  /* overflow must stay visible: the settings menu pops upward out of the bar
-     (the text span clips itself via .desktop-footer-text) */
-  overflow: visible;
-  background: var(--bookmark-surface-muted);
-  color: var(--bookmark-muted);
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  font-family: var(--bookmark-font-sans);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-medium);
-  letter-spacing: var(--tracking-xl);
-  text-align: left;
-  z-index: 90;
-}
-
-.desktop-footer-text {
-  display: block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* Fainter than the Settings button so the interactive control reads first */
-  color: color-mix(in srgb, var(--bookmark-muted) 55%, transparent);
-}
-
 .bg-white {
   background-color: var(--surface-elevated) !important;
 }
 
-.bg-black {
-  background-color: var(--surface-contrast) !important;
-}
-
-.bg-light-grey {
-  background-color: var(--surface-panel-muted) !important;
-}
-
 .bg-gray-50 {
   background-color: var(--surface-panel-muted) !important;
-}
-
-.bg-gray-100 {
-  background-color: var(--surface-panel) !important;
-}
-
-.bg-gray-200 {
-  background-color: var(--color-light-grey) !important;
-}
-
-.bg-red-50 {
-  background-color: var(--surface-danger) !important;
-}
-
-.bg-green-50 {
-  background-color: oklch(0.528 0.122 154.468 / 0.12) !important;
 }
 
 .bg-orange {
@@ -3485,28 +1580,8 @@ textarea.input-field {
   background-color: oklch(0.649 0.228 33.767 / 0.1) !important;
 }
 
-.bg-orange-muted {
-  background-color: oklch(0.649 0.228 33.767 / 0.2) !important;
-}
-
-.bg-light-orange {
-  background-color: oklch(0.649 0.228 33.767 / 0.08) !important;
-}
-
-.bg-blue {
-  background-color: var(--color-blue) !important;
-}
-
-.bg-muted-blue {
-  background-color: oklch(0.457 0.284 264.391 / 0.16) !important;
-}
-
 .bg-project-card {
   background-color: var(--surface-panel-muted) !important;
-}
-
-.bg-project-card-starred {
-  background-color: oklch(0.949 0.204 110.62 / 0.18) !important;
 }
 
 .text-black {
@@ -3521,61 +1596,21 @@ textarea.input-field {
   color: var(--text-faint) !important;
 }
 
-.text-gray-400 {
-  color: var(--text-faint) !important;
-}
-
 .text-gray-500 {
   color: var(--text-muted) !important;
-}
-
-.text-gray-600 {
-  color: var(--text-soft) !important;
 }
 
 .text-orange {
   color: var(--color-orange) !important;
 }
 
-.text-red-500,
-.text-red-700 {
-  color: var(--color-orange) !important;
-}
-
-.text-green-700 {
-  color: var(--success) !important;
-}
-
-.border-black {
-  --edge: oklch(0.172 0.028 257.964 / 0.9) !important;
-}
-
 .border-medium-grey,
-.border-light-grey,
 .border-project-card {
   --edge: rgba(8, 16, 28, 0.14) !important;
 }
 
-.border-orange,
-.border-orange-muted {
+.border-orange {
   --edge: rgba(251, 64, 16, 0.42) !important;
-}
-
-.border-red-200,
-.border-red-500 {
-  --edge: rgba(251, 64, 16, 0.42) !important;
-}
-
-.border-green-200 {
-  --edge: rgba(22, 163, 74, 0.36) !important;
-}
-
-.border-orange-400 {
-  --edge: var(--color-blue) !important;
-}
-
-.placeholder-gray-500::placeholder {
-  color: var(--text-faint) !important;
 }
 
 .hover\:bg-gray-50:hover {
@@ -3609,18 +1644,6 @@ textarea.input-field {
     inset var(--edge-l-w) 0 0 0 var(--edge-l),
     inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
     var(--shadow-soft) !important;
-}
-
-.animate-spin {
-  animation: spin var(--motion-duration) var(--motion-easing) infinite;
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right var(--motion-duration) var(--motion-easing) forwards;
-}
-
-.animate-slide-out-right {
-  animation: slide-out-right var(--motion-duration) var(--motion-easing) forwards;
 }
 
 .animate-slide-down {
@@ -3707,107 +1730,13 @@ textarea.input-field {
   }
 }
 
-@media (min-width: 768px) {
-  .desktop-footer {
-    display: flex;
-  }
-}
-
-@media (max-width: 1200px) {
-  .links-pane-topline {
-    grid-template-columns: 1fr;
-  }
-
-  .links-pane-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .profiles-pane-wrapper {
-    width: min(40vw, 380px);
-    min-width: 290px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .split-view {
-    flex-direction: column;
-  }
-
-  .links-pane-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .profiles-pane-wrapper {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    max-height: 42vh;
-  }
-
-  .profiles-pane-wrapper.is-collapsed {
-    width: 100%;
-    min-width: 0;
-    max-height: 68px;
-  }
-
-  .profiles-rail-button {
-    writing-mode: initial;
-    transform: none;
-    min-height: 68px;
-  }
-}
-
 @media (max-width: 768px) {
   .page-card {
     width: min(100%, 520px);
   }
 
-  .app-topbar {
-    padding: var(--space-s) var(--space-m);
-  }
-
-  .app-topbar-meta {
-    display: none;
-  }
-
-  .split-view,
   .project-body {
     padding: var(--space-s) var(--space-m) var(--space-xl);
-  }
-
-  .links-pane-header,
-  .profiles-pane {
-    padding: var(--space-m);
-  }
-
-  .pane-metrics {
-    gap: var(--space-xs);
-  }
-
-  .metric-chip {
-    min-width: 92px;
-  }
-
-  .links-pane-actions {
-    flex-direction: column;
-  }
-
-  .link-add {
-    grid-template-columns: 1fr;
-  }
-
-  .link-add-button,
-  .profiles-toggle-button {
-    width: 100%;
-  }
-
-  .profiles-pane-wrapper.is-collapsed {
-    max-height: 60px;
-  }
-
-  .profiles-rail-button {
-    min-height: 60px;
   }
 }
 
@@ -3857,10 +1786,7 @@ textarea.input-field {
   background: var(--bookmark-experiment-bg);
 }
 
-.bookmark-dashboard .bookmark-rail,
-.bookmark-dashboard .bookmark-toolbar,
-.bookmark-dashboard .bookmark-mobile-rail-tabs,
-.bookmark-dashboard .bookmark-rail-mobile-header {
+.bookmark-dashboard .bookmark-rail {
   background: transparent;
 }
 
@@ -3910,30 +1836,6 @@ textarea.input-field {
     box-shadow var(--transition-medium);
 }
 
-.bookmark-rail-inner {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.bookmark-rail-inner--profiles {
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.bookmark-rail-inner--profiles .bookmark-profiles-panel {
-  min-height: min(100%, 100vh);
-  display: flex;
-  flex-direction: column;
-}
-
-.bookmark-rail-inner--profiles .bookmark-profiles-view {
-  flex: 1;
-  min-height: 0;
-}
-
 .bookmark-feed-main {
   min-width: 0;
   min-height: 0;
@@ -3953,77 +1855,6 @@ textarea.input-field {
   flex-direction: column;
   border: 0;
   overflow: hidden;
-}
-
-.bookmark-feed-stack .bookmark-list-scroll,
-.bookmark-feed-stack .bookmark-list-row {
-  background: transparent;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-}
-
-.bookmark-mobile-rail-tabs {
-  display: none;
-  flex-shrink: 0;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-s) var(--space-xs);
-  background: var(--bookmark-surface);
-}
-
-.bookmark-mobile-rail-tab {
-  flex: 1;
-  height: 40px;
-  border-radius: var(--bookmark-radius-input);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  font-family: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-rail-mobile-header {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-s) var(--space-s);
-  flex-shrink: 0;
-  background: var(--bookmark-surface-muted);
-}
-
-.bookmark-rail-mobile-title {
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-}
-
-.bookmark-rail-mobile-close {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-accent-strong);
-  font-family: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
 }
 
 .bookmark-mobile-scrim {
@@ -4048,83 +1879,6 @@ textarea.input-field {
   box-sizing: border-box;
 }
 
-.bookmark-feed-main-inner .bookmark-list-virtual-row {
-  padding-bottom: 0;
-}
-
-.bookmark-feed-main-inner .bookmark-list-row {
-  margin-right: 0;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: 0;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  --bookmark-list-row-divider: color-mix(
-    in srgb,
-    var(--bookmark-border) 55%,
-    transparent
-  );
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-list-row-divider);
-}
-
-.bookmark-feed-main-inner .bookmark-list-row:hover {
-  --edge-b: var(--bookmark-list-row-divider);
-}
-
-.bookmark-feed-main-inner .bookmark-list-row:focus-visible {
-  --edge: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 0 0 2px
-    color-mix(in oklch, var(--bookmark-active-bg) 38%, transparent);
-}
-
-.bookmark-feed-main-inner
-  .bookmark-list-panel.is-selection-mode
-  .bookmark-list-row.is-selected {
-  background: var(--bookmark-row-selected-bg);
-  --edge-b: var(--bookmark-list-row-divider);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-feed-main-inner
-  .bookmark-list-panel.is-selection-mode
-  .bookmark-list-row.is-selected:hover {
-  background: color-mix(in oklch, var(--bookmark-active-bg) 28%, transparent);
-}
-
-.bookmark-feed-main-inner
-  .bookmark-list-panel.is-selection-mode
-  .bookmark-list-row.is-selected:focus-visible {
-  --edge-b: var(--bookmark-list-row-divider);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 0 0 1px
-    color-mix(in oklch, var(--bookmark-active-bg) 42%, transparent);
-}
-
-.bookmark-list-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .bookmark-list-panel-stack {
   position: relative;
   flex: 1;
@@ -4133,133 +1887,10 @@ textarea.input-field {
   flex-direction: column;
 }
 
-.bookmark-link-details-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--bookmark-stack-surface);
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.bookmark-link-details-overlay .bookmark-link-details-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.bookmark-feed-placeholder {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--space-xs);
-  padding: var(--space-xl) var(--space-m);
-  color: var(--bookmark-muted);
-}
-
-.bookmark-feed-placeholder--rail {
-  min-height: 200px;
-}
-
-.bookmark-feed-placeholder-title {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-text);
-  line-height: var(--line-s);
-  text-wrap: balance;
-}
-
-.bookmark-feed-placeholder-subtitle {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  text-wrap: pretty;
-  max-width: var(--measure-prose);
-}
-
-.bookmark-link-details-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
-}
-
-.bookmark-link-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  max-width: 100%;
-  padding-bottom: var(--space-m);
-}
-
-.bookmark-link-details-header-row {
-  align-items: center;
-  padding: 0 var(--space-s);
-  background: transparent;
-}
-
-.bookmark-link-details-header-row .bookmark-link-details-back {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  align-self: stretch;
-  min-height: 52px;
-  margin: 0;
-  text-align: left;
-}
-
 .bookmark-link-details-back {
   border: 0;
   cursor: pointer;
   margin: 0;
-}
-
-.bookmark-link-details-card {
-  flex-shrink: 0;
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: color-mix(in srgb, var(--bookmark-border) 55%, transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-link-details-card .bookmark-list-row {
-  margin: 0;
-  min-height: 0;
-  padding: var(--space-s) var(--space-s);
-  border: 0;
-  --edge-w: 0px;
-  border-radius: 0;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: transparent;
-}
-
-.bookmark-link-details-card .bookmark-list-row-tags {
-  display: none;
-}
-
-.bookmark-link-details-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: var(--space-xxs) var(--space-s) 0;
 }
 
 .bookmark-detail-section {
@@ -4317,32 +1948,6 @@ textarea.input-field {
   max-width: var(--measure-prose);
 }
 
-.bookmark-detail-value {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-editorial-medium);
-  color: var(--bookmark-text);
-  line-height: var(--line-s);
-  overflow-wrap: anywhere;
-}
-
-.bookmark-detail-muted {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  color: var(--bookmark-secondary-text);
-  text-wrap: pretty;
-}
-
-.bookmark-detail-url-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: stretch;
-}
-
 .bookmark-detail-input {
   flex: 1;
   min-width: 0;
@@ -4362,160 +1967,6 @@ textarea.input-field {
   cursor: not-allowed;
 }
 
-.bookmark-detail-tags-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-  row-gap: var(--space-xs);
-}
-
-.bookmark-detail-rescrape-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.bookmark-detail-rescrape-status {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-muted);
-}
-
-.bookmark-detail-rescrape-status.is-ok {
-  color: var(--bookmark-prominent-text);
-}
-
-.bookmark-detail-tag-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-.bookmark-detail-tag-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: var(--space-xxs) var(--space-s);
-  box-sizing: border-box;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  font-weight: var(--weight-editorial-medium);
-  line-height: var(--line-xs);
-  border-radius: var(--bookmark-radius-pill);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-chip-secondary-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-chip-secondary-bg);
-  color: var(--bookmark-secondary-text);
-}
-
-.bookmark-detail-tag-edit {
-  border: 0;
-  cursor: pointer;
-  margin: 0;
-}
-
-.bookmark-detail-profile-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  color: var(--bookmark-text);
-  line-height: var(--line-s);
-}
-
-.bookmark-detail-profile-list li {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: var(--space-xxs) var(--space-s);
-  border-radius: var(--bookmark-radius-pill);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-chip-secondary-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-chip-secondary-bg);
-  color: var(--bookmark-secondary-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-editorial-medium);
-}
-
-.bookmark-detail-toggle-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-m);
-}
-
-.bookmark-detail-toggle-row > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  min-width: 0;
-}
-
-.bookmark-detail-switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.bookmark-detail-switch input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.bookmark-detail-switch-ui {
-  width: 44px;
-  height: 26px;
-  position: relative;
-}
-
-.bookmark-detail-switch-ui::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--bookmark-surface);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--shadow-s);
-  transition: transform var(--transition-fast);
-}
-
-.bookmark-detail-switch input:checked + .bookmark-detail-switch-ui::after {
-  transform: translateX(18px);
-}
-
 .bookmark-detail-delete {
   min-height: 40px;
   border: 0;
@@ -4527,53 +1978,10 @@ textarea.input-field {
   cursor: not-allowed;
 }
 
-.bookmark-list-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 3px 0;
-  margin: 0;
-  background: var(--bookmark-surface);
-  border: 0;
-  --edge-w: 0px;
-  border-radius: 0;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  box-sizing: border-box;
-  -webkit-overflow-scrolling: touch;
-}
-
-.bookmark-list-scroll .bookmark-list-row {
-  margin-inline: 2px;
-}
-
-.bookmark-list-virtual-row {
-  padding-bottom: var(--bookmark-list-row-gap, 10px);
-}
-
-.bookmark-list-scroll--stagger .bookmark-list-virtual-row .bookmark-list-row {
-  opacity: 0;
-  transform: translateY(18px) scale(0.97);
-  animation: bookmark-list-stagger-in var(--motion-duration) var(--motion-easing)
-    forwards;
-  animation-delay: calc(var(--stagger-i, 0) * 70ms);
-}
-
 @keyframes bookmark-list-stagger-in {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bookmark-list-scroll--stagger .bookmark-list-virtual-row .bookmark-list-row {
-    animation: none;
-    opacity: 1;
-    transform: none;
   }
 }
 
@@ -4667,14 +2075,6 @@ textarea.input-field {
     transform: translateX(0);
   }
 
-  .bookmark-rail-mobile-header {
-    display: flex;
-  }
-
-  .bookmark-mobile-rail-tabs {
-    display: flex;
-  }
-
   .bookmark-feed-main {
     --bookmark-feed-inline-inset: 10px;
   }
@@ -4684,16 +2084,8 @@ textarea.input-field {
     --bookmark-mobile-super-tabs-gap: 10px;
   }
 
-  .bookmark-dashboard .bookmark-toolbar {
-    padding-bottom: 0;
-  }
-
   .bookmark-dashboard .bookmark-feed-layout > .bookmark-feed-main {
     padding-top: 0;
-  }
-
-  .bookmark-dashboard .bookmark-mobile-rail-tabs {
-    padding-top: var(--bookmark-mobile-super-tabs-gap);
   }
 
   .bookmark-feed-main-inner {
@@ -4701,59 +2093,6 @@ textarea.input-field {
   }
 }
 
-.bookmark-toolbar {
-  min-height: var(--bookmark-toolbar-height);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-m);
-  padding: var(--space-xs) var(--space-s);
-  background: var(--bookmark-surface);
-  flex-shrink: 0;
-  font-family: var(--bookmark-font-header);
-}
-
-.bookmark-toolbar-brand-wrap,
-.bookmark-toolbar-status {
-  position: relative;
-}
-
-.bookmark-toolbar-center {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  justify-self: center;
-  min-width: 0;
-  max-width: min(560px, 100%);
-}
-
-.bookmark-toolbar-super-favorites {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  min-width: 0;
-}
-
-.bookmark-toolbar-super-fav {
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.bookmark-toolbar-super-fav img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.bookmark-toolbar-brand-wrap > button,
 .bookmark-toolbar-brand-shell {
   display: inline-flex;
   align-items: center;
@@ -4765,19 +2104,6 @@ textarea.input-field {
     transform var(--transition-fast);
 }
 
-.bookmark-toolbar-brand-wrap > button {
-  cursor: pointer;
-}
-
-.bookmark-toolbar-brand-wrap > button:hover {
-  background: var(--bookmark-brand-bubble-bg-hover);
-}
-
-.bookmark-toolbar-brand-wrap > button:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
-
 .bookmark-toolbar-brand {
   border: 0;
   --edge-w: 0px;
@@ -4787,169 +2113,27 @@ textarea.input-field {
   font-family: var(--font-brand);
   font-size: var(--size-l);
   font-style: italic;
-  font-weight: var(--weight-brand-medium);
-  letter-spacing: var(--letter-spacing-l);
+  font-weight: var(--brand-wordmark-weight);
+  letter-spacing: var(--brand-wordmark-tracking);
   line-height: var(--line-l);
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  transition: color var(--transition-fast);
 }
 
-.bookmark-toolbar-brand-wrap > button:hover .bookmark-toolbar-brand {
-  color: var(--bookmark-brand-color, var(--bookmark-canvas-base));
-}
-
-
-
-
-
-.bookmark-toolbar-brand-emoji {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15em;
-  line-height: 1;
-  letter-spacing: var(--tracking-xl);
-  font-size: clamp(18px, 2.2vw, 21px);
-}
-
-.bookmark-toolbar-tools {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-s);
-}
-
-.bookmark-tool-group {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-}
-
-.bookmark-view-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-  min-width: 0;
-}
-
-.bookmark-view-tab {
-  min-width: 0;
-  height: 32px;
-  border-radius: var(--bookmark-radius-pill);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-s);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-ui-heavy);
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-view-tab.is-active {
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-view-tab-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bookmark-tool-button {
-  width: 34px;
-  height: 34px;
-  border-radius: calc(var(--bookmark-radius-input) - 2px);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-surface-muted);
-  color: var(--bookmark-text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-tool-button.is-active {
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-tool-button svg,
-.bookmark-card-action svg,
-.bookmark-view-tab-icon svg,
 .bookmark-selection-fab svg,
-.bookmark-profile-main-action svg,
-.bookmark-profile-main-icon svg,
-.bookmark-profile-main-toggle svg,
-.bookmark-profile-preview-remove svg,
-.bookmark-sidebar-title svg,
 .bookmark-toolbar-cta-icon svg {
   width: 13px;
   height: 13px;
 }
 
-.bookmark-tool-button svg path,
-.bookmark-card-action svg path,
-.bookmark-card-action svg circle,
-.bookmark-view-tab-icon svg path,
 .bookmark-selection-fab svg path,
-.bookmark-profile-main-action svg path,
-.bookmark-profile-main-icon svg path,
-.bookmark-profile-main-toggle svg path,
-.bookmark-profile-preview-remove svg path,
-.bookmark-sidebar-title svg path,
 .bookmark-toolbar-cta-icon svg path {
   stroke: currentColor;
   stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
-}
-
-.bookmark-tool-button svg rect,
-.bookmark-tool-button svg circle,
-.bookmark-sidebar-title svg circle {
-  fill: currentColor;
-}
-
-.bookmark-toolbar-status {
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
 }
 
 .bookmark-toolbar-cta {
@@ -4967,11 +2151,7 @@ textarea.input-field {
   cursor: not-allowed;
 }
 
-.bookmark-tool-button:focus-visible,
-.bookmark-view-tab:focus-visible,
-.bookmark-mobile-rail-tab:focus-visible,
-.bookmark-selection-fab:focus-visible,
-.bookmark-bulk-feedback-dismiss:focus-visible {
+.bookmark-selection-fab:focus-visible {
   outline: var(--focus-ring-outline);
   outline-offset: 2px;
 }
@@ -5012,9 +2192,7 @@ textarea.input-field {
   flex-direction: column;
 }
 
-.bookmark-feed-stack > .bookmark-list-panel-stack,
-.bookmark-feed-main-inner > .bookmark-list-panel,
-.bookmark-feed-main-inner > .bookmark-profiles-panel {
+.bookmark-feed-stack > .bookmark-list-panel-stack {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -5037,49 +2215,6 @@ textarea.input-field {
   overflow: hidden;
 }
 
-.bookmark-rail-inner {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.bookmark-rail-inner--tags {
-  padding: 0;
-}
-
-.bookmark-tag-filter {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-s) var(--space-s) var(--space-s) var(--space-xs);
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.bookmark-tag-filter-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-xs);
-  min-height: 0;
-}
-
-.bookmark-tag-filter-footer {
-  flex-shrink: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.bookmark-tag-filter-footer .bookmark-profile-create {
-  align-self: stretch;
-}
-
 .bookmark-profile-new,
 .bookmark-tag-new {
   border: 0;
@@ -5092,8 +2227,7 @@ textarea.input-field {
 
 .bookmark-profile-new:hover,
 .bookmark-tag-new:hover,
-.bookmark-link-details-back:hover,
-.bookmark-detail-tag-edit:hover {
+.bookmark-link-details-back:hover {
   text-decoration: underline;
   text-underline-position: from-font;
   text-decoration-thickness: from-font;
@@ -5183,23 +2317,6 @@ textarea.input-field {
 }
 
 /* Profiles rail — left side, chips hugging the feed */
-.bookmark-profile-filter {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-s) var(--space-xs) var(--space-s) var(--space-s);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  -webkit-overflow-scrolling: touch;
-}
-
-.bookmark-profile-filter-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-xs);
-}
 
 .bookmark-profile-chip {
   width: fit-content;
@@ -5246,13 +2363,6 @@ textarea.input-field {
   border: var(--border-s) dashed var(--bookmark-chip-primary-bg);
 }
 
-.bookmark-profile-filter-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
 .bookmark-profile-create {
   display: flex;
   flex-direction: column;
@@ -5281,137 +2391,8 @@ textarea.input-field {
   cursor: not-allowed;
 }
 
-.bookmark-rail-inner--profiles {
-  min-height: 0;
-}
-
-.bookmark-rail-mobile-header {
-  flex-shrink: 0;
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-xs) var(--space-s);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-}
-
-.bookmark-rail-mobile-close {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-accent);
-  font: inherit;
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
-  padding: var(--space-xxs) var(--space-xs);
-}
-
-.bookmark-mobile-rail-tabs {
-  display: none;
-  flex-shrink: 0;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-s);
-  background: var(--bookmark-surface);
-}
-
-.bookmark-mobile-rail-tab {
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  border-radius: var(--bookmark-radius-pill);
-  padding: var(--space-xs) var(--space-s);
-  font: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-mobile-rail-tab:hover {
-  --edge: var(--bookmark-border-strong);
-}
-
 .bookmark-mobile-scrim {
   display: none;
-}
-
-.bookmark-omnibar {
-  min-width: 0;
-  padding: 0;
-  flex-shrink: 0;
-  background: transparent;
-}
-
-.bookmark-omnibar-row {
-  display: flex;
-  align-items: stretch;
-  box-sizing: border-box;
-  min-width: 0;
-  width: 100%;
-  min-height: var(--bookmark-omnibar-height, 52px);
-  border: 0;
-  border-bottom: 0;
-}
-
-.bookmark-omnibar-row--with-add {
-  gap: 0;
-  padding: 0 0 0 var(--space-s);
-}
-
-.bookmark-omnibar-input {
-  flex: 1 1 auto;
-  align-self: stretch;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  border: 0;
-}
-
-.bookmark-omnibar-input::placeholder {
-  color: var(--bookmark-secondary-text);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-regular);
-}
-
-.bookmark-omnibar-add {
-  flex-shrink: 0;
-  align-self: stretch;
-  margin: 0;
-  border: 0;
-  border-left: 0;
-  min-height: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-.bookmark-omnibar-add:disabled {
-  cursor: not-allowed;
-}
-
-.bookmark-list-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .bookmark-list-empty {
@@ -5447,153 +2428,6 @@ textarea.input-field {
   max-width: var(--measure-prose);
 }
 
-.bookmark-list-virtual-row {
-  padding-bottom: var(--bookmark-list-row-gap, 10px);
-}
-
-.bookmark-list-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-s);
-  min-height: 88px;
-  box-sizing: border-box;
-  padding: var(--space-s) var(--space-s);
-  margin-right: var(--bookmark-feed-inline-inset, var(--space-s));
-  background: var(--bookmark-surface);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--bookmark-radius-card);
-  outline: none;
-  cursor: pointer;
-  transition:
-    --edge var(--transition-fast),
-    background-color var(--transition-fast);
-}
-
-.bookmark-list-row:hover {
-  background: var(--bookmark-row-hover-bg);
-}
-
-.bookmark-list-row.is-read-only {
-  cursor: default;
-}
-
-.bookmark-list-row.is-read-only:hover {
-  background: transparent;
-}
-
-.bookmark-list-row:focus-visible {
-  --edge: color-mix(
-    in oklch,
-    var(--bookmark-active-bg) 45%,
-    var(--bookmark-border)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 0 0 2px
-    color-mix(in oklch, var(--bookmark-active-bg) 32%, transparent);
-}
-
-.bookmark-list-panel.is-selection-mode .bookmark-list-row.is-selected {
-  background: var(--bookmark-row-selected-bg);
-  --edge: color-mix(
-    in oklch,
-    var(--bookmark-active-bg) 35%,
-    var(--bookmark-border)
-  );
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-list-panel.is-selection-mode .bookmark-list-row.is-selected:hover {
-  background: color-mix(in oklch, var(--bookmark-active-bg) 28%, transparent);
-}
-
-.bookmark-list-row-media {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.bookmark-list-row-media.is-selected {
-  background: color-mix(in oklch, var(--bookmark-active-bg) 28%, transparent);
-  border-radius: calc(var(--bookmark-radius-input) - 2px);
-}
-
-.bookmark-list-row-favicon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.bookmark-list-row-placeholder {
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-muted);
-  letter-spacing: var(--tracking-xl);
-}
-
-.bookmark-list-row-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.bookmark-list-row-title {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-ui-heavy);
-  line-height: var(--line-s);
-  color: var(--bookmark-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookmark-list-row-subtitle {
-  margin: var(--space-xxs) 0 0;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-secondary-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow-wrap: anywhere;
-}
-
-.bookmark-list-row-tags {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-  min-height: 21px;
-  overflow: hidden;
-}
-
-.bookmark-list-row-tags.is-empty {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .bookmark-list-row-tag {
   border: 0;
   flex: 0 1 auto;
@@ -5608,81 +2442,6 @@ textarea.input-field {
   flex: 0 0 auto;
   border-style: dashed;
   min-width: unset;
-}
-
-.bookmark-list-row-actions {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-}
-
-.bookmark-list-row-action {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.bookmark-list-row-action::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  left: 0;
-  right: 0;
-}
-
-.bookmark-list-row-action svg {
-  width: 14px;
-  height: 14px;
-}
-
-.bookmark-list-row-action svg path,
-.bookmark-list-row-action svg circle {
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.bookmark-feed-placeholder {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: var(--space-xl) var(--space-m);
-  color: var(--bookmark-muted);
-}
-
-.bookmark-feed-placeholder--rail {
-  min-height: 200px;
-}
-
-.bookmark-feed-placeholder-title {
-  margin: 0 0 var(--space-xs);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-text);
-  line-height: var(--line-s);
-  text-wrap: balance;
-}
-
-.bookmark-feed-placeholder-subtitle {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  text-wrap: pretty;
-  max-width: var(--measure-prose);
 }
 
 @media (max-width: 899px) {
@@ -5761,14 +2520,6 @@ textarea.input-field {
     transform: translateX(0);
   }
 
-  .bookmark-rail-mobile-header {
-    display: flex;
-  }
-
-  .bookmark-mobile-rail-tabs {
-    display: flex;
-  }
-
   .bookmark-mobile-scrim {
     display: block;
     position: fixed;
@@ -5792,28 +2543,6 @@ textarea.input-field {
 }
 
 /* Pilled dashboard chrome */
-.bookmark-view-tab {
-  height: 32px;
-  padding: 0 var(--space-s);
-  border-radius: var(--bookmark-radius-pill);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  font-family: var(--bookmark-font-sans);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-}
-
-.bookmark-view-tab.is-active {
-  --edge: transparent;
-}
 
 .bookmark-toolbar-cta {
   height: 32px;
@@ -5828,183 +2557,6 @@ textarea.input-field {
   box-sizing: border-box;
 }
 
-.bookmark-workspace {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: var(--bookmark-tag-rail-width) minmax(0, 1fr);
-  overflow: hidden;
-  transition: grid-template-columns var(--transition-medium);
-}
-
-.bookmark-workspace.is-tags-collapsed {
-  grid-template-columns: var(--bookmark-tag-rail-collapsed-width) minmax(0, 1fr);
-}
-
-.bookmark-workspace-rail {
-  min-width: 0;
-  min-height: 0;
-  background: var(--bookmark-surface);
-}
-
-.bookmark-workspace-rail-tags {
-  border-right: 0;
-  --edge-r-w: var(--border-s);
-  --edge-r: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  overflow: hidden;
-  transition:
-    --edge var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-sidebar {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--bookmark-surface);
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-sidebar.is-collapsed {
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: var(--space-xs);
-}
-
-.bookmark-sidebar-header {
-  min-height: 47px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  flex-shrink: 0;
-  transition:
-    --edge var(--transition-medium),
-    opacity var(--transition-medium);
-}
-
-.bookmark-sidebar-title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--size-s);
-  line-height: 1;
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-l);
-}
-
-.bookmark-sidebar-plus,
-.bookmark-sidebar-collapse {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-text);
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.bookmark-sidebar-collapse svg {
-  width: 12px;
-  height: 12px;
-}
-
-.bookmark-sidebar-collapse svg path {
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.bookmark-sidebar-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-xs);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  transition: opacity var(--transition-medium);
-}
-
-.bookmark-tag-row {
-  min-height: 26px;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-text);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  padding: var(--space-xxs) var(--space-xs) var(--space-xxs) var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: 1;
-  text-align: left;
-  cursor: pointer;
-}
-
-.bookmark-tag-row.is-active {
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-tag-row-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookmark-tag-row-count {
-  min-width: 20px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-xxs);
-  background: var(--bookmark-badge-bg);
-  color: var(--bookmark-badge-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.bookmark-main {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  background: var(--bookmark-bg);
-}
-
 .bookmark-search-panel {
   display: flex;
   flex-direction: column;
@@ -6016,839 +2568,9 @@ textarea.input-field {
   box-sizing: border-box;
 }
 
-.bookmark-searchbar {
-  min-height: 31px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  padding: var(--space-xs) var(--space-xs);
-}
-
-.bookmark-searchbar-label {
-  flex-shrink: 0;
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  line-height: 1;
-  letter-spacing: var(--tracking-xl);
-}
-
-.bookmark-searchbar-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-text);
-  font-family: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  outline: none;
-}
-
-.bookmark-searchbar-input::placeholder {
-  color: var(--bookmark-muted);
-}
-
-.bookmark-composer-shell {
-  display: grid;
-  grid-template-rows: 0fr;
-  overflow: hidden;
-  transition: grid-template-rows var(--transition-medium);
-}
-
-.bookmark-composer-shell.is-open {
-  grid-template-rows: 1fr;
-}
-
-.bookmark-composer-shell > .bookmark-composer {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.bookmark-composer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  min-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(-6px);
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    --edge var(--transition-medium);
-}
-
-.bookmark-composer-shell.is-open .bookmark-composer {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bookmark-composer-shell:not(.is-open) .bookmark-composer {
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.bookmark-composer-input {
-  flex: 1;
-  min-width: 0;
-  height: 32px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  outline: none;
-}
-
-.bookmark-composer-input:focus {
-  --edge: var(--bookmark-accent);
-}
-
-.bookmark-composer-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.bookmark-composer-button {
-  height: 40px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-s);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-composer-button.is-primary {
-  background: var(--bookmark-active-bg);
-  --edge: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-composer-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.bookmark-floating-composer-shell {
-  position: absolute;
-  right: 18px;
-  bottom: calc(var(--bookmark-footer-offset) + 12px);
-  width: 80px;
-  max-width: calc(100% - 20px);
-  z-index: 40;
-  transition: width var(--transition-medium);
-}
-
-.bookmark-floating-composer-shell.is-open {
-  width: min(360px, calc(100% - 20px));
-}
-
-.bookmark-add-fab {
-  width: 100%;
-  height: 40px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-active-bg);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-  padding: 0 var(--space-s);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  cursor: pointer;
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-add-fab-icon {
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: 1;
-}
-
-.bookmark-floating-composer-shell.is-open .bookmark-add-fab {
-  opacity: 0;
-  transform: scale(0.96);
-  pointer-events: none;
-}
-
-.bookmark-floating-composer {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(6px);
-  border: 0;
-  --edge-w: 0px;
-  background: var(--bookmark-surface);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-shadow-border);
-  transition:
-    max-height var(--transition-medium),
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    box-shadow var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-floating-composer-shell.is-open .bookmark-floating-composer {
-  max-height: 140px;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bookmark-floating-composer-input {
-  width: 100%;
-  height: 32px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  outline: none;
-  margin: var(--space-xs) var(--space-xs) 0;
-  width: calc(100% - 20px);
-}
-
-.bookmark-floating-composer-input:focus {
-  --edge: var(--bookmark-accent);
-}
-
-.bookmark-floating-composer-actions {
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-}
-
-.bookmark-floating-composer-button {
-  flex: 1;
-  height: 40px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-s);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-floating-composer-button.is-primary {
-  background: var(--bookmark-active-bg);
-  --edge: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-floating-composer-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.bookmark-main-layout {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 0fr;
-  overflow: hidden;
-  transition:
-    grid-template-columns var(--transition-medium),
-    grid-template-rows var(--transition-medium);
-}
-
-.bookmark-main-layout.has-links.has-profiles {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.bookmark-main-layout.has-profiles:not(.has-links) {
-  grid-template-columns: 0fr minmax(0, 1fr);
-}
-
-.bookmark-main-column {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  background: var(--bookmark-bg);
-  opacity: 1;
-  transform: translateZ(0);
-  transition:
-    opacity var(--transition-medium), transform var(--transition-medium), --edge var(--transition-medium), background-color var(--transition-medium), visibility var(--motion-duration) var(--motion-easing) 0s;
-  visibility: visible;
-}
-
-.bookmark-main-column.is-hidden {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    --edge var(--transition-medium),
-    background-color var(--transition-medium),
-    visibility 0s linear var(--transition-medium);
-}
-
-.bookmark-main-column-profiles {
-  border-left: 0;
-  --edge-l-w: var(--border-s);
-  --edge-l: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-main-layout.has-links.has-profiles .bookmark-main-column-profiles {
-  --edge-l: var(--bookmark-border);
-}
-
-.bookmark-grid-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  transition: opacity var(--transition-medium);
-}
-
-.bookmark-grid-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-xs) var(--space-xs) var(--space-xxl);
-}
-
-.bookmark-grid-fallback,
-.bookmark-grid-row {
-  display: grid;
-  gap: var(--bookmark-grid-gap, 10px);
-  transition:
-    grid-template-columns var(--transition-medium),
-    gap var(--transition-medium);
-}
-
-.bookmark-grid-virtual-row {
-  transition:
-    transform var(--transition-medium),
-    width var(--transition-medium);
-}
-
-.bookmark-grid-empty {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  color: var(--bookmark-muted);
-  text-align: center;
-  padding: var(--space-l);
-}
-
-.bookmark-grid-empty-title {
-  margin: 0;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-text);
-}
-
-.bookmark-grid-empty-subtitle {
-  margin: 0;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  min-width: 0;
-  color: inherit;
-  cursor: pointer;
-  outline: none;
-  transition:
-    transform var(--transition-medium),
-    opacity var(--transition-medium);
-}
-
-.bookmark-card-preview {
-  width: 100%;
-  min-height: var(--bookmark-card-media-size);
-  height: var(--bookmark-card-media-size);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background-color var(--transition-fast),
-    transform var(--transition-fast),
-    height var(--transition-medium),
-    min-height var(--transition-medium);
-}
-
 /* Hover: match app name bubble lift */
-.bookmark-card:hover .bookmark-card-preview,
-.bookmark-card:focus-visible .bookmark-card-preview {
-  background: var(--bookmark-brand-bubble-bg-hover);
-}
-
-.bookmark-grid-panel.is-selection-mode
-  .bookmark-card:hover
-  .bookmark-card-preview,
-.bookmark-grid-panel.is-selection-mode
-  .bookmark-card:focus-visible
-  .bookmark-card-preview {
-  background: var(--bookmark-brand-bubble-bg-hover);
-}
-
-.bookmark-card-preview.is-selected {
-  background: var(--bookmark-brand-bubble-bg-hover);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 1px var(--bookmark-accent);
-}
-
-.bookmark-grid-panel.is-selection-mode
-  .bookmark-card:hover
-  .bookmark-card-preview.is-selected,
-.bookmark-grid-panel.is-selection-mode
-  .bookmark-card:focus-visible
-  .bookmark-card-preview.is-selected {
-  background: var(--bookmark-brand-bubble-bg-hover);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 1px var(--bookmark-accent-strong);
-}
-
-.bookmark-card-actions {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.bookmark-card:hover .bookmark-card-actions,
-.bookmark-card:focus-visible .bookmark-card-actions,
-.bookmark-card.is-selected .bookmark-card-actions {
-  opacity: 1;
-}
-
-.bookmark-card-actions-left {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.bookmark-card:hover .bookmark-card-actions-left,
-.bookmark-card:focus-visible .bookmark-card-actions-left,
-.bookmark-card.is-selected .bookmark-card-actions-left {
-  opacity: 1;
-}
-
-.bookmark-card-action {
-  width: 20px;
-  height: 20px;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.bookmark-card-favicon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.bookmark-card-placeholder {
-  color: var(--bookmark-muted);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  letter-spacing: var(--tracking-xl);
-}
-
-.bookmark-card-tag-indicator {
-  position: absolute;
-  left: 6px;
-  bottom: 6px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 var(--space-xxs);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bookmark-badge-bg);
-  color: var(--bookmark-badge-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: 1;
-}
-
-.bookmark-card-meta {
-  padding: 0 3px;
-  min-height: 28px;
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium);
-}
-
-.bookmark-card-title,
-.bookmark-card-subtitle {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookmark-card-title {
-  color: var(--bookmark-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-card-subtitle {
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
 
 /* Link preview popover (iframe); portaled to body, positioned from magnifying-glass anchor */
-.bookmark-link-preview-panel.bookmark-link-preview-panel--popover {
-  position: fixed;
-  z-index: 10000;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  max-width: calc(100vw - 8px);
-  max-height: calc(100vh - 8px);
-  border: 0;
-  --edge-w: 0px;
-  background: var(--bookmark-surface);
-  color: var(--bookmark-text);
-  font-family: var(--bookmark-font-sans);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-shadow-border);
-}
-
-.bookmark-link-preview-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-s);
-  padding: var(--space-xs) var(--space-xs) var(--space-xs);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-link-preview-heading {
-  min-width: 0;
-}
-
-.bookmark-link-preview-title {
-  margin: 0;
-  font-size: var(--size-xs);
-  font-weight: var(--weight-ui-heavy);
-  line-height: var(--line-xs);
-  letter-spacing: var(--letter-spacing-m);
-  text-wrap: balance;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookmark-link-preview-url {
-  margin: var(--space-xxs) 0 0;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  color: var(--bookmark-muted);
-  line-height: var(--line-xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow-wrap: anywhere;
-}
-
-.bookmark-link-preview-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex-shrink: 0;
-}
-
-.bookmark-link-preview-header-button {
-  min-height: 32px;
-  padding: 0 var(--space-xs);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: inherit;
-  font-family: inherit;
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-  cursor: pointer;
-  transition:
-    --edge var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-link-preview-header-button:hover,
-.bookmark-link-preview-header-button:focus-visible {
-  outline: none;
-  --edge: var(--bookmark-accent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 1px var(--bookmark-accent);
-}
-
-.bookmark-link-preview-close {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: inherit;
-  padding: 0;
-  font: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    --edge var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-link-preview-close:hover,
-.bookmark-link-preview-close:focus-visible {
-  outline: none;
-  --edge: var(--bookmark-accent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    0 0 0 1px var(--bookmark-accent);
-}
-
-.bookmark-link-preview-frame-wrap {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  background: var(--bookmark-surface-muted);
-}
-
-.bookmark-link-preview-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-muted);
-  z-index: 1;
-  pointer-events: none;
-  background: inherit;
-}
-
-.bookmark-link-preview-iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  --edge-w: 0px;
-  display: block;
-  opacity: 0;
-  transition: opacity var(--motion-duration) var(--motion-easing);
-}
-
-.bookmark-link-preview-iframe.is-loaded {
-  opacity: 1;
-}
-
-.bookmark-link-preview-footnote {
-  flex-shrink: 0;
-  margin: 0;
-  padding: var(--space-xs) var(--space-xs) var(--space-xs);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-muted);
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-}
-
-.bookmark-feed-stack .bookmark-list-scroll {
-  padding-bottom: var(--space-xxl);
-}
-
-.bookmark-selection-actions .bookmark-selection-fab {
-  width: var(--bookmark-action-chip-width);
-  min-width: var(--bookmark-action-chip-width);
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.bookmark-toolbar-status > .bookmark-toolbar-cta.is-chip,
-.bookmark-selection-actions .bookmark-toolbar-cta {
-  width: var(--bookmark-action-chip-width);
-  min-width: var(--bookmark-action-chip-width);
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.bookmark-selection-actions .bookmark-toolbar-cta.is-clear-selection {
-  width: auto;
-  min-width: var(--bookmark-action-chip-width);
-}
-
-.bookmark-selection-actions {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  z-index: 40;
-  pointer-events: none;
-}
-
-.bookmark-selection-actions > * {
-  pointer-events: auto;
-}
 
 .bookmark-selection-fab {
   position: static;
@@ -6894,535 +2616,6 @@ textarea.input-field {
   transform: none;
 }
 
-.bookmark-profiles-panel {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  background: var(--bookmark-bg);
-  transition:
-    opacity var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-profiles-view {
-  min-height: 100%;
-  padding: var(--space-xs);
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  transition: opacity var(--transition-medium);
-}
-
-.bookmark-profiles-view-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-m);
-}
-
-.bookmark-profiles-view-heading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  min-width: 0;
-}
-
-.bookmark-profiles-view-title {
-  margin: 0;
-  color: var(--bookmark-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-medium);
-}
-
-.bookmark-profiles-view-selection-note {
-  margin: 0;
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-profiles-new-button {
-  min-height: 40px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-active-bg);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-  padding: 0 var(--space-s);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  border-radius: var(--bookmark-radius-pill);
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-[data-theme='dark'] .bookmark-profiles-new-button {
-  --edge: var(--bookmark-active-bg);
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-profiles-new-button-icon {
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: 1;
-}
-
-.bookmark-profile-creator-shell {
-  max-height: 0;
-  overflow: hidden;
-  margin-top: 0;
-  transition:
-    max-height var(--transition-medium),
-    margin-top var(--transition-medium);
-}
-
-.bookmark-profile-creator-shell.is-open {
-  max-height: 180px;
-  margin-top: var(--space-xs);
-}
-
-.bookmark-profile-creator {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-  border: 0;
-  --edge-w: 0px;
-  background: var(--bookmark-surface);
-  min-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(-6px);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-shadow-border);
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    box-shadow var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-profile-creator-shell.is-open .bookmark-profile-creator {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bookmark-profile-creator-shell:not(.is-open) .bookmark-profile-creator {
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.bookmark-profile-creator-input {
-  width: 100%;
-  height: 30px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-bg);
-  color: var(--bookmark-text);
-  padding: 0 var(--space-xs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  outline: none;
-}
-
-.bookmark-profile-creator-actions {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.bookmark-profile-creator-button {
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-control-bg);
-  color: var(--bookmark-text);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  cursor: pointer;
-  min-width: 84px;
-  height: 40px;
-  padding: 0 var(--space-s);
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-profile-creator-button.is-primary {
-  --edge: var(--bookmark-active-bg);
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-[data-theme='dark'] .bookmark-profile-creator-button.is-primary {
-  --edge: var(--bookmark-active-bg);
-  background: var(--bookmark-active-bg);
-  color: var(--bookmark-active-fg);
-}
-
-.bookmark-profile-creator-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.bookmark-profiles-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-}
-
-.bookmark-profile-main-card {
-  border: 0;
-  --edge-w: 0px;
-  background: var(--bookmark-surface);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-shadow-border);
-  transition:
-    box-shadow var(--transition-medium),
-    background-color var(--transition-medium),
-    transform var(--transition-medium);
-}
-
-.bookmark-profile-main-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-m);
-  padding: var(--space-xs) var(--space-s) var(--space-xs);
-}
-
-.bookmark-profile-main-heading {
-  min-width: 0;
-  display: inline-flex;
-  align-items: flex-start;
-  gap: var(--space-xs);
-}
-
-.bookmark-profile-main-toggle {
-  width: 16px;
-  height: 16px;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-text);
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.bookmark-profile-main-meta {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.bookmark-profile-main-name,
-.bookmark-profile-main-name-input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  --edge-w: 0px;
-  padding: 0;
-  background: transparent;
-  color: var(--bookmark-text);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  text-align: left;
-  outline: none;
-}
-
-.bookmark-profile-main-name {
-  cursor: pointer;
-}
-
-.bookmark-profile-main-count {
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--line-xs);
-  letter-spacing: var(--tracking-xl);
-}
-
-.bookmark-profile-main-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex-shrink: 0;
-}
-
-.bookmark-profile-main-action,
-.bookmark-profile-main-icon {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-text);
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xxs);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.bookmark-profile-main-action {
-  white-space: nowrap;
-}
-
-.bookmark-profile-main-action.is-selection-accent {
-  min-height: 20px;
-  padding: 0 var(--space-xs);
-  background: var(--bookmark-accent);
-  color: var(--bookmark-on-accent);
-}
-
-.bookmark-profile-main-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.bookmark-profile-main-icon.is-danger {
-  color: var(--color-orange);
-}
-
-.bookmark-profile-main-action:disabled,
-.bookmark-profile-main-icon:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.bookmark-profile-main-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--transition-medium);
-}
-
-.bookmark-profile-main-content.is-expanded {
-  grid-template-rows: 1fr;
-}
-
-.bookmark-profile-main-body {
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  padding: var(--space-xs);
-  background: var(--bookmark-bg);
-  min-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(-6px);
-  transition:
-    opacity var(--transition-medium),
-    transform var(--transition-medium),
-    --edge var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-profile-main-content.is-expanded .bookmark-profile-main-body {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bookmark-profile-main-content:not(.is-expanded) .bookmark-profile-main-body {
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.bookmark-profile-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 110px));
-  gap: var(--space-xs);
-  transition:
-    grid-template-columns var(--transition-medium),
-    gap var(--transition-medium);
-}
-
-.bookmark-profile-preview-card {
-  position: relative;
-  width: 110px;
-  transition:
-    width var(--transition-medium),
-    transform var(--transition-medium),
-    opacity var(--transition-medium);
-}
-
-.bookmark-profile-preview-link {
-  width: 100%;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: inherit;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.bookmark-profile-preview-media {
-  width: 110px;
-  height: 102px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  flex-shrink: 0;
-  transition:
-    width var(--transition-medium),
-    height var(--transition-medium),
-    --edge var(--transition-medium),
-    background-color var(--transition-medium);
-}
-
-.bookmark-profile-preview-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.bookmark-profile-preview-title,
-.bookmark-profile-preview-subtitle {
-  margin: 0;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookmark-profile-preview-title {
-  color: var(--bookmark-text);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-profile-preview-subtitle {
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-profile-preview-remove {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-surface);
-  color: var(--bookmark-text);
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.bookmark-profile-main-card:hover .bookmark-profile-preview-remove,
-.bookmark-profile-preview-card:hover .bookmark-profile-preview-remove,
-.bookmark-profile-preview-card:focus-within .bookmark-profile-preview-remove {
-  opacity: 1;
-}
-
-.bookmark-profile-main-empty,
-.bookmark-profile-main-empty-state {
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.bookmark-profile-main-empty-state {
-  padding: var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: var(--bookmark-surface);
-}
-
 .bookmark-account-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -7432,11 +2625,6 @@ textarea.input-field {
   display: flex;
   flex-direction: column;
   z-index: 20;
-}
-
-.bookmark-toolbar-status .bookmark-account-menu {
-  left: auto;
-  right: 0;
 }
 
 .bookmark-account-menu-section {
@@ -7490,178 +2678,7 @@ textarea.input-field {
   cursor: pointer;
 }
 
-@media (max-width: 1120px) {
-  .bookmark-profile-preview-grid {
-    grid-template-columns: repeat(auto-fill, minmax(104px, 104px));
-  }
-
-  .bookmark-floating-composer-shell {
-    right: 20px;
-  }
-}
-
-@media (max-width: 760px) {
-  .bookmark-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-xs);
-    row-gap: var(--bookmark-mobile-brand-super-gap, 30px);
-  }
-
-  .bookmark-toolbar-brand-wrap {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-  }
-
-  .bookmark-toolbar-center {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: start;
-    width: 100%;
-    justify-content: space-between;
-    gap: var(--space-xs);
-  }
-
-  .bookmark-view-switch {
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .bookmark-toolbar-status {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-    align-self: center;
-  }
-
-  .bookmark-workspace {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .bookmark-workspace.is-tags-collapsed {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bookmark-workspace-rail-tags {
-    border-right: 0;
-    --edge-r-w: 0px;
-    border-left: 0;
-    --edge-l-w: 0px;
-    border-bottom: 0;
-    --edge-b-w: var(--border-s);
-    --edge-b: var(--bookmark-border);
-    box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  }
-
-  .bookmark-sidebar.is-collapsed {
-    flex-direction: row;
-    justify-content: flex-start;
-    padding: var(--space-xxs) var(--space-xs);
-  }
-
-  .bookmark-sidebar-body {
-    padding: var(--space-xs);
-  }
-
-  .bookmark-workspace-rail-tags .bookmark-sidebar-body {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-
-  .bookmark-workspace-rail-tags .bookmark-tag-row {
-    min-width: max-content;
-  }
-
-  .bookmark-composer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .bookmark-composer-actions {
-    justify-content: stretch;
-  }
-
-  .bookmark-composer-button {
-    flex: 1;
-  }
-
-  .bookmark-floating-composer-shell {
-    right: 12px;
-    width: 76px;
-    max-width: calc(100% - 24px);
-  }
-
-  .bookmark-floating-composer-shell.is-open {
-    width: calc(100% - 24px);
-  }
-
-  .bookmark-main-layout.has-links.has-profiles {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(240px, 1fr) minmax(240px, 1fr);
-  }
-
-  .bookmark-main-layout.has-links.has-profiles .bookmark-main-column-profiles {
-    border-left: 0;
-    --edge-l-w: 0px;
-    border-top: 0;
-    --edge-t-w: var(--border-s);
-    --edge-t: var(--bookmark-border);
-    box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  }
-
-  .bookmark-profiles-view-header,
-  .bookmark-profile-main-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .bookmark-profile-main-actions {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .bookmark-profile-preview-grid {
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  }
-
-  .bookmark-profile-preview-card,
-  .bookmark-profile-preview-media {
-    width: 100%;
-  }
-
-  .bookmark-card-actions,
-  .bookmark-card-actions-left {
-    opacity: 1;
-  }
-}
-
-@media (min-width: 768px) {
-  .bookmark-dashboard {
-    --bookmark-footer-offset: 28px;
-  }
-}
-
 @media (max-width: 899px) {
-  .tag-selector-input,
-  .bookmark-composer-input,
-  .bookmark-floating-composer-input,
-  .bookmark-profile-creator-input {
-    font-size: var(--size-m);
-    letter-spacing: var(--letter-spacing-m);
-    line-height: var(--line-m);
-  }
-
   .bookmark-toolbar-cta {
     min-height: 44px;
     min-width: 44px;
@@ -7672,15 +2689,7 @@ textarea.input-field {
     min-width: 0;
   }
 
-  .bookmark-tool-button {
-    width: 44px;
-    height: 44px;
-  }
-
-  .bookmark-list-row-action {
-    width: 44px;
-    height: 44px;
-  }
+  
 
   .bookmark-tag-chip,
   .bookmark-profile-chip {
@@ -7698,51 +2707,19 @@ textarea.input-field {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bookmark-floating-composer-shell,
-  .bookmark-workspace,
-  .bookmark-main-layout,
-  .bookmark-composer-shell,
-  .profiles-pane-wrapper {
-    transition: none !important;
-  }
-
-  .bookmark-composer,
-  .bookmark-floating-composer {
-    animation: none !important;
-    transition: none !important;
-  }
-
   .bookmark-bulk-feedback.is-entering,
   .bookmark-bulk-feedback.is-exiting {
     animation: none !important;
   }
 
-  .ui-press:active:not(:disabled),
-  .tag-selector-close:active,
-  .tag-selector-create-button:active:not(:disabled),
-  .bookmark-tool-button:active,
-  .bookmark-view-tab:active,
-  .bookmark-composer-button:active:not(:disabled),
-  .bookmark-floating-composer-button:active:not(:disabled),
-  .bookmark-add-fab:active:not(:disabled),
   .bookmark-selection-fab:active,
-  .bookmark-profiles-new-button:active,
-  .bookmark-profile-creator-button:active:not(:disabled),
-  .bookmark-profile-main-action:active,
-  .bookmark-link-preview-header-button:active,
-  .bookmark-link-preview-close:active,
   .project-chip:active,
-  .project-meta-link:active,
-  .bookmark-mobile-rail-tab:active {
+  .project-meta-link:active {
     transform: none;
   }
 }
 
 @media (max-width: 899px) {
-  .bookmark-dashboard .bookmark-mobile-rail-tabs {
-    padding-top: var(--bookmark-mobile-super-tabs-gap, var(--space-xs));
-  }
-
   .bookmark-dashboard .bookmark-feed-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -7912,11 +2889,6 @@ textarea.input-field {
 }
 
 /* The sidebar carries the brand on desktop; keep the header grid but blank its brand cell */
-@media (min-width: 900px) {
-  .memex-shell .bookmark-toolbar-brand-wrap {
-    visibility: hidden;
-  }
-}
 
 /* Sidebar — mobile bottom tab bar */
 @media (max-width: 899px) {
@@ -7975,28 +2947,6 @@ textarea.input-field {
 }
 
 /* Placeholder module pages (Notes / Tasks / Spaces skeletons) */
-.memex-module-main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  justify-content: center;
-  padding: var(--bookmark-feed-stack-inset);
-}
-
-.memex-module-stack {
-  width: min(640px, 100%);
-  align-items: center;
-  justify-content: center;
-}
-
-.memex-module-hint {
-  margin: var(--space-s) 0 0;
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-  color: var(--bookmark-muted);
-}
 
 /* ============================================ */
 /* memex styleguide (/styleguide) — design-system reference page */
@@ -8162,11 +3112,6 @@ textarea.input-field {
   gap: var(--space-xs);
 }
 
-.memex-styleguide-list {
-  display: flex;
-  flex-direction: column;
-}
-
 .memex-styleguide .bookmark-list-empty {
   padding: var(--space-l) var(--space-s);
 }
@@ -8174,272 +3119,8 @@ textarea.input-field {
 /* ============================== */
 /* memex tasks module */
 
-.memex-task-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-}
-
-.memex-task-row {
-  --bookmark-list-row-divider: color-mix(
-    in srgb,
-    var(--bookmark-border) 55%,
-    transparent
-  );
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  padding: var(--space-s) var(--space-m);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-list-row-divider);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: transparent;
-  transition: background-color var(--transition-fast);
-}
-
-.memex-task-row:hover {
-  background: var(--bookmark-row-hover-bg);
-}
-
-.memex-task-row.is-done .memex-task-title {
-  color: var(--bookmark-muted);
-  text-decoration: line-through;
-}
-
-.memex-task-check {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  cursor: pointer;
-}
-
-.memex-task-check svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-task-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-}
-
-.memex-task-title {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-medium);
-  color: var(--bookmark-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memex-task-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-.memex-task-due {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-muted);
-}
-
-.memex-task-actions {
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.memex-task-row:hover .memex-task-actions,
-.memex-task-actions:focus-within {
-  opacity: 1;
-}
-
-@media (max-width: 899px) {
-  .memex-task-actions {
-    opacity: 1;
-  }
-}
-
-.memex-task-done-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.memex-task-done-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-s) var(--space-m);
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-muted);
-  font-family: inherit;
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.memex-task-done-toggle:hover {
-  color: var(--bookmark-text);
-}
-
-.memex-task-done-caret {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
-  transition: transform var(--transition-fast);
-}
-
-.memex-task-done-caret svg {
-  width: 100%;
-  height: 100%;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-task-done-caret.is-open {
-  transform: rotate(90deg);
-}
-
 /* ============================== */
 /* memex notes module */
-
-.memex-note-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-}
-
-.memex-note-row {
-  --bookmark-list-row-divider: color-mix(
-    in srgb,
-    var(--bookmark-border) 55%,
-    transparent
-  );
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-s);
-  padding: var(--space-s) var(--space-m);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-list-row-divider);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  background: transparent;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-
-.memex-note-row:hover {
-  background: var(--bookmark-row-hover-bg);
-}
-
-.memex-note-row:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: -2px;
-}
-
-.memex-note-row-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-}
-
-.memex-note-row-title {
-  margin: 0;
-  font-size: var(--size-s);
-  font-weight: var(--weight-editorial-heavy);
-  color: var(--bookmark-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memex-note-row-excerpt {
-  margin: 0;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  color: var(--bookmark-muted);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.memex-note-row-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-.memex-note-row-time {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-editorial-heavy);
-  color: var(--bookmark-muted);
-}
-
-.memex-note-row-actions {
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.memex-note-row:hover .memex-note-row-actions,
-.memex-note-row-actions:focus-within {
-  opacity: 1;
-}
-
-@media (max-width: 899px) {
-  .memex-note-row-actions {
-    opacity: 1;
-  }
-}
 
 /* Note editor */
 
@@ -8450,114 +3131,10 @@ textarea.input-field {
   flex-direction: column;
 }
 
-.memex-note-editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  padding: var(--space-s) var(--space-m);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: color-mix(in srgb, var(--bookmark-border) 55%, transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  flex-shrink: 0;
-}
-
-.memex-note-editor-status {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--bookmark-muted);
-}
-
-.memex-note-editor-status svg {
-  width: 15px;
-  height: 15px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-spinner {
-  animation: memex-spin 0.9s linear infinite;
-}
-
 @keyframes memex-spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-.memex-note-title-input {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  padding: var(--space-m) var(--space-m) var(--space-xxs);
-  font-family: inherit;
-  font-size: var(--size-m);
-  letter-spacing: var(--letter-spacing-m);
-  line-height: var(--line-m);
-  font-weight: var(--weight-editorial-heavy);
-  color: var(--bookmark-text);
-  outline: none;
-  flex-shrink: 0;
-}
-
-.memex-note-title-input::placeholder {
-  color: var(--bookmark-muted);
-  opacity: 0.7;
-}
-
-.memex-note-editor-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.memex-markdown-textarea {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  resize: none;
-  outline: none;
-  padding: var(--space-s) var(--space-m) var(--space-m);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-editorial-medium);
-  line-height: var(--line-s);
-  color: var(--bookmark-text);
-}
-
-.memex-markdown-textarea::placeholder {
-  color: var(--bookmark-muted);
-  opacity: 0.7;
-}
-
-.memex-note-reading {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--space-s) var(--space-m) var(--space-l);
-  cursor: text;
-}
-
-.memex-note-reading:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: -2px;
 }
 
 /* Rendered markdown */
@@ -8642,13 +3219,6 @@ textarea.input-field {
 }
 
 /* GFM task-list items render a checkbox instead of a marker */
-.memex-markdown li.task-list-item {
-  list-style: none;
-}
-
-.memex-markdown ul:has(> li.task-list-item) {
-  padding-left: 0.25em;
-}
 
 .memex-markdown li {
   margin: 0;
@@ -8771,367 +3341,27 @@ textarea.input-field {
   max-width: 100%;
 }
 
-.memex-note-delete {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--bookmark-muted);
-  cursor: pointer;
-  padding: 0;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.memex-note-delete svg {
-  width: 15px;
-  height: 15px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-note-delete:hover {
-  background: var(
-    --bookmark-danger-soft,
-    var(--bookmark-chip-secondary-bg-soft)
-  );
-  color: var(--bookmark-danger, currentColor);
-}
-
-.memex-note-delete:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
-
 /* ============================== */
 /* memex spaces module — conglomerate item stream */
 
-.memex-space-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Normalize link rows onto the compact note/task rhythm inside the stream:
    transparent divider rows, smaller media box, shared paddings */
-.memex-space-list .bookmark-list-row {
-  --bookmark-list-row-divider: color-mix(
-    in srgb,
-    var(--bookmark-border) 55%,
-    transparent
-  );
-  min-height: 0;
-  padding: var(--space-s) var(--space-m);
-  margin-right: 0;
-  background: transparent;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: 0;
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: var(--bookmark-list-row-divider);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  align-items: center;
-}
-
-.memex-space-list .bookmark-list-row:hover {
-  background: var(--bookmark-row-hover-bg);
-}
-
-.memex-space-list .bookmark-list-row-media {
-  width: 28px;
-  height: 28px;
-}
-
-.memex-space-list .bookmark-list-row-media img.bookmark-list-row-favicon {
-  width: 20px;
-  height: 20px;
-}
-
-.memex-space-list .bookmark-list-row-tags.is-empty {
-  display: none;
-}
 
 /* List rows must never flex-shrink to fit — overflow into scroll instead */
-.memex-space-list > *,
-.memex-task-list > *,
-.memex-note-list > * {
-  flex-shrink: 0;
-}
 
 /* Header space carousel: ← name → over pagination dots */
-.memex-space-carousel {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
-}
-
-.memex-space-carousel-row {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
-}
-
-.memex-space-carousel-dots {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--space-xxs);
-  max-width: 280px;
-}
-
-.memex-space-carousel-dot {
-  width: 5px;
-  height: 5px;
-  flex-shrink: 0;
-  border-radius: var(--bookmark-radius-pill);
-  background: color-mix(in srgb, var(--bookmark-muted) 40%, transparent);
-  transition: background-color var(--transition-fast);
-}
-
-.memex-space-carousel-dot.is-active {
-  background: var(--bookmark-text);
-}
-
-.memex-space-carousel-arrow {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  --edge-w: 0px;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--bookmark-secondary-text);
-  cursor: pointer;
-  padding: 0;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.memex-space-carousel-arrow svg {
-  width: 15px;
-  height: 15px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-space-carousel-arrow:hover:not(:disabled) {
-  background: var(--bookmark-brand-bubble-bg-hover);
-  color: var(--bookmark-text);
-}
-
-.memex-space-carousel-arrow:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.memex-space-carousel-arrow:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
-
-.memex-space-carousel-name {
-  /* Fixed width so the arrows never shift as the space name changes */
-  width: 200px;
-  flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--size-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-text);
-  text-align: center;
-}
-
-.memex-space-carousel-empty {
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-medium);
-  color: var(--bookmark-muted);
-}
-
-@media (max-width: 899px) {
-  .memex-space-carousel {
-    width: 100%;
-  }
-
-  .memex-space-carousel-row {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .memex-space-carousel-name {
-    width: auto;
-    flex: 1;
-    min-width: 0;
-  }
-}
 
 /* Settings chip lives in the header only below the desktop footer breakpoint */
-@media (min-width: 768px) {
-  .bookmark-toolbar-settings-mobile {
-    display: none;
-  }
-}
 
 /* Footer settings (desktop) */
-.desktop-footer {
-  justify-content: space-between;
-}
-
-.desktop-footer-settings-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.desktop-footer-settings {
-  border: 0;
-  cursor: pointer;
-}
-
-.desktop-footer-settings-wrap .bookmark-account-menu {
-  position: absolute;
-  top: auto;
-  bottom: calc(100% + 10px);
-  left: auto;
-  right: 0;
-  z-index: 120;
-}
-
-.memex-space-carousel-add {
-  margin-left: 2px;
-}
-
-.memex-space-carousel-input {
-  min-width: 0;
-  width: min(240px, 100%);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--bookmark-radius-input);
-  background: var(--bookmark-control-bg, transparent);
-  padding: var(--space-xs) var(--space-s);
-  font-family: inherit;
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  font-weight: var(--weight-ui-heavy);
-  color: var(--bookmark-text);
-  outline: none;
-}
-
-.memex-space-carousel-input:focus-visible {
-  --edge: var(--bookmark-border-strong, var(--bookmark-border-ink));
-}
-
-.memex-space-carousel-input::placeholder {
-  color: var(--bookmark-muted);
-  opacity: 0.7;
-}
 
 /* ============================== */
 /* memex grid view: toggle, wide stack, cards */
 
 /* List/grid switcher — frosted corner button, bottom-left of the app,
    mirroring the feedback toast's bottom-right position */
-.memex-view-fab {
-  position: fixed;
-  left: 18px;
-  bottom: calc(var(--bookmark-footer-offset, 0px) + 18px);
-  z-index: 260;
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-stack-frosted-border);
-  border-radius: var(--radius-m);
-  background: var(--bookmark-stack-frosted-bg);
-  backdrop-filter: var(--bookmark-stack-frosted-blur);
-  -webkit-backdrop-filter: var(--bookmark-stack-frosted-blur);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-stack-frosted-shadow);
-  color: var(--bookmark-text);
-  cursor: pointer;
-  padding: 0;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.memex-view-fab svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-view-fab:hover {
-  background: var(--bookmark-row-hover-bg);
-}
-
-.memex-view-fab:active {
-  transform: translateY(var(--motion-press-distance));
-}
-
-.memex-view-fab:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .memex-view-fab {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--bookmark-stack-glass);
-  }
-}
 
 /* Styleguide shows the fab inline rather than pinned to the corner */
-.memex-styleguide-fab-demo .memex-view-fab {
-  position: static;
-}
 
 /* Grid mode widens the center stack to ~3× the list width when the viewport
    allows; the auto-fill grid sheds columns as it narrows */
@@ -9154,9 +3384,16 @@ textarea.input-field {
   }
 
   /* With the rails collapsed nothing separates the stack from the viewport
-     edges — restore breathing room via the feed inline inset */
+     edges — restore breathing room via the feed inline inset: the page edge,
+     the same outer margin as the Journal panel and the page header
+     (stream.css → "Page edges") */
   .bookmark-feed-layout.is-grid-wide.is-empty-rails .bookmark-feed-main {
-    --bookmark-feed-inline-inset: 18px;
+    --bookmark-feed-inline-inset: var(--page-edge);
+  }
+
+  /* …and below: the stack ends one page edge above the window */
+  .bookmark-feed-layout.is-grid-wide.is-empty-rails .bookmark-feed-main-inner {
+    padding-bottom: var(--page-edge);
   }
 }
 
@@ -9174,162 +3411,9 @@ textarea.input-field {
   flex-shrink: 0;
 }
 
-.memex-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-s);
-  padding: var(--space-s);
-  align-content: start;
-}
-
 /* Cards */
-.memex-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 112px;
-  box-sizing: border-box;
-  border: 0;
-  cursor: pointer;
-}
-
-.memex-card--task {
-  cursor: default;
-}
-
-.memex-card--task.is-done {
-  opacity: 0.65;
-}
-
-.memex-card--task.is-done .memex-card-title {
-  text-decoration: line-through;
-}
-
-.memex-card-preview {
-  margin: calc(-1 * var(--space-s)) calc(-1 * var(--space-s)) 0;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-}
-
-.memex-card-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.memex-card-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
-}
-
-.memex-card-favicon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.memex-card-favicon img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-
-.memex-card-favicon-initials {
-  font-size: var(--size-xxs);
-  line-height: var(--line-xxs);
-  font-weight: var(--weight-editorial-heavy);
-  color: var(--bookmark-muted);
-  letter-spacing: var(--tracking-xl);
-}
-
-.memex-card-sub {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memex-card-title {
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: break-word;
-}
-
-.memex-card-excerpt {
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: break-word;
-}
-
-.memex-card-footer {
-  margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.memex-card-actions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: var(--space-xxs);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.memex-card:hover .memex-card-actions,
-.memex-card-actions:focus-within {
-  opacity: 1;
-}
-
-@media (max-width: 899px) {
-  .memex-card-actions {
-    opacity: 1;
-  }
-
-  .memex-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: var(--space-xs);
-    padding: var(--space-xs);
-  }
-}
 
 /* Omnibar clear (×) — appears whenever the search bar has input */
-.memex-omnibar-clear {
-  align-self: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  cursor: pointer;
-  margin-right: var(--space-xxs);
-}
-
-.memex-omnibar-clear svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-}
 
 /* ============================== */
 /* Web interface guidelines pass */
@@ -9351,36 +3435,9 @@ textarea,
 
 /* Border-led focus visibility for chrome-less inputs — theme prominent color */
 
-.memex-note-title-input:focus-visible {
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    inset 0 calc(-1 * var(--border-l)) 0 0 var(--color-1-transparent);
-}
-
-.memex-space-carousel-input:focus-visible {
-  --edge: var(--bookmark-prominent-bg);
-}
-
-/* iOS: inputs under 16px trigger viewport zoom on focus */
-@media (max-width: 899px) {
-  .memex-markdown-textarea,
-  .memex-space-carousel-input,
-  .memex-omnibar-clear + input {
-    font-size: var(--size-m);
-    letter-spacing: var(--letter-spacing-m);
-    line-height: var(--line-m);
-  }
-}
 
 /* Numbers that get compared line up */
-.memex-task-done-toggle,
-.memex-task-due,
-.memex-note-row-time {
-  font-variant-numeric: tabular-nums;
-}
+
 .bookmark-tag-chip-count,
 .bookmark-profile-chip-count {
   font-variant-numeric: tabular-nums;
@@ -9396,13 +3453,7 @@ textarea,
 }
 
 /* Scroll containment: overlays and module lists don't chain-scroll the page */
-.bookmark-rail-inner,
-.bookmark-list-scroll,
-.memex-task-list,
-.memex-note-list,
-.memex-space-list,
-.memex-grid-view,
-.memex-note-reading {
+.memex-grid-view {
   overscroll-behavior: contain;
 }
 .app-modal,
@@ -9411,32 +3462,8 @@ textarea,
 }
 
 /* Bulk selection for notes and tasks (mirrors the links pattern) */
-.memex-task-row.is-selected,
-.memex-note-row.is-selected {
-  background: var(--bookmark-row-selected-bg, var(--bookmark-row-hover-bg));
-}
-
-.memex-task-row.is-selection-mode,
-.memex-note-row.is-selection-mode {
-  cursor: pointer;
-}
 
 /* In selection mode the row itself is the control — inner buttons stand down */
-.memex-task-row.is-selection-mode .memex-task-actions,
-.memex-note-row.is-selection-mode .memex-note-row-actions,
-.memex-card.is-selection-mode .memex-card-actions {
-  pointer-events: none;
-}
-.memex-task-row.is-selection-mode .memex-task-check,
-.memex-card.is-selection-mode .memex-task-check {
-  pointer-events: none;
-}
-
-.memex-task-row.is-selection-mode:focus-visible,
-.memex-note-row.is-selection-mode:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: -2px;
-}
 
 /* ============================================================ */
 /* Unified stream (Home + spaces): sidebar sections, type/tag chip rows,
@@ -9505,19 +3532,6 @@ textarea,
 .memex-sidebar-item-count {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-}
-
-/* Spaces as bulk-assign targets while a stream selection is active */
-.memex-sidebar-item.is-bulk-target {
-  border: var(--border-s) dashed var(--bookmark-chip-primary-bg);
-}
-
-.memex-sidebar-create {
-  padding: 2px var(--space-xxs);
-}
-
-.memex-sidebar-create .bookmark-profile-create {
-  width: 100%;
 }
 
 .memex-sidebar-empty {
@@ -9603,10 +3617,6 @@ textarea,
   .memex-sidebar-item-count {
     display: none;
   }
-
-  .memex-sidebar-create {
-    min-width: 200px;
-  }
 }
 
 /* Type + tag chip rows between the omnibar and the grid */
@@ -9614,7 +3624,8 @@ textarea,
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-xs) var(--space-xs) var(--space-xs);
+  /* Same 12px inline inset as the search field and the card grid */
+  padding: var(--space-xs) var(--space-s);
   border-bottom: 0;
   --edge-b-w: var(--border-s);
   --edge-b: var(--bookmark-stack-frosted-border);
@@ -9679,41 +3690,8 @@ textarea,
 }
 
 /* Card slots shared by notes and tasks (links keep their favicon) */
-.memex-card-glyph {
-  width: 14px;
-  height: 14px;
-  color: var(--bookmark-muted);
-}
-
-.memex-card--task .memex-card-favicon {
-  overflow: visible;
-}
-
-.memex-card--task.is-selection-mode {
-  cursor: pointer;
-}
-
-.memex-card--task.is-selection-mode .memex-task-check {
-  cursor: default;
-}
-
-.memex-card.is-static {
-  cursor: default;
-}
-
-.memex-card--note .memex-card-excerpt,
-.memex-card--task .memex-card-excerpt {
-  -webkit-line-clamp: 3;
-}
 
 /* Omnibar with more than one capture action */
-
-.bookmark-omnibar-add.is-secondary {
-  border-left: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-}
 
 /* Sidebar rail is tighter than the header brand cell; line the wordmark up
    with the item labels */
@@ -9730,12 +3708,6 @@ textarea,
   flex-shrink: 0;
 }
 
-.memex-stream-filter-row .memex-stream-clear:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  text-decoration: none;
-}
-
 /* Selected card = the primary button pair (fill + label), not a faint tint,
    so a selection reads unmistakably against neighbouring cards */
 
@@ -9746,68 +3718,22 @@ textarea,
    line, and a two-line title at a ~236px column; every card gets that height
    and its flexible region (link preview, note excerpt) absorbs the remainder
    so headers, titles, and footers line up across the row. */
-.memex-grid {
-  --memex-card-height: 240px;
-  grid-auto-rows: var(--memex-card-height);
-}
-
-.memex-grid > .memex-card {
-  height: var(--memex-card-height);
-  min-height: 0;
-  overflow: hidden;
-}
 
 /* Preview fills whatever the text below leaves over, cropping instead of
    dictating the card's height */
-.memex-card-preview {
-  aspect-ratio: auto;
-  flex: 1 1 0;
-  min-height: 0;
-}
-
-.memex-card-preview img {
-  height: 100%;
-}
 
 /* Fixed-height parts must not shrink when a preview or excerpt is present */
-.memex-card-header,
-.memex-card-footer {
-  flex-shrink: 0;
-}
-.memex-card-title {
-  flex-shrink: 0;
-}
 
 /* Notes: the excerpt grows to fill the card and fades out at the bottom */
-.memex-card--note .memex-card-excerpt,
-.memex-card--task .memex-card-excerpt {
-  flex: 1 1 0;
-  min-height: 0;
-  -webkit-line-clamp: 12;
-  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-}
-
-@media (max-width: 899px) {
-  .memex-grid {
-    --memex-card-height: 212px;
-  }
-}
 
 /* ============================================================ */
 /* Content typography: Inter for everything the user wrote or saved — stream
    cards, the link details panel, and the note editor — while app chrome keeps
    Two Weekend Go. Descendants are forced so earlier per-component font rules
    inside these surfaces don't reintroduce the chrome face. */
-.memex-card *,
-.bookmark-link-details,
-.bookmark-link-details *,
 .memex-note-editor,
 .memex-note-editor * {
   font-family: var(--bookmark-font-content) !important;
-  font-optical-sizing: auto;
-}
-.memex-card {
   font-optical-sizing: auto;
 }
 
@@ -9817,7 +3743,10 @@ textarea,
 /* Code inside notes gets a real monospace */
 .memex-note-editor code,
 .memex-note-editor pre,
-.memex-note-editor pre * {
+.memex-note-editor pre *,
+.memex-note-editor .cm-md-code,
+.memex-note-editor .cm-md-codeblock,
+.memex-note-editor .cm-md-codeblock * {
   font-family: var(--font-code) !important;
 }
 
@@ -9825,25 +3754,6 @@ textarea,
 /* Notes to Self — chat feed docked right of the stream */
 
 /* Header toggle (chat bubble) */
-.memex-self-notes-toggle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  cursor: pointer;
-}
-
-.memex-self-notes-toggle svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 
 /* Desktop: the right rail column opens up beside the grid */
 @media (min-width: 900px) {
@@ -9853,12 +3763,12 @@ textarea,
 
   /* Same vertical insets as the main column (.bookmark-feed-main pads the top,
      .bookmark-feed-main-inner the bottom) so both stacks share top and bottom
-     edges; the right inset matches the main stack's outer margin */
+     edges; right and bottom sit on the page edge */
   .memex-self-notes-rail {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding: var(--bookmark-feed-stack-inset) var(--space-m) var(--bookmark-feed-stack-inset) 0;
+    padding: var(--bookmark-feed-stack-inset) var(--page-edge) var(--page-edge) 0;
     background: transparent;
     overflow: visible;
   }
@@ -9873,235 +3783,12 @@ textarea,
   }
 }
 
-.memex-self-notes {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Exactly the omnibar row's height and border so the two bottom edges read
    as one line across the grid stack and the panel */
-.memex-self-notes-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  height: var(--bookmark-omnibar-height, 52px);
-  box-sizing: border-box;
-  padding: 0 var(--space-xs) 0 var(--space-m);
-  border-bottom: 0;
-  --edge-b-w: var(--border-s);
-  --edge-b: color-mix(in srgb, var(--bookmark-border) 65%, transparent);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  flex-shrink: 0;
-}
-
-.memex-self-notes-heading {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  gap: 2px;
-}
-
-.memex-self-notes-title {
-  font-family: var(--bookmark-font-header);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  font-weight: var(--weight-ui-heavy);
-  line-height: var(--line-s);
-  color: var(--bookmark-text);
-}
-
-.memex-self-notes-scope {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  color: var(--bookmark-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memex-self-notes-close {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  cursor: pointer;
-}
-
-.memex-self-notes-close svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-}
 
 /* Feed: newest last, pinned to the bottom */
-.memex-self-notes-feed {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  display: flex;
-  /* Reverse list: newest message is first in the DOM and sits at the bottom.
-     Browsers anchor a column-reverse scroller at scrollTop 0 = the bottom, so
-     the feed opens on the newest message, stays pinned as new ones arrive,
-     and short threads naturally sit at the bottom — with no flex-end (which
-     would make overflow unscrollable) and no scroll math. */
-  flex-direction: column-reverse;
-  gap: var(--space-xs);
-  padding: var(--space-s) var(--space-s) var(--space-xs);
-  scrollbar-width: thin;
-}
-
-.memex-self-notes-feed > * {
-  flex-shrink: 0;
-}
-
-.memex-self-notes-feed .bookmark-list-empty {
-  flex: 0 0 auto;
-}
-
-.memex-self-notes-status {
-  margin: 0;
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  text-align: center;
-}
-
-.memex-self-notes-day {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  margin: var(--space-xs) 0 2px;
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  font-weight: var(--weight-ui-heavy);
-  letter-spacing: var(--tracking-xl);
-}
-
-.memex-self-notes-day::before,
-.memex-self-notes-day::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--bookmark-stack-frosted-border);
-}
-
-.memex-self-note {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  max-width: 100%;
-}
-
-.memex-self-note.is-pending {
-  opacity: 0.6;
-}
-
-.memex-self-note-bubble {
-  max-width: 86%;
-  padding: var(--space-xs) var(--space-s);
-  border: 0;
-  --edge-w: var(--border-s);
-  --edge: var(--bookmark-control-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  border-radius: var(--bookmark-radius-card) var(--bookmark-radius-card) var(--radius-xs) var(--bookmark-radius-card);
-  background: var(--bookmark-brand-bubble-bg);
-  color: var(--bookmark-text);
-  font-family: var(--bookmark-font-content);
-  font-size: var(--size-s);
-  letter-spacing: var(--letter-spacing-s);
-  line-height: var(--line-s);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.memex-self-note-bubble a {
-  color: var(--bookmark-prominent-text);
-  text-decoration: underline;
-  text-underline-position: from-font;
-}
-
-.memex-self-note-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding-right: var(--space-xxs);
-  color: var(--bookmark-muted);
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  font-variant-numeric: tabular-nums;
-}
-
-.memex-self-note-delete {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  color: var(--bookmark-muted);
-  font: inherit;
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-  cursor: pointer;
-  padding: 2px var(--space-xxs);
-  min-height: 24px;
-  opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
-}
-
-.memex-self-note:hover .memex-self-note-delete,
-.memex-self-note-delete:focus-visible {
-  opacity: 1;
-}
-
-.memex-self-note-delete:hover {
-  color: var(--bookmark-text);
-  text-decoration: underline;
-}
-
-@media (max-width: 899px) {
-  .memex-self-note-delete {
-    opacity: 1;
-  }
-}
 
 /* Composer pinned to the bottom */
-.memex-self-notes-composer {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-s);
-  border-top: 0;
-  --edge-t-w: var(--border-s);
-  --edge-t: var(--bookmark-stack-frosted-border);
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  flex-shrink: 0;
-}
 
 .memex-self-notes-input {
   flex: 1;
@@ -10113,45 +3800,12 @@ textarea,
   overflow-y: hidden;
 }
 
-@media (min-width: 900px) {
-}
-
 .memex-self-notes-input::placeholder {
   color: var(--bookmark-muted);
 }
 
-.memex-self-notes-send {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  cursor: pointer;
-}
-
-.memex-self-notes-send svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.memex-self-notes-send:disabled {
-  cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .memex-self-note-delete {
-    transition: none;
-  }
-}
-
-/* With Notes to Self open, the gutter between the grid stack and the panel
-   tightens to the stack inset (12px) — the outer margins stay at 18px */
+/* With the Journal open, the gutter between the grid stack and the panel
+   tightens to the stack inset (12px) — the outer margins stay at 16px */
 @media (min-width: 900px) {
   .bookmark-feed-layout.has-self-notes .bookmark-feed-main-inner {
     padding-right: var(--bookmark-feed-stack-inset);
@@ -10169,8 +3823,7 @@ textarea,
 /* Space names are user content → Inter (the Home entry and the "Spaces"
    kicker stay in the chrome face). Same for the scope name in the Notes to
    Self header. */
-.memex-sidebar-spaces .memex-sidebar-item-label,
-.memex-self-notes-scope {
+.memex-sidebar-spaces .memex-sidebar-item-label {
   font-family: var(--bookmark-font-content);
   letter-spacing: var(--tracking-s);
 }
@@ -10184,28 +3837,8 @@ textarea,
    transparent so layout is unchanged and stateful borders (selected,
    details-active) can still take over. */
 
-.memex-self-note-bubble {
-  --edge: transparent;
-  box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r),
-    var(--bookmark-edge-shadow);
-}
-
 /* Reduced transparency: translucent fills become opaque and the light catch
    reads as a hard white line — fall back to the plain hairline */
-@media (prefers-reduced-transparency: reduce) {
-  .memex-self-note-bubble {
-    --edge: var(--bookmark-control-border);
-    box-shadow: 0 0 0 var(--edge-w) var(--edge),
-    inset 0 var(--edge-t-w) 0 0 var(--edge-t),
-    inset 0 calc(-1 * var(--edge-b-w)) 0 0 var(--edge-b),
-    inset var(--edge-l-w) 0 0 0 var(--edge-l),
-    inset calc(-1 * var(--edge-r-w)) 0 0 0 var(--edge-r);
-  }
-}
 
 /* ============================================================ */
 /* Chrome icons are filled silhouettes (src/components/icons.tsx). Earlier
@@ -10213,44 +3846,18 @@ textarea,
    the fills render at their designed weight. */
 .memex-sidebar-item-icon svg,
 .memex-sidebar-new svg,
-.memex-self-notes-toggle svg,
-.memex-self-notes-close svg,
-.memex-self-notes-send svg,
-.memex-omnibar-clear svg,
-.memex-task-check svg,
 .theme-toggle-icon svg {
   fill: none;
   stroke: currentColor;
 }
 
-.memex-sidebar-new svg,
-.memex-self-notes-close svg {
+.memex-sidebar-new svg {
   width: 14px;
   height: 14px;
 }
 
-.memex-self-notes-toggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.memex-self-notes-send svg {
-  width: 16px;
-  height: 16px;
-}
-
-.memex-task-check svg {
-  width: 15px;
-  height: 15px;
-}
-
 /* Notes to Self toggle: larger glyph in the theme's primary color at rest;
    open state stays inverted (primary fill, label color glyph) */
-
-.memex-self-notes-toggle svg {
-  width: 24px;
-  height: 24px;
-}
 
 /* Open state keeps the glyph in the theme color: tinted fill + ring rather
    than inverting to the (sometimes near-black) label color */
@@ -10259,25 +3866,6 @@ textarea,
 /* Space details: icon chip beside Select (only inside a space) + dialog */
 /* Specificity matches the row-level chip rule so its 11px side padding
    doesn't squeeze the glyph */
-.memex-stream-filter-row .memex-space-details-chip,
-.memex-space-details-chip {
-  width: 36px;
-  min-width: 36px;
-  padding: 0;
-  justify-content: center;
-  gap: 0;
-}
-
-.memex-stream-filter-row .memex-space-details-chip svg,
-.memex-space-details-chip svg {
-  display: block;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-  overflow: visible;
-  fill: currentColor;
-  stroke: none;
-}
 
 .memex-space-details-grid {
   display: grid;
@@ -10344,21 +3932,8 @@ textarea,
 }
 
 /* Gear sits right after the type chips; a hair of extra breathing room */
-.memex-stream-filter-row.is-types .memex-space-details-chip {
-  margin-left: var(--space-xxs);
-}
 
 /* Link details → "Remove from space": a neutral action, visibly not Delete */
-.bookmark-detail-remove {
-  width: 100%;
-  min-height: 40px;
-  border: 0;
-  cursor: pointer;
-}
-
-.bookmark-detail-remove:disabled {
-  cursor: not-allowed;
-}
 
 /* ============================================================ */
 /* Tint pairs: pastel fill + deep same-hue ink. Replaces alpha-mixes of the
@@ -10370,14 +3945,6 @@ textarea,
 /* Sidebar bulk-assign targets hover in the tint */
 
 /* Notes to Self: bubbles are the tint pair, not white glass */
-.memex-self-note-bubble {
-  background: var(--bookmark-tint-bg);
-  color: var(--bookmark-tint-ink);
-}
-
-.memex-self-note-bubble a {
-  color: var(--bookmark-tint-ink);
-}
 
 /* Notes to Self toggle: tint states */
 
@@ -10386,47 +3953,24 @@ textarea,
    grain, capture pop-in. */
 
 /* 1. Mono for data. Sizes stay small; a little tracking keeps digits airy. */
-.memex-task-due,
-.memex-self-note-meta,
-.memex-self-notes-day,
 .memex-space-details-stat b,
-.memex-space-details-meta,
-.memex-card-favicon-initials {
+.memex-space-details-meta {
   font-family: var(--bookmark-font-mono) !important;
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--tracking-l);
 }
-.memex-card-sub,
 .memex-sidebar-item-count,
 .bookmark-tag-chip-count,
 .bookmark-profile-chip-count,
-.memex-sidebar-kicker,
-.bookmark-toolbar-super-fav-initials {
+.memex-sidebar-kicker {
   font-variant-numeric: tabular-nums;
-}
-
-.memex-self-note-meta {
-  font-size: var(--size-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  line-height: var(--line-xs);
-}
-
-.memex-self-notes-day {
-  font-size: var(--size-xxs);
-  line-height: var(--line-xxs);
-  letter-spacing: var(--tracking-xl);
 }
 
 /* 2. Press travel on everything pressable: instant engagement, tiny travel,
    clean settle. Hover on cards lifts 1px and deepens the edge. */
-.memex-space-details-chip:active,
 .memex-stream-select:active {
   transform: translateY(var(--motion-press-distance));
   transition-duration: var(--press-duration);
-}
-
-.memex-card {
-  will-change: transform;
 }
 
 /* Cards in selection mode press like buttons; inert task cards don't lift */
@@ -10493,31 +4037,6 @@ textarea,
   }
 }
 
-.memex-self-note.is-pending {
-  animation: memex-pop-in var(--motion-duration) var(--motion-easing) both;
-  transform-origin: center bottom;
-}
-
-.memex-card.is-new {
-  animation: memex-pop-in var(--motion-duration) var(--motion-easing) both;
-  transform-origin: center bottom;
-}
-
-.memex-self-note.is-pending {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-
-  .memex-self-note.is-pending {
-    animation: none;
-  }
-
-  .memex-card.is-new {
-    animation: none;
-  }
-}
-
 /* ============================================================ */
 /* Mobile + installed-app (PWA) hardening — 2026-09-19 */
 
@@ -10525,11 +4044,6 @@ textarea,
 button,
 a,
 [role='button'] {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.memex-card,
-.memex-task-check {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -10541,8 +4055,7 @@ a,
   input[type='search'],
   input[type='url'],
   input[type='email'],
-  textarea,
-  .memex-sidebar-rename {
+  textarea {
     font-size: max(16px, 1em);
   }
 }
@@ -10550,11 +4063,6 @@ a,
 /* Safe areas. With a translucent status bar the canvas runs under it, so
    the header takes the top inset; the bottom bar and the right-hand sheet
    take theirs. env() is 0 on desktop, so these are inert there. */
-.bookmark-toolbar {
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  padding-left: calc(12px + env(safe-area-inset-left, 0px));
-  padding-right: calc(12px + env(safe-area-inset-right, 0px));
-}
 
 @media (max-width: 899px) {
   .memex-sidebar {
@@ -10632,19 +4140,9 @@ a,
   }
 
   /* The details "← Back" row lives in the same slot; keep it at the top */
-  .memex-stream-page .bookmark-search-panel:has(.bookmark-link-details-header-row) {
-    order: 0;
-    border-top: 0;
-    --edge-t-w: 0px;
-  }
 
   /* Bottom omnibar: no bottom hairline (the stack edge does it), taller for
      touch, and the capture button's radius follows the bottom corner */
-  .memex-stream-page .bookmark-search-panel:not(:has(.bookmark-link-details-header-row))
-    .bookmark-omnibar-row {
-    border-bottom: 0;
-    min-height: 56px;
-  }
 
   /* --- Filter row: fits one line on a 375px phone --- */
   .memex-stream-filters {
@@ -10656,40 +4154,11 @@ a,
     min-height: 36px;
   }
 
-  .memex-stream-filter-row .memex-space-details-chip,
   .memex-stream-filter-row .memex-stream-select {
     min-height: 36px;
   }
 
   /* --- Header: brand + favorites + actions in one row, favorites scroll --- */
-  .bookmark-toolbar {
-    gap: var(--space-xs);
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .bookmark-toolbar-center {
-    max-width: 100%;
-    justify-self: stretch;
-  }
-
-  .bookmark-toolbar-super-favorites {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    padding: 2px 0;
-    mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 14px), transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 14px), transparent);
-  }
-
-  .bookmark-toolbar-super-favorites::-webkit-scrollbar {
-    display: none;
-  }
-
-  .bookmark-toolbar-super-favorites > * {
-    flex-shrink: 0;
-  }
 
   /* --- Bottom bar: snap, generous targets, faded edges hint the scroll --- */
   .memex-sidebar {
@@ -10729,21 +4198,7 @@ a,
     padding: calc(var(--space-xs) + env(safe-area-inset-top, 0px)) var(--space-xs) calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
   }
 
-  .memex-self-notes-rail .memex-self-notes-composer {
-    padding-bottom: var(--space-s);
-  }
-
   /* --- Grid: two columns, a touch shorter card, tighter gutters --- */
-  .memex-grid {
-    --memex-card-height: 204px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-xs);
-    padding: var(--space-xs);
-  }
-
-  .memex-card-preview {
-    margin: calc(-1 * var(--space-s)) calc(-1 * var(--space-s)) 0;
-  }
 
   /* Card hover lift is meaningless on touch; keep press feedback only */
 
@@ -10761,7 +4216,6 @@ a,
 
   .bookmark-toolbar-brand {
     font-size: var(--size-m);
-    letter-spacing: var(--letter-spacing-m);
     line-height: var(--line-m);
   }
 }
@@ -10782,10 +4236,6 @@ a,
     max-width: none;
     transform: none;
     background: var(--bookmark-experiment-bg, var(--bookmark-bg));
-  }
-
-  html.memex-sheet-open .memex-self-notes-rail .memex-self-notes {
-    border-radius: var(--bookmark-stack-outer-radius);
   }
 
   /* Nothing behind the sheet should be reachable or announced */
@@ -10903,9 +4353,6 @@ a,
   }
 
   /* The header's own bottom padding was zeroed for the old rail tabs */
-  .bookmark-dashboard .bookmark-toolbar {
-    padding-bottom: 2px;
-  }
 }
 
 /* ============================================================ */

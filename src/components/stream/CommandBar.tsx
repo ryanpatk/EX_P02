@@ -238,7 +238,7 @@ const CommandBar = ({
         {value ? (
           <button
             type="button"
-            className="memex-command-clear"
+            className="memex-icon-button is-compact"
             onClick={() => {
               onChange('');
               inputRef.current?.focus();

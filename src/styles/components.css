@@ -23,7 +23,6 @@
 .bookmark-detail-save-url,
 .bookmark-detail-delete,
 .bookmark-account-menu-action,
-.memex-self-notes-send,
 .theme-toggle {
   border: 0;
   border-radius: var(--radius-s);
@@ -74,8 +73,7 @@
 .bookmark-toolbar-cta.is-accent,
 .bookmark-toolbar-cta.is-open,
 .bookmark-profile-create-button.is-primary,
-.bookmark-detail-save-url,
-.memex-self-notes-send {
+.bookmark-detail-save-url {
   --edge: var(--neutral-6-transparent);
   background: var(--color-1) var(--control-raised-image);
   color: var(--cte-accent-text);
@@ -89,8 +87,7 @@
 .bookmark-toolbar-cta.is-primary:hover:not(:disabled),
 .bookmark-toolbar-cta.is-accent:hover:not(:disabled),
 .bookmark-profile-create-button.is-primary:hover:not(:disabled),
-.bookmark-detail-save-url:hover:not(:disabled),
-.memex-self-notes-send:hover:not(:disabled) {
+.bookmark-detail-save-url:hover:not(:disabled) {
   --edge: var(--neutral-7-transparent);
 }
 
@@ -120,8 +117,7 @@
 .bookmark-toolbar-cta:disabled,
 .bookmark-profile-create-button:disabled,
 .bookmark-detail-save-url:disabled,
-.bookmark-detail-delete:disabled,
-.memex-self-notes-send:disabled {
+.bookmark-detail-delete:disabled {
   --edge: var(--neutral-4-transparent);
   background: var(--neutral-3);
   color: var(--neutral-6);
@@ -129,25 +125,15 @@
   cursor: not-allowed;
 }
 
-.bookmark-selection-actions .bookmark-toolbar-cta.is-clear-selection {
-  padding-inline: var(--space-xs);
-}
-
 .btn-compact {
   padding: var(--space-xs) var(--space-s);
 }
 
-/* Ghost icon buttons (close, clear, row actions, footer settings) */
+/* Ghost icon buttons (close, clear, row/card actions, panel headers) */
 .app-modal-close,
 .memex-settings-drawer-close,
-.memex-self-notes-toggle,
-.memex-self-notes-close,
-.memex-omnibar-clear,
 .memex-sidebar-new,
-.bookmark-list-row-action,
-.bookmark-card-action,
-.bookmark-detail-remove,
-.desktop-footer-settings {
+.memex-icon-button {
   border: 0;
   --edge: transparent;
   border-radius: var(--radius-s);
@@ -165,45 +151,56 @@
 
 .app-modal-close:hover,
 .memex-settings-drawer-close:hover,
-.memex-self-notes-toggle:hover,
-.memex-self-notes-close:hover,
-.memex-omnibar-clear:hover,
 .memex-sidebar-new:hover,
-.bookmark-list-row-action:hover,
-.bookmark-card-action:hover,
-.bookmark-detail-remove:hover,
-.desktop-footer-settings:hover {
+.memex-icon-button:hover {
   background: var(--neutral-3-transparent);
 }
 
+/* The app's icon button: 32px square with a 16px glyph; .is-compact (28px)
+   for dense panel headers and inline clears */
+.memex-icon-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+.memex-icon-button.is-compact {
+  width: 28px;
+  height: 28px;
+}
+
+.memex-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Toggle-style pressed state for icon buttons that open something */
-.memex-self-notes-toggle.is-active,
-.memex-self-notes-toggle[aria-pressed='true'],
-.memex-self-notes-toggle[aria-expanded='true'],
-.bookmark-list-row-action.is-open,
-.bookmark-card-action.is-open {
+.memex-icon-button.is-open,
+.memex-icon-button[aria-expanded='true'] {
   background: var(--neutral-3);
   color: var(--neutral-10);
 }
 
-.desktop-footer-settings {
-  padding: var(--space-xxs) var(--space-xs);
-  color: var(--neutral-7);
-  font-size: var(--size-xs);
-  line-height: var(--line-xs);
-  letter-spacing: var(--letter-spacing-xs);
-  font-weight: var(--weight-ui-medium);
-}
+/* Touch: 44px hit area without changing the visual size */
+@media (pointer: coarse) {
+  .memex-icon-button::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
 
-.desktop-footer-settings:hover {
-  color: var(--neutral-10);
+  .memex-icon-button.is-compact::after {
+    inset: -8px;
+  }
 }
 
 /* Text links styled as quiet actions ("+ New tag", "Back") */
 .bookmark-tag-new,
 .bookmark-profile-new,
-.bookmark-link-details-back,
-.bookmark-detail-tag-edit {
+.bookmark-link-details-back {
   border: 0;
   background: transparent;
   color: var(--color-1-ink);
@@ -309,15 +306,38 @@
   line-height: var(--line-s);
   letter-spacing: var(--letter-spacing-s);
   text-decoration: none;
+  /* Colour is micro-feedback: quick and without the theme spring, whose
+     overshoot flashes a colour change and leaves the last row lit */
   transition:
-    background-color var(--transition-fast),
+    background-color 120ms ease-out,
     --edge var(--transition-fast),
-    color var(--transition-fast),
+    color 120ms ease-out,
     transform var(--transition-fast);
 }
 
-.memex-sidebar-item:hover {
-  background: var(--neutral-3);
+/* Each row speaks in its own hue: spaces set --space-hue inline, Home and
+   the rest fall back to the canvas accent. Navigating is the quiet use of
+   the hue; spaces as add targets (stream.css) are the loud one. */
+.memex-sidebar-item {
+  --space-hue: var(--color-1);
+  --space-tint: color-mix(in oklch, var(--space-hue) 10%, var(--neutral-1));
+  --space-ink: oklch(from var(--space-hue) 0.42 calc(c * 0.8) h);
+  /* Rest on the tint at zero alpha so hover only fades opacity, never
+     through transparent black (grey) */
+  background: oklch(from var(--space-tint) l c h / 0);
+}
+
+[data-theme='dark'] .memex-sidebar-item {
+  --space-tint: color-mix(in oklch, var(--space-hue) 14%, var(--neutral-1));
+  --space-ink: oklch(from var(--space-hue) 0.84 calc(c * 0.6) h);
+}
+
+.memex-sidebar-item:is(:hover, :focus-visible) {
+  background: var(--space-tint);
+}
+
+.memex-sidebar-item:is(:hover, :focus-visible) .memex-sidebar-item-count {
+  color: var(--space-ink);
 }
 
 /* Current location keeps the swatch via the theme's navigation roles */
@@ -326,11 +346,6 @@
   background: var(--navigation-active-background);
   color: var(--navigation-active-foreground);
   font-weight: var(--weight-ui-medium);
-}
-
-.memex-sidebar-item.is-bulk-target {
-  outline: var(--border-l) dashed var(--color-1-transparent);
-  outline-offset: calc(-1 * var(--border-l));
 }
 
 .memex-sidebar-item-count {
@@ -429,8 +444,7 @@
 .bookmark-profile-create-input::placeholder,
 .bookmark-detail-input::placeholder,
 .memex-new-space-input::placeholder,
-.memex-self-notes-input::placeholder,
-.bookmark-omnibar-input::placeholder {
+.memex-self-notes-input::placeholder {
   color: var(--neutral-6);
 }
 
@@ -440,8 +454,7 @@
   .bookmark-profile-create-input,
   .bookmark-detail-input,
   .memex-new-space-input,
-  .memex-self-notes-input,
-  .bookmark-omnibar-input {
+  .memex-self-notes-input {
     font-size: var(--size-m);
     line-height: var(--line-m);
     letter-spacing: var(--letter-spacing-m);
@@ -475,77 +488,20 @@
 
 /* Omnibar: the stack's top row is one recessed field with a trailing
    primary action flush to the corner */
-.bookmark-omnibar-row {
-  gap: var(--space-xs);
-  padding: 0 var(--space-xs) 0 var(--space-s);
-  background: var(--neutral-1);
-  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-4);
-}
-
-.bookmark-omnibar-row:focus-within {
-  box-shadow: inset 0 calc(-1 * var(--border-l)) 0 0 var(--color-1-transparent);
-}
-
-.bookmark-omnibar-row--with-add {
-  padding: 0 0 0 var(--space-s);
-}
-
-.bookmark-omnibar-input {
-  border: 0;
-  padding: 0;
-  outline: none;
-  background: transparent;
-  color: var(--neutral-10);
-  font-family: var(--font-ui);
-  font-weight: var(--weight-ui-regular);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  letter-spacing: var(--letter-spacing-s);
-}
-
-.bookmark-omnibar-add {
-  border: 0;
-  padding: 0 var(--space-m);
-  background: var(--color-1) var(--control-raised-image);
-  color: var(--cte-accent-text);
-  box-shadow: var(--control-raised-bevel);
-  font-family: var(--font-ui);
-  font-weight: var(--weight-ui-medium);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  letter-spacing: var(--letter-spacing-s);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.bookmark-omnibar-add.is-secondary {
-  background: var(--neutral-1) var(--control-raised-image);
-  color: var(--neutral-10);
-  box-shadow:
-    inset var(--border-s) 0 0 0 var(--neutral-6-transparent),
-    var(--control-raised-bevel);
-}
-
-.bookmark-omnibar-add.is-secondary:hover:not(:disabled) {
-  background-color: var(--neutral-2);
-}
-
-.bookmark-omnibar-add:disabled {
-  background: var(--neutral-3);
-  color: var(--neutral-6);
-  box-shadow: none;
-  cursor: not-allowed;
-}
 
 /* ------------------------------------------------------------------ */
 /* Checkbox — task check                                               */
 /* ------------------------------------------------------------------ */
 
 .memex-task-check {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
   border: 0;
   padding: 0;
+  cursor: pointer;
   --edge: var(--neutral-4);
   border-radius: var(--radius-xs);
   background: var(--neutral-1) var(--surface-raised-image);
@@ -559,12 +515,16 @@
     color var(--transition-fast);
 }
 
+.memex-task-check svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: var(--icon-stroke-width);
+}
+
 .memex-task-check:hover {
   --edge: var(--neutral-5);
 }
 
-.memex-task-row.is-done .memex-task-check,
-.memex-card.is-done .memex-task-check,
 .memex-task-check[aria-checked='true'],
 .memex-task-check[aria-pressed='true'] {
   --edge: var(--color-1-transparent);
@@ -573,6 +533,7 @@
 }
 
 .memex-task-check:disabled {
+  cursor: default;
   background: var(--neutral-3);
   box-shadow: inset 0 0 0 var(--border-s) var(--edge);
 }
@@ -580,42 +541,6 @@
 /* ------------------------------------------------------------------ */
 /* Switch — link detail toggles                                        */
 /* ------------------------------------------------------------------ */
-
-.bookmark-detail-switch-ui {
-  border-radius: var(--radius-full);
-  background: var(--neutral-4);
-  transition: background-color var(--transition-fast);
-}
-
-.bookmark-detail-switch-ui::after {
-  border: 0;
-  border-radius: var(--radius-full);
-  background: var(--neutral-1) var(--surface-raised-image);
-  box-shadow:
-    0 0 0 var(--border-s) var(--neutral-4-transparent),
-    var(--surface-raised-shadow),
-    var(--shadow-s);
-  transition: transform var(--transition-fast);
-}
-
-.bookmark-detail-switch input:checked + .bookmark-detail-switch-ui {
-  background: var(--color-1);
-}
-
-.bookmark-detail-switch input:disabled + .bookmark-detail-switch-ui {
-  background: var(--neutral-3);
-  opacity: 1;
-}
-
-.bookmark-detail-switch input:disabled + .bookmark-detail-switch-ui::after {
-  background: var(--neutral-6);
-  box-shadow: none;
-}
-
-.bookmark-detail-switch input:focus-visible + .bookmark-detail-switch-ui {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
 
 /* ------------------------------------------------------------------ */
 /* Dialog                                                              */
@@ -817,70 +742,141 @@
   -webkit-backdrop-filter: none;
 }
 
-/* Stream card (custom component): neutral-1 surface, hairline edge, small
-   elevation; hover lifts to M, selection uses the navigation tint */
-.memex-card {
+/* ------------------------------------------------------------------ */
+/* Stream cards (custom component)                                     */
+/* ------------------------------------------------------------------ */
+
+/* One surface for every grid item: the text card (.memex-card, StreamCard)
+   and the image-first link card (.memex-pv, LinkPreviewCard). Neutral-1,
+   hairline edge, small elevation; hover deepens the edge and lifts to M;
+   selection is a color-1 ring plus the selection check. */
+:is(.memex-card, .memex-pv) {
+  position: relative;
+  box-sizing: border-box;
   border: 0;
-  gap: var(--space-xs);
   --edge: var(--border-default-color);
   border-radius: var(--radius-m);
-  padding: var(--space-s);
   background: var(--neutral-1);
   color: var(--neutral-10);
   box-shadow:
     0 0 0 var(--border-s) var(--edge),
     var(--shadow-s);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition:
     box-shadow var(--transition-fast),
     --edge var(--transition-fast),
-    background-color var(--transition-fast),
-    transform var(--transition-fast);
+    background-color var(--transition-fast);
 }
 
-.memex-card:hover {
+:is(.memex-card, .memex-pv):hover {
   --edge: var(--neutral-7-transparent);
-  background: var(--neutral-1);
   box-shadow:
     0 0 0 var(--border-s) var(--edge),
     var(--shadow-m);
 }
 
+:is(.memex-card, .memex-pv):focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+:is(.memex-card, .memex-pv).is-selected,
+.memex-card.is-details-active {
+  --edge: var(--color-1);
+  box-shadow:
+    0 0 0 var(--border-l) var(--edge),
+    var(--shadow-m);
+}
+
+/* Text cards also take the selection tint (an image card is all image) */
 .memex-card.is-selected,
 .memex-card.is-details-active {
-  --edge: var(--color-1-transparent);
   background:
     linear-gradient(var(--navigation-active-background), var(--navigation-active-background)),
     var(--neutral-1);
 }
 
-.memex-card:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
+/* Capture pop-in on the card you just created */
+:is(.memex-card, .memex-pv).is-new {
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing) both;
+  transform-origin: center bottom;
 }
 
-.memex-card-preview {
-  border-radius: calc(var(--radius-m) - var(--border-s)) calc(var(--radius-m) - var(--border-s)) 0 0;
-  background: var(--neutral-3);
+/* Text card anatomy: header (leading slot + meta) → title → excerpt → tags */
+.memex-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-s);
+}
+
+.memex-card.is-static {
+  cursor: default;
+}
+
+.memex-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  /* Clear the top-right actions / selection check */
+  padding-right: var(--space-xl);
 }
 
 .memex-card-favicon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
   border-radius: var(--radius-xs);
   background: var(--neutral-3);
   color: var(--neutral-7);
 }
 
+.memex-card-favicon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.memex-card-glyph {
+  width: 14px;
+  height: 14px;
+}
+
+.memex-card-favicon-initials {
+  font-family: var(--font-data);
+  font-weight: var(--weight-data-heavy);
+  font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  letter-spacing: var(--letter-spacing-xxs);
+}
+
 .memex-card-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--neutral-7);
   font-family: var(--font-data);
   font-weight: var(--weight-data-regular);
   font-size: var(--size-xs);
   line-height: var(--line-xs);
   letter-spacing: var(--letter-spacing-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .memex-card-title {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: break-word;
   color: var(--neutral-10);
   font-family: var(--font-editorial);
   font-weight: var(--weight-editorial-medium);
@@ -890,6 +886,12 @@
 }
 
 .memex-card-excerpt {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  overflow-wrap: break-word;
   color: var(--neutral-7);
   font-family: var(--font-editorial);
   font-weight: var(--weight-editorial-regular);
@@ -898,18 +900,86 @@
   letter-spacing: var(--letter-spacing-s);
 }
 
-.memex-card--task.is-done {
+.memex-card-footer {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Hover actions, pinned top-right; always shown on touch */
+.memex-card-actions {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  display: flex;
+  gap: var(--space-xxs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.memex-card:hover .memex-card-actions,
+.memex-card-actions:focus-within {
   opacity: 1;
 }
 
-.memex-card--task.is-done .memex-card-title {
-  color: var(--neutral-6);
+@media (hover: none) {
+  .memex-card-actions {
+    opacity: 1;
+  }
+}
+
+/* Selection check: shared by cards, image cards, list rows, and task rows.
+   Redundant cue for selection beyond the ring/tint. */
+.memex-select-check {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-1);
+  box-shadow: inset 0 0 0 var(--border-l) var(--neutral-5);
+  color: var(--cte-accent-text);
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.memex-select-check.is-on {
+  background: var(--color-1);
+  box-shadow: none;
+}
+
+.memex-select-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Over an image: scrim fill, on-image ring */
+.memex-select-check--on-image {
+  background: color-mix(in oklab, var(--on-image-scrim) 45%, transparent);
+  box-shadow: inset 0 0 0 var(--border-l) var(--on-image-foreground);
+}
+
+:is(.memex-card, .memex-pv) > .memex-select-check {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  z-index: 2;
 }
 
 /* Tag labels on cards: option-badge treatment; a tag's own color, when set,
    arrives inline as --edge + color */
 .bookmark-list-row-tag {
   border: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   --edge: var(--neutral-4-transparent);
   border-radius: var(--radius-xs);
   padding: 0 var(--space-xxs);
@@ -924,7 +994,7 @@
 }
 
 .bookmark-list-row-tag.is-more {
-  border: 0;
+  flex: none;
   background: transparent;
   color: var(--neutral-7);
 }
@@ -954,34 +1024,6 @@
 /* ------------------------------------------------------------------ */
 /* Header toolbar — super favorites                                    */
 /* ------------------------------------------------------------------ */
-
-.bookmark-toolbar-super-fav {
-  border: 0;
-  padding: 0;
-  --edge: var(--neutral-4-transparent);
-  border-radius: var(--radius-s);
-  background: var(--neutral-1);
-  box-shadow:
-    0 0 0 var(--border-s) var(--edge),
-    var(--shadow-s);
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.bookmark-toolbar-super-fav:hover {
-  --edge: var(--neutral-7-transparent);
-  background: var(--neutral-2);
-}
-
-.bookmark-toolbar-super-fav-initials {
-  color: var(--neutral-7);
-  font-weight: var(--weight-ui-medium);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  letter-spacing: var(--letter-spacing-s);
-}
 
 /* Canvas swatches (settings): radio-like choice; selection is a ring in
    color-1, focus keeps the theme outline */
@@ -1023,23 +1065,15 @@
     .bookmark-detail-save-url,
     .bookmark-detail-delete,
     .bookmark-account-menu-action,
-    .memex-self-notes-send,
     .theme-toggle,
     .bookmark-tag-chip,
     .bookmark-profile-chip,
     .memex-sidebar-item,
-    .bookmark-omnibar-add,
     .memex-task-check,
     .app-modal-close,
     .memex-settings-drawer-close,
-    .memex-self-notes-toggle,
-    .memex-self-notes-close,
-    .memex-omnibar-clear,
     .memex-sidebar-new,
-    .bookmark-list-row-action,
-    .bookmark-card-action,
-    .bookmark-detail-remove,
-    .bookmark-toolbar-super-fav
+    .memex-icon-button
   ):active:not(:disabled) {
   transform: translateY(var(--motion-press-distance));
 }
@@ -1053,26 +1087,17 @@
     .bookmark-detail-save-url,
     .bookmark-detail-delete,
     .bookmark-account-menu-action,
-    .memex-self-notes-send,
     .theme-toggle,
     .bookmark-tag-chip,
     .bookmark-profile-chip,
     .memex-sidebar-item,
-    .bookmark-omnibar-add,
     .memex-task-check,
     .app-modal-close,
     .memex-settings-drawer-close,
-    .memex-self-notes-toggle,
-    .memex-self-notes-close,
-    .memex-omnibar-clear,
     .memex-sidebar-new,
-    .bookmark-list-row-action,
-    .bookmark-card-action,
-    .bookmark-detail-remove,
-    .bookmark-toolbar-super-fav,
+    .memex-icon-button,
     .bookmark-tag-new,
-    .bookmark-profile-new,
-    .desktop-footer-settings
+    .bookmark-profile-new
   ):focus-visible {
   outline: var(--focus-ring-outline);
   outline-offset: 2px;
@@ -1087,12 +1112,6 @@
   ):focus-visible {
   outline: var(--focus-ring-outline);
   outline-offset: 1px;
-}
-
-/* The omnibar shows focus on its row (focus-within underline) */
-.bookmark-omnibar-input:focus,
-.bookmark-omnibar-input:focus-visible {
-  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1114,11 +1133,13 @@
       .bookmark-tag-chip,
       .bookmark-profile-chip,
       .memex-sidebar-item,
-      .bookmark-omnibar-add,
       .memex-task-check,
-      .memex-card,
-      .bookmark-toolbar-super-fav
+      .memex-card
     ):active:not(:disabled) {
     transform: none;
+  }
+
+  :is(.memex-card, .memex-pv).is-new {
+    animation: none;
   }
 }

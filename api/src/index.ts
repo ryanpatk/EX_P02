@@ -5,7 +5,9 @@
  * `Authorization: Bearer mx_…`. Only the SHA-256 hash is stored server-side.
  *
  * Routes:
- *   POST   /api/capture      { url, title?, note?, spaceId?, tagIds? } → created link
+ *   POST   /api/capture      { url, title?, description?, image?, favicon?, note?,
+ *                               source?, spaceId?, tagIds? } → created (201) or
+ *                               existing (200, duplicate: true) link
  *   DELETE /api/links/:id    undo a capture
  *   GET    /api/spaces       [{ id, name }]
  *   GET    /api/tags         [{ id, name }]
@@ -115,9 +117,45 @@ async function authenticate(
 interface CaptureBody {
   url?: string;
   title?: string;
+  /** Page metadata the client already has (e.g. read from a logged-in X page
+   *  the scraper can't see). Wins over scraped values. */
+  description?: string;
+  image?: string;
+  favicon?: string;
+  /** "Why I saved this" — stored as the description until links.note exists. */
   note?: string;
+  /** Capture origin, e.g. 'extension', 'x:bookmark', 'pinterest:save'. */
+  source?: string;
   spaceId?: string;
   tagIds?: string[];
+}
+
+const SOURCE_RE = /^[a-z0-9:_-]{1,40}$/;
+
+const httpUrl = (value: string | undefined): string | null => {
+  const v = value?.trim();
+  return v && /^https?:\/\/\S+$/i.test(v) ? v : null;
+};
+
+/**
+ * PostgREST filter matching links that are "the same thing" as `url`:
+ * the exact URL ± trailing slash, and for X posts / Pinterest pins any URL
+ * carrying the same id (x.com/<handle>/status/1 ≡ twitter.com/i/web/status/1).
+ */
+function sameLinkFilter(url: string): string {
+  // `…/status/<id>` followed by end, `/` or `?` — never a longer id.
+  const idPath = (segment: string, id: string) => {
+    const path = encodeURIComponent(`/${segment}/${id}`);
+    return `or=(url.like.*${path},url.like.*${path}%2F*,url.like.*${path}%3F*)`;
+  };
+  const status = url.match(/^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/.*\/status\/(\d+)/i);
+  if (status) return idPath('status', status[1]);
+  const pin = url.match(/^https?:\/\/(?:[a-z]+\.)?pinterest\.[a-z.]+\/pin\/(\d+)/i);
+  if (pin) return idPath('pin', pin[1]);
+
+  const bare = url.replace(/\/+$/, '');
+  const quoted = [bare, `${bare}/`].map((u) => `"${u.replace(/["\\]/g, '\\$&')}"`);
+  return `url=in.(${encodeURIComponent(quoted.join(','))})`;
 }
 
 interface ScrapedData {
@@ -165,16 +203,31 @@ async function handleCapture(request: Request, env: Env, userId: string): Promis
     return error('Invalid JSON body', 400);
   }
 
-  const rawUrl = (body.url ?? '').trim();
-  if (!rawUrl || !/^https?:\/\/.+/i.test(rawUrl)) {
+  const rawUrl = httpUrl(body.url);
+  if (!rawUrl) {
     return error('A valid http(s) url is required', 400);
   }
 
   const client = db(env);
+
+  // Already saved → hand back the existing link instead of a duplicate.
+  const existing = await client.select<Record<string, unknown>[]>(
+    `links?user_id=eq.${userId}&${sameLinkFilter(rawUrl)}&select=*&order=created_at.asc&limit=1`,
+  );
+  if (existing[0]) {
+    return json({ success: true, data: { link: existing[0], duplicate: true, attached: [] } });
+  }
+
+  const clientTitle = body.title?.trim() || null;
+  const clientDescription = body.note?.trim() || body.description?.trim() || null;
+  const clientImage = httpUrl(body.image);
+  // Only call the scraper when the client left gaps to fill.
+  const needsScrape = !clientTitle || !clientDescription || !clientImage;
   const [projectId, scraped] = await Promise.all([
     getDefaultProjectId(env, userId),
-    tryScrape(env, rawUrl),
+    needsScrape ? tryScrape(env, rawUrl) : Promise.resolve<ScrapedData>({}),
   ]);
+  const source = body.source && SOURCE_RE.test(body.source) ? body.source : 'extension';
 
   // New captures go to the top of the stack, matching the app.
   const topLink = await client.select<{ order_index: number }[]>(
@@ -186,11 +239,12 @@ async function handleCapture(request: Request, env: Env, userId: string): Promis
     user_id: userId,
     project_id: projectId,
     url: rawUrl,
-    title: body.title?.trim() || scraped.title || null,
-    description: body.note?.trim() || scraped.description || null,
-    favicon_url: scraped.logo || null,
-    preview_image_url: scraped.image || null,
+    title: clientTitle || scraped.title || null,
+    description: clientDescription || scraped.description || null,
+    favicon_url: scraped.logo || httpUrl(body.favicon) || null,
+    preview_image_url: clientImage || scraped.image || null,
     order_index: minOrder - 1,
+    source,
   });
   const link = inserted[0];
   const linkId = link.id as string;
@@ -220,7 +274,7 @@ async function handleCapture(request: Request, env: Env, userId: string): Promis
     }
   }
 
-  return json({ success: true, data: { link, attached: attachments } }, 201);
+  return json({ success: true, data: { link, duplicate: false, attached: attachments } }, 201);
 }
 
 export default {

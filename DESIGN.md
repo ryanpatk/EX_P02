@@ -19,9 +19,10 @@ typography:
   family: 'Two Weekend Go (+ system-ui stack)'
   brand:
     fontSize: 'clamp(21px, 2.2vw, 24px)'
-    fontWeight: 500
+    fontWeight: 760 (--brand-wordmark-weight)
     fontStyle: italic
-    letterSpacing: '-0.03em'
+    letterSpacing: '-0.05em' (--brand-wordmark-tracking)
+    color: 'var(--color-1-ink) — the swatch ink'
   ui:
     fontSize: '13px (var(--bookmark-fs-ui))'
     fontWeight: '500 default chips/rows; 600 labels'
@@ -190,7 +191,7 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 
 | Level      | Size          | Weight     | Use                       |
 | ---------- | ------------- | ---------- | ------------------------- |
-| Brand      | clamp 21–24px | 500 italic | `memex` header bubble     |
+| Brand      | 24px (16px <380px) | 760 italic, −0.05em, swatch ink | `memex` wordmark (sidebar, phone header, auth) |
 | UI         | 13px          | 500        | Chips, list rows, omnibar |
 | Caption    | 12px          | 600        | Counts, footer, kickers   |
 | Heading sm | 14px          | 600–700    | Modal titles, row titles  |
@@ -288,14 +289,12 @@ Shared UI primitives live in `src/components/ui/` and render the existing token 
 | `FrostedStack`     | frosted-glass list container                        | module placeholders, styleguide    |
 | `EmptyState`       | list empty title/subtitle                           | module placeholders                |
 | `FeedbackToast`    | bottom-right status toast (presentational)          | `DashboardPage`                    |
-| `Omnibar`          | search + capture bar with configurable action       | `BookmarkOmnibar`, `TasksPage`, `NotesPage` |
 | `MarkdownText`     | rendered markdown reading view (GFM)                | `NoteEditor`, future Spaces module |
 | `MarkdownTextarea` | markdown-aware textarea (lists, Tab, ⌘B/I/K)        | `NoteEditor`                       |
-| `ViewToggleFab`    | frosted corner button, bottom-left; switches list/grid | all four module pages           |
 
-**List vs grid:** every module list has a card-grid alternative (`useViewMode(moduleKey)`, persisted per module), switched by the bottom-left corner fab (which shows the view you'd switch TO, mirroring the toast's bottom-right position). Grid mode widens the stack to ~3× the list width (`.is-grid-view`, max 1920px) and lays cards with `auto-fill minmax(220px, 1fr)`, shedding columns as the viewport narrows. Cards (`LinkGridCard`, `NoteGridCard`, `TaskGridCard`) share one anatomy — header / title / excerpt / tag footer — and keep their row behaviors (open, toggle done, details, delete-with-confirm). List dimensions are unchanged.
+**Stream cards:** every grid item shares one surface (components.css → “Stream cards”): neutral-1 fill, hairline `--edge` ring, `--shadow-s`; hover deepens the edge and lifts to `--shadow-m`; selection is a `--border-l` color-1 ring plus the shared `.memex-select-check` (text cards also take the selection tint). `StreamCard` is the text anatomy — header (leading slot + meta) / title / excerpt / tag footer, hover actions top-right — filled by `NoteGridCard` and `LinkGridCard` (links without an image). `LinkPreviewCard` is the image-first link anatomy on the same surface. The task band and list rows (`StreamRow`) use the same selection check.
 
-**Reference page:** `/styleguide` (auth-protected, intentionally unlinked from app navigation) renders the full catalog — tokens, type, chips, omnibar, rows, empty state, toast, modal — under live canvas theming and dark mode. When adding or changing a primitive, update the styleguide page in the same change.
+**Reference page:** `/styleguide` (auth-protected, intentionally unlinked from app navigation) renders the full catalog — tokens, type, chips, stream cards, task band, list rows, empty state, toast, modal — under live canvas theming and dark mode. When adding or changing a primitive, update the styleguide page in the same change.
 
 ## Source of Truth in Code
 
@@ -305,8 +304,8 @@ Shared UI primitives live in `src/components/ui/` and render the existing token 
 | Canvas theming   | `src/utils/canvasColor.ts`, `src/components/CanvasColorPicker.tsx`       |
 | Dashboard layout | `src/pages/DashboardPage.tsx`                                            |
 | Header           | `src/components/AppHeader.tsx`                                           |
-| Omnibar          | `src/components/BookmarkOmnibar.tsx`                                     |
+| Command palette  | `src/components/stream/CommandBar.tsx`                                   |
 | Rails            | `src/components/ProfileFilterBar.tsx`, `src/components/TagFilterBar.tsx` |
-| List             | `src/components/LinksList.tsx`, `src/components/LinkListRow.tsx`         |
+| Stream cards     | `src/components/StreamCard.tsx`, `src/components/stream/LinkPreviewCard.tsx`, `src/styles/components.css` |
 
 When in doubt, match the dashboard implementation—not this document if they diverge; then update this document.

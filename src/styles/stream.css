@@ -19,34 +19,9 @@
   box-shadow: inset 0 0 0 var(--border-s) var(--neutral-10-transparent);
 }
 
-.memex-icon-button {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--neutral-10);
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
 
-.memex-icon-button svg {
-  width: 18px;
-  height: 18px;
-}
 
-.memex-icon-button:hover,
-.memex-icon-button[aria-expanded='true'] {
-  background: var(--neutral-3);
-}
 
-.memex-icon-button:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
 
 .memex-popover-anchor {
   position: relative;
@@ -119,6 +94,7 @@
   color: var(--neutral-7);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   white-space: nowrap;
 }
@@ -214,6 +190,24 @@
   display: none;
 }
 
+/* Page edges (desktop): the header sits on the same column as the grid
+   stack below it, so title, pinned sites and stack share a left edge and the
+   header actions end where the stack (or the open Journal) ends. Vertical
+   rhythm is 16px (--page-edge) throughout: window → title row → pinned sites → stack, and
+   title row → stack when nothing is pinned (the stack column adds its own
+   12px top inset). */
+@media (min-width: 900px) {
+  .memex-stream-page .memex-page-header {
+    /* start: + the sidebar's own 8px right padding = the 12px sidebar gap */
+    padding: var(--page-edge) var(--page-edge) var(--space-xxs) var(--space-xxs);
+  }
+
+  /* The launcher's 4px focus-ring room shouldn't add to the gap below */
+  .memex-stream-page .memex-launcher {
+    margin-bottom: calc(-1 * var(--space-xxs));
+  }
+}
+
 .memex-launch-chip {
   display: inline-flex;
   align-items: center;
@@ -263,6 +257,8 @@
   border-radius: var(--radius-xs);
   color: var(--neutral-7);
   font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  letter-spacing: var(--letter-spacing-xxs);
 }
 
 .memex-launch-chip-icon img {
@@ -286,6 +282,47 @@
   opacity: 0.5;
 }
 
+/* Navigating: the dot swells a little and empty spaces wake up on hover */
+.memex-sidebar-item .memex-space-dot {
+  transition:
+    transform 120ms ease-out,
+    opacity 80ms linear;
+}
+
+.memex-sidebar-item:not(.is-active):is(:hover, :focus-visible) .memex-space-dot {
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+.memex-sidebar-item.is-empty:not(.is-active):is(:hover, :focus-visible) {
+  color: var(--neutral-10);
+}
+
+/* The space you're in wears its own hue, matching the title dot. Home keeps
+   the theme's active role (canvas accent). */
+.memex-sidebar-spaces .memex-sidebar-item.is-active,
+.memex-sidebar-spaces .memex-sidebar-item.is-active:is(:hover, :focus-visible) {
+  background: color-mix(in oklch, var(--space-hue) 20%, var(--neutral-1));
+  color: var(--space-ink);
+}
+
+[data-theme='dark'] .memex-sidebar-spaces .memex-sidebar-item.is-active,
+[data-theme='dark']
+  .memex-sidebar-spaces
+  .memex-sidebar-item.is-active:is(:hover, :focus-visible) {
+  background: color-mix(in oklch, var(--space-hue) 26%, var(--neutral-1));
+}
+
+.memex-sidebar-spaces .memex-sidebar-item.is-active .memex-sidebar-item-count {
+  color: var(--space-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-sidebar-item .memex-space-dot {
+    transition: none;
+  }
+}
+
 .memex-sidebar-foot {
   position: relative;
   flex: none;
@@ -305,6 +342,7 @@
   color: var(--neutral-8);
   font: inherit;
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   cursor: pointer;
   text-align: left;
@@ -401,32 +439,9 @@
   color: var(--neutral-6);
 }
 
-.memex-command-clear {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--neutral-7);
-  cursor: pointer;
-}
 
-.memex-command-clear svg {
-  width: 16px;
-  height: 16px;
-}
 
-.memex-command-clear:hover {
-  background: var(--neutral-3);
-  color: var(--neutral-10);
-}
 
-.memex-command-clear:focus-visible {
-  outline: var(--focus-ring-outline);
-}
 
 .memex-palette {
   position: absolute;
@@ -496,6 +511,7 @@
   color: var(--neutral-7);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
 }
 
@@ -510,6 +526,7 @@
   padding: var(--space-xs) var(--space-xs) var(--space-xxs);
   color: var(--neutral-6);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-medium);
 }
@@ -538,6 +555,7 @@
   padding: var(--space-xs);
   color: var(--neutral-7);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
 }
 
@@ -550,6 +568,7 @@
   box-shadow: inset 0 var(--border-s) 0 0 var(--neutral-4);
   color: var(--neutral-6);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
 }
 
@@ -594,6 +613,7 @@
   color: var(--neutral-7);
   font: inherit;
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-medium);
   cursor: pointer;
@@ -690,9 +710,12 @@
   transition: transform var(--motion-large-duration) var(--motion-large-easing);
 }
 
-.memex-masonry-cell > .memex-card {
-  height: auto;
-  min-height: 0;
+/* /styleguide: stream cards laid out as a plain grid (no masonry) */
+.memex-styleguide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-s);
+  align-items: start;
 }
 
 .memex-masonry .memex-card--note .memex-card-excerpt {
@@ -700,39 +723,16 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Link preview card (7C, or 7A when captions are always shown)        */
+/* Link preview card (7C hover · 7A overlay · 7E inset)                */
 /* ------------------------------------------------------------------ */
 
+/* Surface, hover, focus, selection, and pop-in come from the shared stream
+   card treatment in components.css; this is the image-first anatomy. The
+   neutral-3 fill shows while the image loads. */
 .memex-pv {
-  position: relative;
   overflow: hidden;
-  border-radius: var(--radius-m);
   background: var(--neutral-3);
-  --edge: var(--border-default-color);
-  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-s);
-  cursor: pointer;
   isolation: isolate;
-  transition:
-    box-shadow var(--transition-fast),
-    --edge var(--transition-fast);
-}
-
-.memex-pv:hover {
-  --edge: var(--neutral-7-transparent);
-  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-m);
-}
-
-.memex-pv:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
-}
-
-.memex-pv.is-selected {
-  box-shadow: 0 0 0 var(--border-l) var(--color-1), var(--shadow-m);
-}
-
-.memex-pv.is-new {
-  animation: memex-pop-in var(--motion-large-duration) var(--motion-large-easing);
 }
 
 .memex-pv-image {
@@ -753,6 +753,8 @@
   overflow: hidden;
   border-radius: var(--radius-xs);
   font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  letter-spacing: var(--letter-spacing-xxs);
 }
 
 .memex-pv-favicon img {
@@ -874,20 +876,16 @@ html[data-link-captions='hover'] .memex-pv-caption > * {
   transition: opacity var(--motion-duration) var(--motion-easing);
 }
 
-html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption,
-html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption {
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption {
   transform: none;
 }
 
 html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption::before,
-html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption > *,
-html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption::before,
-html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-caption > * {
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-caption > * {
   opacity: 1;
 }
 
-html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-badge,
-html[data-link-captions='hover'] .memex-pv.is-selection-mode .memex-pv-badge {
+html[data-link-captions='hover'] .memex-pv:is(:hover, :focus-visible, :focus-within) .memex-pv-badge {
   opacity: 0;
 }
 
@@ -940,7 +938,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   }
 }
 
-/* Details button + selection check */
+/* Open-link button (the selection check is the shared .memex-select-check) */
 .memex-pv-actions {
   position: absolute;
   top: var(--space-xs);
@@ -987,31 +985,6 @@ html[data-link-captions='inset'] .memex-pv-title {
 .memex-pv-action:focus-visible {
   outline: var(--focus-ring-outline);
   outline-offset: 1px;
-}
-
-.memex-pv-check {
-  position: absolute;
-  top: var(--space-xs);
-  right: var(--space-xs);
-  z-index: 2;
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-full);
-  background: color-mix(in oklab, var(--on-image-scrim) 45%, transparent);
-  box-shadow: inset 0 0 0 var(--border-l) var(--on-image-foreground);
-  color: var(--cte-accent-text);
-}
-
-.memex-pv.is-selected .memex-pv-check {
-  background: var(--color-1);
-  box-shadow: none;
-}
-
-.memex-pv-check svg {
-  width: 14px;
-  height: 14px;
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1172,6 +1145,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-8);
   font: inherit;
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-medium);
   cursor: pointer;
@@ -1209,6 +1183,7 @@ html[data-link-captions='inset'] .memex-pv-title {
 .memex-expanded-label {
   color: var(--neutral-6);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-medium);
 }
@@ -1230,6 +1205,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-10);
   font: inherit;
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-medium);
 }
@@ -1237,13 +1213,13 @@ html[data-link-captions='inset'] .memex-pv-title {
 .memex-space-chip.is-add {
   padding-right: var(--space-xs);
   background: transparent;
-  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-4);
+  box-shadow: inset 0 0 0 var(--border-s) var(--border-default-color);
   color: var(--neutral-8);
   cursor: pointer;
 }
 
 .memex-space-chip.is-add:hover {
-  background: var(--neutral-3);
+  background: var(--neutral-3-transparent);
   color: var(--neutral-10);
 }
 
@@ -1290,6 +1266,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   margin: 0;
   color: var(--neutral-7);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
 }
 
@@ -1305,8 +1282,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   .memex-expanded,
   .memex-menu,
   .memex-palette,
-  .memex-sidebar-settings,
-  .memex-pv.is-new {
+  .memex-sidebar-settings {
     animation: none;
   }
 
@@ -1340,6 +1316,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   margin: 0;
   color: var(--neutral-10);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-heavy);
 }
@@ -1348,6 +1325,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-7);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-variant-numeric: tabular-nums;
 }
@@ -1384,22 +1362,22 @@ html[data-link-captions='inset'] .memex-pv-title {
   background: var(--navigation-active-background);
 }
 
+.memex-taskrow.is-selection-mode {
+  cursor: pointer;
+}
+
+.memex-taskrow.is-selection-mode:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: -2px;
+}
+
+/* Same footprint as the 20px task check it replaces */
+.memex-taskrow > .memex-select-check {
+  margin: -1px;
+}
+
 .memex-taskrow.is-new {
   animation: memex-pop-in var(--motion-duration) var(--motion-easing);
-}
-
-.memex-taskrow .memex-task-check {
-  width: 20px;
-  height: 20px;
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-}
-
-.memex-taskrow .memex-task-check svg,
-.memex-row .memex-task-check svg {
-  width: 14px;
-  height: 14px;
 }
 
 .memex-taskrow-title {
@@ -1422,42 +1400,22 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-7);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
 }
 
+/* Delete uses the shared ghost icon button; it only reveals on row hover */
 .memex-taskrow-delete {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--neutral-6);
   opacity: 0;
-  cursor: pointer;
   transition: opacity var(--transition-fast);
-}
-
-.memex-taskrow-delete svg {
-  width: 14px;
-  height: 14px;
 }
 
 .memex-taskrow:is(:hover, :focus-within) .memex-taskrow-delete {
   opacity: 1;
 }
 
-.memex-taskrow-delete:hover {
-  background: var(--neutral-3);
-  color: var(--neutral-10);
-}
-
 .memex-taskrow-delete:focus-visible {
   opacity: 1;
-  outline: var(--focus-ring-outline);
 }
 
 @media (hover: none) {
@@ -1510,6 +1468,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-7);
   font: inherit;
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-medium);
   cursor: pointer;
@@ -1559,6 +1518,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   padding: 0 var(--space-xxs);
   color: var(--neutral-10);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-heavy);
 }
@@ -1566,6 +1526,7 @@ html[data-link-captions='inset'] .memex-pv-title {
 .memex-list-toggle {
   color: var(--neutral-10);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-heavy);
 }
@@ -1574,6 +1535,8 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-6);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
   font-weight: var(--weight-data-regular);
   font-variant-numeric: tabular-nums;
 }
@@ -1622,8 +1585,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   animation: memex-pop-in var(--motion-duration) var(--motion-easing);
 }
 
-.memex-row-leading,
-.memex-row-select {
+.memex-row-leading {
   display: inline-grid;
   place-items: center;
   flex: none;
@@ -1646,36 +1608,14 @@ html[data-link-captions='inset'] .memex-pv-title {
   height: 16px;
 }
 
-.memex-row-leading .memex-task-check {
-  width: 22px;
-  height: 22px;
-  display: inline-grid;
-  place-items: center;
-}
-
 .memex-row-leading:has(.memex-task-check) {
   background: transparent;
   overflow: visible;
 }
 
+/* Shared .memex-select-check, centred in the 32px leading column */
 .memex-row-select {
-  border-radius: var(--radius-full);
-  background: transparent;
-  box-shadow: inset 0 0 0 var(--border-l) var(--neutral-5);
-  width: 22px;
-  height: 22px;
   margin: 0 5px;
-}
-
-.memex-row-select.is-on {
-  background: var(--color-1);
-  color: var(--cte-accent-text);
-  box-shadow: none;
-}
-
-.memex-row-select svg {
-  width: 14px;
-  height: 14px;
 }
 
 .memex-row-text {
@@ -1748,24 +1688,17 @@ html[data-link-captions='inset'] .memex-pv-title {
   }
 }
 
-.memex-row-actions .bookmark-list-row-action {
-  width: 32px;
-  height: 32px;
-  display: inline-grid;
-  place-items: center;
-}
-
-.memex-row-actions .bookmark-list-row-action svg {
-  width: 16px;
-  height: 16px;
-}
 
 /* ------------------------------------------------------------------ */
 /* Note editor (5A)                                                    */
 /* ------------------------------------------------------------------ */
 
 .memex-note-editor-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
   gap: var(--space-s);
+  padding: var(--space-s) var(--space-m);
   box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
 }
 
@@ -1774,13 +1707,28 @@ html[data-link-captions='inset'] .memex-pv-title {
 }
 
 .memex-note-editor-status {
-  width: auto;
-  height: auto;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   margin-left: auto;
   color: var(--neutral-6);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
+}
+
+.memex-note-editor-status svg {
+  width: 15px;
+  height: 15px;
+}
+
+.memex-note-editor-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .memex-menu--end {
@@ -1816,6 +1764,11 @@ html[data-link-captions='inset'] .memex-pv-title {
   line-height: var(--line-xl);
   letter-spacing: var(--letter-spacing-xl);
   box-shadow: none;
+  flex-shrink: 0;
+}
+
+.memex-note-doc .memex-note-title-input::placeholder {
+  color: var(--neutral-6);
 }
 
 .memex-note-doc .memex-note-title-input:focus-visible {
@@ -1841,24 +1794,216 @@ html[data-link-captions='inset'] .memex-pv-title {
   min-height: auto;
 }
 
-.memex-note-doc .memex-note-reading {
-  flex: none;
+.memex-note-doc .memex-markdown {
+  padding-bottom: var(--space-xxl);
+}
+
+/* Live-preview editor (CodeMirror, src/components/ui/MarkdownEditor.tsx).
+   One surface for reading and writing: it sits on the reading view's type
+   scale so opening, clicking in and typing never shifts the text. The page
+   (.memex-note-doc) scrolls; the editor just grows. */
+.memex-md-editor {
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  font-weight: var(--weight-editorial-medium);
+  color: var(--bookmark-text);
+}
+
+.memex-note-doc .memex-md-editor .cm-editor {
+  background: transparent;
+  color: inherit;
+}
+
+.memex-note-doc .memex-md-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.memex-note-doc .memex-md-editor .cm-scroller {
   overflow: visible;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.memex-note-doc .memex-md-editor .cm-content {
+  min-height: 40vh;
+  padding: 0 0 var(--space-xxl);
+  caret-color: var(--color-1-ink);
+}
+
+.memex-note-doc .memex-md-editor .cm-line {
   padding: 0;
-  font-family: var(--font-editorial);
+}
+
+.memex-note-doc .memex-md-editor .cm-cursor {
+  border-left: calc(var(--border-s) * 2) solid var(--color-1-ink);
+}
+
+.memex-note-doc .memex-md-editor .cm-placeholder {
+  color: var(--neutral-6);
+}
+
+.memex-note-doc .memex-md-editor ::selection {
+  background: var(--color-1-transparent);
+}
+
+/* Markers shown on the cursor's line */
+.memex-md-editor .cm-md-syntax,
+.memex-md-editor .cm-md-listmark {
+  color: var(--neutral-6);
+  font-weight: var(--weight-editorial-regular);
+}
+
+/* Headings (same scale as the rendered reading view) */
+.memex-md-editor .cm-md-h {
+  position: relative;
+  color: var(--neutral-10);
+  font-weight: var(--weight-editorial-heavy);
+}
+
+.memex-md-editor .cm-md-hmark {
+  position: absolute;
+  right: 100%;
+  padding-right: 0.4em;
+  white-space: pre;
+}
+
+.memex-md-editor .cm-md-h1,
+.memex-md-editor .cm-md-h2 {
   font-size: var(--size-m);
   line-height: var(--line-m);
   letter-spacing: var(--letter-spacing-m);
-  color: var(--neutral-9);
 }
 
-.memex-note-doc textarea {
-  min-height: 50vh;
-  font-family: var(--font-editorial);
-  font-size: var(--size-m);
-  line-height: var(--line-m);
+/* Paragraph spacing: blank lines between blocks are half a line */
+.memex-md-editor .cm-line.cm-md-blank {
+  line-height: calc(var(--line-s) * 0.45);
 }
 
+/* Inline */
+/* bolder, like <strong> in the rendered view */
+.memex-md-editor .cm-md-strong {
+  color: var(--neutral-10);
+  font-weight: bolder;
+}
+
+.memex-md-editor .cm-md-em {
+  font-style: italic;
+}
+
+.memex-md-editor .cm-md-strike,
+.memex-md-editor .cm-md-done {
+  color: var(--neutral-7);
+  text-decoration: line-through;
+}
+
+.memex-md-editor .cm-md-code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-xs);
+  background: var(--bookmark-surface-muted);
+  box-shadow: 0 0 0 var(--border-s) color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+  font-size: 0.92em;
+}
+
+.memex-md-editor .cm-md-link {
+  color: var(--color-1-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--color-1-ink) 40%, transparent);
+  text-underline-offset: 2px;
+}
+
+/* Lists: the marker hangs in the gutter so wrapped lines align */
+.memex-md-editor .cm-line.cm-md-li {
+  padding-left: calc(var(--md-depth, 0) * 1.5em + 1.5em);
+  text-indent: -1.5em;
+}
+
+.memex-md-editor .cm-md-listmark {
+  display: inline-block;
+  min-width: 1.5em;
+  text-indent: 0;
+  white-space: pre;
+}
+
+.memex-md-editor .cm-md-bullet,
+.memex-md-editor .cm-md-task {
+  display: inline-flex;
+  align-items: center;
+  width: 1.5em;
+  text-indent: 0;
+  vertical-align: top;
+}
+
+.memex-md-editor .cm-md-bullet {
+  color: var(--neutral-6);
+  padding-left: 0.35em;
+}
+
+.memex-md-editor .cm-md-task {
+  height: var(--line-s);
+}
+
+.memex-md-editor .cm-md-task input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--color-1);
+  cursor: pointer;
+}
+
+/* Quotes */
+.memex-md-editor .cm-line.cm-md-quote {
+  padding-left: var(--space-s);
+  box-shadow: inset var(--border-l) 0 0 0 var(--bookmark-border-ink);
+  color: var(--bookmark-muted);
+}
+
+/* Code blocks */
+.memex-md-editor .cm-line.cm-md-codeblock {
+  padding-inline: var(--space-s);
+  background: var(--bookmark-surface-muted);
+  font-size: 0.92em;
+}
+
+.memex-md-editor .cm-line.cm-md-codeblock.is-first {
+  padding-top: var(--space-xs);
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+}
+
+.memex-md-editor .cm-line.cm-md-codeblock.is-last {
+  padding-bottom: var(--space-xs);
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
+.memex-md-editor .cm-line.cm-md-codeblock.is-first.is-last {
+  border-radius: var(--radius-m);
+}
+
+/* Horizontal rule */
+.memex-md-editor .cm-md-rule {
+  display: inline-block;
+  width: 100%;
+  height: var(--border-s);
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--bookmark-border) 60%, transparent);
+}
+
+/* Phones: 16px text so iOS doesn't zoom on focus */
+@media (max-width: 899px) {
+  .memex-md-editor {
+    font-size: var(--size-m);
+    line-height: var(--line-m);
+    letter-spacing: var(--letter-spacing-m);
+  }
+
+  .memex-md-editor .cm-line.cm-md-blank {
+    line-height: calc(var(--line-m) * 0.45);
+  }
+
+  .memex-md-editor .cm-md-task {
+    height: var(--line-m);
+  }
+}
 /* ------------------------------------------------------------------ */
 /* Toast action (Undo)                                                 */
 /* ------------------------------------------------------------------ */
@@ -1876,6 +2021,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-10);
   font: inherit;
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   font-weight: var(--weight-ui-medium);
   cursor: pointer;
@@ -1932,6 +2078,8 @@ html[data-link-captions='inset'] .memex-pv-title {
 
   .memex-command-input {
     font-size: var(--size-m);
+    line-height: var(--line-m);
+    letter-spacing: var(--letter-spacing-m);
   }
 
   .memex-palette {
@@ -1958,28 +2106,11 @@ html[data-link-captions='inset'] .memex-pv-title {
 /* Journal (10B) + labelled toggle (9A)                                */
 /* ------------------------------------------------------------------ */
 
+/* A compact secondary button (btn-secondary btn-compact) with a count
+   badge and shortcut hint; open = pressed */
 .memex-journal-toggle {
-  display: inline-flex;
-  align-items: center;
   gap: var(--space-xs);
-  height: 36px;
-  padding: 0 var(--space-xs) 0 var(--space-s);
-  border: 0;
-  --edge: var(--neutral-6-transparent);
-  border-radius: var(--radius-s);
-  background: var(--neutral-1) var(--control-raised-image);
-  color: var(--neutral-10);
-  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--control-raised-bevel), var(--shadow-s);
-  font-family: var(--font-ui);
-  font-weight: var(--weight-ui-medium);
-  font-size: var(--size-s);
-  line-height: var(--line-s);
-  letter-spacing: var(--letter-spacing-s);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    --edge var(--transition-fast),
-    transform var(--transition-fast);
+  padding-right: var(--space-xs);
 }
 
 .memex-journal-toggle svg {
@@ -1987,23 +2118,10 @@ html[data-link-captions='inset'] .memex-pv-title {
   height: 16px;
 }
 
-.memex-journal-toggle:hover {
-  --edge: var(--neutral-7-transparent);
-  background-color: var(--neutral-2);
-}
-
-.memex-journal-toggle.is-active {
+.memex-journal-toggle.is-active,
+.memex-journal-toggle.is-active:hover:not(:disabled) {
   background: var(--neutral-3);
   box-shadow: inset 0 0 0 var(--border-s) var(--neutral-6-transparent);
-}
-
-.memex-journal-toggle:active {
-  transform: translateY(var(--motion-press-distance));
-}
-
-.memex-journal-toggle:focus-visible {
-  outline: var(--focus-ring-outline);
-  outline-offset: 2px;
 }
 
 .memex-journal-toggle-count {
@@ -2017,6 +2135,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--cte-accent-text);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-variant-numeric: tabular-nums;
 }
@@ -2064,6 +2183,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   overflow: hidden;
   color: var(--neutral-7);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2076,15 +2196,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   flex: none;
 }
 
-.memex-journal-head .memex-icon-button {
-  width: 28px;
-  height: 28px;
-}
 
-.memex-journal-head .memex-icon-button svg {
-  width: 16px;
-  height: 16px;
-}
 
 .memex-journal-date {
   position: relative;
@@ -2126,6 +2238,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-10);
   font: inherit;
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
 }
 
@@ -2154,6 +2267,7 @@ html[data-link-captions='inset'] .memex-pv-title {
 .memex-journal-composer-hint {
   color: var(--neutral-6);
   font-size: var(--size-xxs);
+  letter-spacing: var(--letter-spacing-xxs);
   line-height: var(--line-xxs);
   text-align: right;
 }
@@ -2174,6 +2288,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   padding: var(--space-xl) var(--space-s);
   color: var(--neutral-6);
   font-size: var(--size-s);
+  letter-spacing: var(--letter-spacing-s);
   line-height: var(--line-s);
   text-align: center;
   text-wrap: balance;
@@ -2196,6 +2311,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   box-shadow: inset 0 calc(-1 * var(--border-s)) 0 0 var(--neutral-3);
   color: var(--neutral-8);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-heavy);
 }
@@ -2220,6 +2336,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-8);
   font: inherit;
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   text-align: left;
   cursor: pointer;
@@ -2310,6 +2427,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-6);
   font-family: var(--font-data);
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -2363,11 +2481,12 @@ html[data-link-captions='inset'] .memex-pv-title {
   padding: 0 var(--space-xs);
   border: 0;
   border-radius: var(--radius-s);
-  background: var(--neutral-1);
+  background: transparent;
   color: var(--neutral-8);
-  box-shadow: 0 0 0 var(--border-s) var(--neutral-4);
+  box-shadow: inset 0 0 0 var(--border-s) var(--border-default-color);
   font: inherit;
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-xs);
   font-weight: var(--weight-ui-medium);
   cursor: pointer;
@@ -2380,7 +2499,7 @@ html[data-link-captions='inset'] .memex-pv-title {
 }
 
 .memex-jot-action:hover {
-  background: var(--neutral-3);
+  background: var(--neutral-3-transparent);
   color: var(--neutral-10);
 }
 
@@ -2409,6 +2528,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   color: var(--neutral-8);
   font: inherit;
   font-size: var(--size-xs);
+  letter-spacing: var(--letter-spacing-xs);
   line-height: var(--line-s);
   text-align: left;
   cursor: pointer;
@@ -2475,7 +2595,7 @@ html[data-link-captions='inset'] .memex-pv-title {
   }
 
   .memex-journal-toggle {
-    padding: 0 var(--space-xs);
+    padding-inline: var(--space-xs);
   }
 }
 
@@ -2486,5 +2606,289 @@ html[data-link-captions='inset'] .memex-pv-title {
 
   .memex-journal-fold-chevron {
     transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Selection bar (multi-select)                                        */
+/* ------------------------------------------------------------------ */
+
+/* Floating toolbar, bottom-centre, above the phone nav: count, Add to
+   space, Delete, exit. Popover surface so it reads as a layer over the
+   stream. */
+.memex-selection-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bookmark-footer-offset) + var(--space-m) + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  max-width: calc(100vw - 2 * var(--space-s));
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-m);
+  border-radius: var(--radius-m);
+  background: var(--popover-background);
+  color: var(--neutral-10);
+  box-shadow:
+    0 0 0 var(--border-s) var(--neutral-4-transparent),
+    var(--shadow-l);
+  transform: translateX(-50%);
+  animation: memex-selection-bar-in var(--motion-duration) var(--motion-easing) both;
+}
+
+@keyframes memex-selection-bar-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--space-s));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.memex-selection-count {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-regular);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.memex-selection-count strong {
+  font-weight: var(--weight-ui-heavy);
+}
+
+.memex-selection-hint,
+.memex-selection-hidden {
+  color: var(--neutral-7);
+}
+
+.memex-selection-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memex-selection-action svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.memex-selection-action .memex-selection-caret {
+  width: 14px;
+  height: 14px;
+  margin-left: calc(-1 * var(--space-xxs));
+  color: var(--neutral-7);
+}
+
+.memex-selection-action.is-danger:not(:disabled) {
+  color: var(--error);
+}
+
+.memex-selection-divider {
+  width: var(--border-s);
+  height: 24px;
+  background: var(--neutral-4);
+}
+
+.memex-selection-menu-wrap {
+  position: relative;
+}
+
+/* The bar sits at the bottom of the screen: its menu opens upward */
+.memex-selection-menu {
+  top: auto;
+  bottom: calc(100% + var(--space-xs));
+  left: 0;
+  right: auto;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform-origin: bottom left;
+}
+
+.memex-selection-menu-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Lift the toast above the bar while selecting */
+.memex-stream-page.has-selection-bar .bookmark-bulk-feedback {
+  bottom: calc(var(--bookmark-footer-offset) + 72px + var(--space-m));
+}
+
+@media (max-width: 899px) {
+  .memex-selection-bar {
+    gap: var(--space-s);
+    padding-left: var(--space-s);
+  }
+
+  .memex-selection-hint-keys {
+    display: none;
+  }
+}
+
+/* Narrow phones: actions become icon-only (labels stay as accessible names) */
+@media (max-width: 480px) {
+  .memex-selection-action-label,
+  .memex-selection-caret {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .memex-selection-action {
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: var(--space-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-selection-bar {
+    animation: none;
+  }
+}
+
+/* Sidebar spaces as add targets (option A, 2026-10-17): each space speaks in
+   its own hue (--space-hue, set inline). Hover tints the row and grows the
+   dot into a "+" disc; after adding, the disc shows a check and "+N" pops
+   beside the count. Spaces that already hold the whole selection read
+   "All in" and step back. */
+.memex-sidebar-kicker strong {
+  color: var(--neutral-10);
+  font-weight: var(--weight-ui-heavy);
+}
+
+/* Ink comes from the base row (components.css); the add tint is stronger */
+.memex-sidebar-item.is-bulk-target {
+  --space-tint: color-mix(in oklch, var(--space-hue) 16%, var(--neutral-1));
+}
+
+[data-theme='dark'] .memex-sidebar-item.is-bulk-target {
+  --space-tint: color-mix(in oklch, var(--space-hue) 22%, var(--neutral-1));
+}
+
+/* The dot, drawn at disc size and scaled down so growing it is a transform */
+.memex-sidebar-target-disc {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: -4px;
+  border-radius: var(--radius-full);
+  background: var(--space-hue);
+  /* Light hues (gold, cyan) get a dark glyph, the rest white */
+  color: #fff;
+  color: oklch(from var(--space-hue) clamp(0.22, (0.74 - l) * 100, 0.99) calc(c * 0.3) h);
+  box-shadow: inset 0 0 0 calc(var(--border-s) * 1.8) var(--neutral-10-transparent);
+  transform: scale(0.5556);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.memex-sidebar-target-disc svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+  opacity: 0;
+  transition: opacity 80ms linear;
+}
+
+.memex-sidebar-item.is-bulk-target:not(.is-all-in):is(:hover, :focus-visible),
+.memex-sidebar-item.is-just-added {
+  background: var(--space-tint);
+}
+
+.memex-sidebar-item.is-bulk-target:not(.is-all-in):is(:hover, :focus-visible)
+  .memex-sidebar-target-disc,
+.memex-sidebar-item.is-just-added .memex-sidebar-target-disc {
+  transform: scale(1);
+  box-shadow: 0 1px 2px var(--neutral-10-transparent);
+}
+
+.memex-sidebar-item.is-bulk-target:not(.is-all-in):is(:hover, :focus-visible)
+  .memex-sidebar-target-disc
+  svg,
+.memex-sidebar-item.is-just-added .memex-sidebar-target-disc svg {
+  opacity: 1;
+}
+
+.memex-sidebar-item.is-bulk-target:not(.is-all-in):is(:hover, :focus-visible)
+  .memex-sidebar-item-count,
+.memex-sidebar-item.is-just-added .memex-sidebar-item-count {
+  color: var(--space-ink);
+}
+
+.memex-sidebar-item.is-just-added .memex-sidebar-target-disc svg {
+  animation: memex-target-check 220ms ease-out;
+}
+
+.memex-sidebar-item-delta {
+  color: var(--space-ink);
+  font-family: var(--font-data);
+  font-weight: var(--weight-ui-heavy);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  font-variant-numeric: tabular-nums;
+  animation: memex-target-delta 220ms ease-out;
+}
+
+@keyframes memex-target-check {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+@keyframes memex-target-delta {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Already holds the whole selection: still answers a click (the toast says
+   so) but reads as done */
+.memex-sidebar-item.is-all-in,
+.memex-sidebar-item.is-all-in:is(:hover, :focus-visible) {
+  background: transparent;
+  color: var(--neutral-7);
+  cursor: default;
+}
+
+.memex-sidebar-item.is-all-in .memex-sidebar-target-disc {
+  opacity: 0.5;
+}
+
+.memex-sidebar-item.is-all-in .memex-sidebar-item-count {
+  color: var(--neutral-6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memex-sidebar-target-disc,
+  .memex-sidebar-target-disc svg {
+    transition: none;
+  }
+
+  .memex-sidebar-item.is-just-added .memex-sidebar-target-disc svg,
+  .memex-sidebar-item-delta {
+    animation: none;
   }
 }

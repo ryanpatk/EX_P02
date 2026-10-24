@@ -22,6 +22,8 @@ interface AppState {
   selectedItemKeys: string[];
   setSelectionMode: (on: boolean) => void;
   toggleItemSelection: (key: string) => void;
+  /** Replace the selection (range select, select all). */
+  setItemSelection: (keys: string[]) => void;
   clearItemSelection: () => void;
 
   // Actions
@@ -70,6 +72,7 @@ export const useAppStore = create<AppState>()(
             ? state.selectedItemKeys.filter((k) => k !== key)
             : [...state.selectedItemKeys, key],
         })),
+      setItemSelection: (keys) => set({ selectedItemKeys: Array.from(new Set(keys)) }),
       clearItemSelection: () => set({ selectedItemKeys: [] }),
 
       // Project actions

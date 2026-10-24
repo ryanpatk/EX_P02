@@ -1,6 +1,5 @@
 import type { LucideIcon, LucideProps } from 'lucide-react';
 import {
-  Check,
   Ellipsis,
   House,
   MessageSquare,
@@ -36,8 +35,6 @@ export const ChatIcon = adapt(MessageSquare);
 export const PlusIcon = adapt(Plus);
 export const SendIcon = adapt(Send);
 export const CloseIcon = adapt(X);
-/** Check mark (inside the task checkbox). */
-export const CheckIcon = adapt(Check);
 export const SoundOnIcon = adapt(Volume2);
 export const SoundOffIcon = adapt(VolumeX);
 export const SunIcon = adapt(Sun);

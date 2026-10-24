@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { CircleUser, Settings } from 'lucide-react';
+import { Check, CircleUser, Plus, Settings } from 'lucide-react';
 import { HOME_PATH, spacePath } from '../constants/modules';
 import { useFeedbackToast } from '../hooks/useFeedbackToast';
-import { useAddLinksToProfile, useProfileLinkMembership } from '../hooks/useProfileLinks';
-import { useAddNotesToProfile, useProfileNoteMembership } from '../hooks/useProfileNotes';
-import { useAddTasksToProfile, useProfileTaskMembership } from '../hooks/useProfileTasks';
+import { useAddToSpace } from '../hooks/useAddToSpace';
+import { useProfileLinkMembership } from '../hooks/useProfileLinks';
+import { useProfileNoteMembership } from '../hooks/useProfileNotes';
+import { useProfileTaskMembership } from '../hooks/useProfileTasks';
 import { useProfiles } from '../hooks/useProfiles';
 import { useAppStore } from '../store';
-import { parseItemKey } from '../utils/streamItems';
-import { cue } from '../utils/sound';
 import { useSpaceColors } from '../hooks/useSpaceColors';
 import { useSession } from '../context/SessionContext';
 import supabase from '../supabase';
@@ -17,6 +16,7 @@ import { FeedbackToast } from './ui';
 import ApiTokensModal from './ApiTokensModal';
 import SettingsMenu from './SettingsMenu';
 import { userDisplayName } from '../utils/userDisplay';
+import { parseItemKey } from '../utils/streamItems';
 import NewSpaceModal from './NewSpaceModal';
 import { HomeIcon, PlusIcon } from './icons';
 
@@ -27,22 +27,31 @@ const itemClass = ({ isActive }: { isActive: boolean }) =>
  * App navigation: Home (everything) on top, then the segmented list of
  * spaces. While a stream selection is active, spaces turn into bulk-assign
  * targets — clicking one adds the selected items to that space instead of
- * navigating (the same dashed-chip affordance the old rails used).
+ * navigating. The header reads "Add N to…"; hovering a space tints the row in
+ * its own hue and grows the dot into a "+" disc. After adding, the disc shows
+ * a check and the count a "+N" for a moment; spaces that already hold every
+ * selected item read "All in" and step back.
  */
+
+const JUST_ADDED_MS = 1400;
 const MemexSidebar = () => {
   const { data: profiles } = useProfiles();
   const spaceColors = useSpaceColors();
   const { data: linkMembership } = useProfileLinkMembership();
   const { data: noteMembership } = useProfileNoteMembership();
   const { data: taskMembership } = useProfileTaskMembership();
-  const addLinks = useAddLinksToProfile();
-  const addNotes = useAddNotesToProfile();
-  const addTasks = useAddTasksToProfile();
   const { toast, flash, handleAnimationEnd } = useFeedbackToast();
+  const addToSpace = useAddToSpace(flash);
 
   const selectionMode = useAppStore((state) => state.selectionMode);
   const selectedItemKeys = useAppStore((state) => state.selectedItemKeys);
   const bulkAssignActive = selectionMode && selectedItemKeys.length > 0;
+  const [justAdded, setJustAdded] = useState<{
+    spaceId: string;
+    added: number;
+    from: number;
+  } | null>(null);
+  const justAddedTimer = useRef<number | undefined>(undefined);
 
   const [isCreating, setIsCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -101,74 +110,35 @@ const MemexSidebar = () => {
     return counts;
   }, [linkMembership, noteMembership, taskMembership]);
 
-  const handleAddSelectionToSpace = useCallback(
-    async (spaceId: string) => {
-      const space = spaces.find((s) => s.id === spaceId);
-      const name = space?.name ?? 'space';
+  // Item keys each space already holds, for the "All in" state
+  const memberKeys = useMemo(() => {
+    const bySpace = new Map<string, Set<string>>();
+    const add = (spaceId: string, key: string) => {
+      let keys = bySpace.get(spaceId);
+      if (!keys) bySpace.set(spaceId, (keys = new Set()));
+      keys.add(key);
+    };
+    (linkMembership ?? []).forEach((row) => add(row.profile_id, `link:${row.link_id}`));
+    (noteMembership ?? []).forEach((row) => add(row.profile_id, `note:${row.note_id}`));
+    (taskMembership ?? []).forEach((row) => add(row.profile_id, `task:${row.task_id}`));
+    return bySpace;
+  }, [linkMembership, noteMembership, taskMembership]);
 
-      const linkIds: string[] = [];
-      const noteIds: string[] = [];
-      const taskIds: string[] = [];
-      selectedItemKeys.forEach((key) => {
-        const { type, id } = parseItemKey(key);
-        if (id.startsWith('temp-')) return;
-        if (type === 'link') linkIds.push(id);
-        else if (type === 'note') noteIds.push(id);
-        else if (type === 'task') taskIds.push(id);
-      });
-
-      const already = new Set<string>();
-      (linkMembership ?? []).forEach((row) => {
-        if (row.profile_id === spaceId) already.add(`link:${row.link_id}`);
-      });
-      (noteMembership ?? []).forEach((row) => {
-        if (row.profile_id === spaceId) already.add(`note:${row.note_id}`);
-      });
-      (taskMembership ?? []).forEach((row) => {
-        if (row.profile_id === spaceId) already.add(`task:${row.task_id}`);
-      });
-      const total = linkIds.length + noteIds.length + taskIds.length;
-      const newlyAdded = selectedItemKeys.filter((key) => !already.has(key)).length;
-
-      if (newlyAdded > 0) cue('move');
-      if (newlyAdded === 0) {
-        flash(`Selection was already in “${name}”.`);
-      } else if (newlyAdded === total) {
-        flash(`Added ${newlyAdded} item${newlyAdded === 1 ? '' : 's'} to “${name}”.`);
-      } else {
-        flash(
-          `Added ${newlyAdded} item${newlyAdded === 1 ? '' : 's'} to “${name}” (${total - newlyAdded} already there).`,
-        );
-      }
-
-      try {
-        await Promise.all([
-          linkIds.length > 0
-            ? addLinks.mutateAsync({ profileId: spaceId, linkIds })
-            : Promise.resolve(),
-          noteIds.length > 0
-            ? addNotes.mutateAsync({ profileId: spaceId, noteIds })
-            : Promise.resolve(),
-          taskIds.length > 0
-            ? addTasks.mutateAsync({ profileId: spaceId, taskIds })
-            : Promise.resolve(),
-        ]);
-      } catch (error) {
-        console.error('Failed to add selection to space:', error);
-      }
-    },
-    [
-      addLinks,
-      addNotes,
-      addTasks,
-      flash,
-      linkMembership,
-      noteMembership,
-      selectedItemKeys,
-      spaces,
-      taskMembership,
-    ],
+  const assignableKeys = useMemo(
+    () => selectedItemKeys.filter((key) => !parseItemKey(key).id.startsWith('temp-')),
+    [selectedItemKeys],
   );
+
+  useEffect(() => () => window.clearTimeout(justAddedTimer.current), []);
+
+  const handleBulkAdd = async (spaceId: string) => {
+    const from = spaceCounts[spaceId] ?? 0;
+    const added = await addToSpace(spaceId, selectedItemKeys);
+    if (added === 0) return;
+    window.clearTimeout(justAddedTimer.current);
+    setJustAdded({ spaceId, added, from });
+    justAddedTimer.current = window.setTimeout(() => setJustAdded(null), JUST_ADDED_MS);
+  };
 
   return (
     <nav className="memex-sidebar" aria-label="Navigation">
@@ -192,7 +162,15 @@ const MemexSidebar = () => {
 
         <div className="memex-sidebar-section">
           <div className="memex-sidebar-section-header">
-            <span className="memex-sidebar-kicker">Spaces</span>
+            <span className="memex-sidebar-kicker" aria-live="polite">
+              {bulkAssignActive ? (
+                <>
+                  Add <strong>{selectedItemKeys.length}</strong> to…
+                </>
+              ) : (
+                'Spaces'
+              )}
+            </span>
             <button
               type="button"
               className="memex-sidebar-new"
@@ -212,19 +190,41 @@ const MemexSidebar = () => {
             {spaces.map((space) => {
               const count = spaceCounts[space.id] ?? 0;
               if (bulkAssignActive) {
+                const held = memberKeys.get(space.id);
+                const added = justAdded?.spaceId === space.id ? justAdded.added : 0;
+                // Membership refetches after the write; tick the count up now
+                const shownCount = added > 0 ? Math.max(count, justAdded!.from + added) : count;
+                const allIn =
+                  added === 0 &&
+                  assignableKeys.length > 0 &&
+                  assignableKeys.every((key) => held?.has(key));
                 return (
                   <button
                     key={space.id}
                     type="button"
-                    className="memex-sidebar-item is-bulk-target"
-                    onClick={() => void handleAddSelectionToSpace(space.id)}
-                    title={`Add selection to “${space.name}”`}
+                    className={`memex-sidebar-item is-bulk-target${allIn ? ' is-all-in' : ''}${
+                      added > 0 ? ' is-just-added' : ''
+                    }`}
+                    style={{ '--space-hue': spaceColors.get(space.id) } as CSSProperties}
+                    onClick={() => void handleBulkAdd(space.id)}
+                    aria-label={
+                      allIn
+                        ? `“${space.name}” already has ${
+                            assignableKeys.length === 1 ? 'the selected item' : 'all selected items'
+                          }`
+                        : `Add ${selectedItemKeys.length} selected to “${space.name}”`
+                    }
                   >
-                    <span className="memex-sidebar-item-icon">
-                      <PlusIcon />
+                    <span className="memex-sidebar-target-disc" aria-hidden="true">
+                      {added > 0 ? <Check /> : <Plus />}
                     </span>
                     <span className="memex-sidebar-item-label">{space.name}</span>
-                    <span className="memex-sidebar-item-count">{count}</span>
+                    {added > 0 && (
+                      <span className="memex-sidebar-item-delta" aria-hidden="true">
+                        +{added}
+                      </span>
+                    )}
+                    <span className="memex-sidebar-item-count">{allIn ? 'All in' : shownCount}</span>
                   </button>
                 );
               }
@@ -233,10 +233,11 @@ const MemexSidebar = () => {
                   key={space.id}
                   to={spacePath(space.id)}
                   className={(state) => `${itemClass(state)}${count === 0 ? ' is-empty' : ''}`}
+                  style={{ '--space-hue': spaceColors.get(space.id) } as CSSProperties}
                 >
                   <span
                     className="memex-space-dot"
-                    style={{ background: spaceColors.get(space.id) }}
+                    style={{ background: 'var(--space-hue)' }}
                     aria-hidden="true"
                   />
                   <span className="memex-sidebar-item-label">{space.name}</span>

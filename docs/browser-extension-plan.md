@@ -1,67 +1,105 @@
-# memex Browser Extension — Plan
+# memex Browser Extension — Plan & Tracker
 
-**Status:** Phase 1 built (2026-09-06) — `api/` worker, `api_tokens` migration + Settings UI, and the MVP extension in `extension/` (vanilla MV3, load-unpacked). Remaining Phase 1 ops: apply migration, deploy worker, install extension. Phases 2–3 below are still open.
-**Goal:** save the current tab to memex in one click — no copy/paste — and grow into a general capture surface for the app.
+The living plan for the capture extension (`extension/`) and the API behind it
+(`api/`). Check items off as they land and record decisions here.
+Cross-project ops steps also appear in `TODO.md`.
 
-## Why
+**Status (2026-10-18):** v0.2 is built and passes an end-to-end test in
+Chromium against a stub API, but it has **never been deployed or used for
+real**. Next step: the ops checklist below.
 
-Capture friction is the biggest leak in a working-memory system. Today saving a link means: switch to memex, focus the omnibar, paste. The extension collapses that to a single click or shortcut from anywhere in the browser, which is the difference between "I save everything interesting" and "I save things when I remember to."
+## Goal
 
-## Phase 1 — one-click save (MVP)
+Save anything to memex without copy-paste:
 
-- **Manifest V3** extension (Chrome first; Firefox once stable — MV3 APIs now overlap enough).
-- Toolbar action: click → saves the active tab's URL + title + favicon to the default library. Badge flashes a checkmark on success; a click sound per JOYFUL_SYSTEMS.
-- Keyboard shortcut (`⌘⇧S` or similar) doing the same.
-- Popup (small, JOYFUL_SYSTEMS-styled) shown on click with the save already in flight — displays what was saved and offers optional space/tag assignment, Undo, and a note field. Closing it without touching anything is the happy path.
-- Metadata (description, preview image) comes from the **memex-scraper worker** — the extension doesn't scrape; it reuses `scraper/` exactly as the web app does.
+1. One click, a shortcut or right-click on any page.
+2. Automatically when you use a site's own save button (bookmark on X, save on
+   Pinterest), so memex becomes the one place those saves end up.
 
-## Auth & API — the key decision
+## Decisions
 
-The extension should **not** talk to Supabase directly. Reasons:
+| Decision | Choice | Why |
+| --- | --- | --- |
+| Backend contact | Through the `memex-api` worker with a personal access token, never Supabase directly | A small credential; the extension doesn't change when we leave Supabase |
+| Tooling | WXT + TypeScript (moved from vanilla on 2026-10-18) | Content scripts in the page's MAIN world, a background worker and a Firefox build; same stack as pond |
+| X trigger | **Bookmarks only** — likes ignored | User decision 2026-10-18 |
+| Where automatic saves land | **Home, untagged** | User decision 2026-10-18 |
+| Provenance | `links.source` column (`extension`, `x:bookmark`, `pinterest:save`; NULL = saved in the app) | Lets us filter by origin later; user OK'd the migration |
+| Duplicates | Server-side: return the existing link (`duplicate: true`) instead of inserting. X/Pinterest match on post/pin id | Passive capture would otherwise create duplicates; Undo must never delete an older link |
+| Detecting saves | Watch the site's own network call (`CreateBookmark`, `*Resource/create`), not its buttons | Survives redesigns and non-English UIs; borrowed from pond |
+| Metadata for pages behind a login | Read from the page by the extension; client values win over the scraper | The scraper hits X's login wall |
+| Unsave / unbookmark | Does **not** remove the link from memex | memex keeps what you saved |
+| Token storage | `chrome.storage.local`, not `sync` | Don't copy the token to every browser on the Google account |
+| Browsers | Chrome first; a Firefox build exists but is untested; Safari only if asked | Safari needs an Xcode wrapper |
+| Phone capture | Later, together with the mobile / React Native work | User decision 2026-10-18 |
+| Account sync (pond-style import of existing saves using your login) | Not doing it | Fragile, needs `<all_urls>` + cookies; prefer one-time import from the sites' data exports |
 
-1. We are actively planning to migrate off Supabase; baking `supabase-js` + its session model into a separately-shipped extension creates a second migration surface with an app-store review cycle attached.
-2. Extension storage of a full Supabase session is a larger credential than the job needs.
+## Ops checklist — get v0.2 running (needs your accounts)
 
-**Plan:** a small **`memex-api` Cloudflare Worker** (sibling of `scraper/`) exposing exactly what the extension needs:
+- [ ] `supabase db push` — applies `20261018120000_add_link_source.sql` (and anything else pending)
+- [ ] Deploy the API worker:
+  - [ ] `cd api && npm install && npx wrangler login`
+  - [ ] `npx wrangler secret put SUPABASE_SERVICE_KEY` (service-role key)
+  - [ ] Set `SCRAPER_URL` in `api/wrangler.jsonc` → `https://memex-scraper.joyfulsystems.workers.dev`
+  - [ ] `npm run deploy` → note the `memex-api.<account>.workers.dev` URL
+- [ ] memex → Settings → Access tokens → create a token (name it after the device)
+- [ ] `cd extension && npm install && npm run build` → `chrome://extensions` → Developer mode → Load unpacked → `extension/.output/chrome-mv3`
+- [ ] Extension settings: API address + token (+ app address if not the workers.dev one) → Test connection → Save
+- [ ] Reload open X / Pinterest tabs
 
-```
-POST /api/capture   { url, title?, note?, spaceId?, tagIds? }   → creates a link
-GET  /api/spaces                                                → id + name list
-GET  /api/tags                                                  → id + name list
-```
+## Verify on the real sites
 
-- Authenticated with a **personal access token** the user generates in memex Settings and pastes into the extension once. The worker maps token → user and (for now) writes through to Supabase with a service-role key held only in the worker. When the database moves, only the worker changes; the extension is untouched.
-- This worker is also the natural first brick of the eventual post-Supabase backend — the extension work and the migration work compound rather than compete.
+- [ ] ⌘⇧S on an article → saved with title/image; Undo removes it; saving again says “already in memex”
+- [ ] Right-click → Save page / Save link
+- [ ] Bookmark a post on X (timeline **and** post page) → pill on the page; the link in memex has the post text, author and image
+- [ ] Bookmark a post with a quoted tweet → text is the outer post, not the quote
+- [ ] Like on X → nothing saved
+- [ ] Save a pin on Pinterest (grid Save button **and** board picker **and** from the pin's own page) → link with image + scraped title
+- [ ] Turn X / Pinterest off from the popup's Auto-save switches (and from right-click on the toolbar icon) → nothing saved, no tab reload needed; the settings page and menu checkmarks follow
+- [ ] Stop the API / break the token → badge count / `!`, entry in settings; fix it → Retry now → saved
+- [ ] The links show up in the app normally (the `source` column doesn't break anything)
 
-## Phase 2 — capture ergonomics
+## Built
 
-- Context-menu items: "Save link to memex" (on any anchor), "Save image to memex" (sets preview image).
-- Select text → "Save to memex as note" (markdown, with source URL attached).
-- Duplicate detection: badge indicates when the current page is already saved; clicking opens/edits the existing link instead of duplicating.
-- Offline queue: captures made offline persist in `chrome.storage` and flush when back online.
+- [x] **Phase 1 (2026-09-06):** `api/` worker (token auth, `POST /api/capture`, `DELETE /api/links/:id`, spaces/tags), `api_tokens` migration + Settings UI, vanilla MV3 popup extension
+- [x] **v0.2 (2026-10-18):**
+  - WXT + TypeScript rewrite; a background service worker is the single capture path
+  - Automatic capture of X bookmarks + Pinterest saves (MAIN-world fetch/XHR interception), with metadata read from the page and per-site toggles
+  - In-page toast + sound; toolbar badge flash
+  - Context menu: save page / save link
+  - Offline / failure queue with backoff, badge count, and waiting/failed lists + Retry now in settings
+  - API: server-side dedupe (id-aware for X/Pinterest), client metadata (`description`, `image`, `favicon`), `source`
+  - `links.source` migration; settings moved to `storage.local` (one-time move of v0.1 settings out of `sync`)
+  - Popup: “already in memex” state (no Undo), “saved for later” state, Open in memex (`/home?link=<id>`)
+- [x] **Auto-save switches up front (2026-10-19):** X / Pinterest switches at the bottom of the popup, plus checkbox items on the toolbar icon's right-click menu (to flip them without the popup's save-on-open). All three surfaces stay in sync; changes apply to open tabs immediately. Also fixed every popup state showing at once (`.state` overrode `hidden`)
 
-## Phase 3 — memex at hand
+## Next
 
-- Popup search over your links/notes/tasks (via the API worker) — a mini-omnibar in the browser chrome.
-- New-tab page option: the memex dashboard as your new tab (the launchpage vision, without needing the hosted app loaded).
-- Task capture ("turn this page into a task").
+- [ ] **Already-saved badge** — `GET /api/lookup?url=` on the worker; the badge shows a dot when the current tab is already in memex, and the popup opens to that link instead of saving
+- [ ] **Post-capture editing in the popup** — pick a space and tags after saving (the API already accepts `spaceId`/`tagIds`; needs a `PATCH /api/links/:id` for after-the-fact changes)
+- [ ] **“Why I saved this” note** in the popup — needs the `links.note` column (see `TODO.md`); until then `note` is stored as the description
+- [ ] **Show `source` in the app** — a small “from X” / “from Pinterest” mark on cards, and possibly a filter
+- [ ] **Save the selection as a note** (right-click on selected text → markdown note with the source URL) — needs a `POST /api/notes` route
+- [ ] **Save image** context-menu item (save the image URL as a link with that preview, or later as an image primitive)
+- [ ] **App-side dedupe** — the web app's own “Add link” still inserts duplicates; make it use the same lookup (or a unique `(user_id, url)` index once existing duplicates are cleaned up)
+- [ ] **Better X metadata** — videos (currently the poster frame only), multi-image posts (first image only), long posts truncated by “Show more”, X Articles
+- [ ] **Store distribution** — Chrome Web Store listing (privacy policy, screenshots); a pinned extension `key` so the ID stays stable
 
-## Technical shape
+## Later / maybe
 
-- **Repo layout:** `extension/` directory in this repo (like `scraper/`), own `package.json`.
-- **Tooling:** [WXT](https://wxt.dev) (Vite-based MV3 framework — HMR, cross-browser builds) or plain Vite + CRXJS. Decide at build time; WXT preferred.
-- **Design:** JOYFUL_SYSTEMS tokens (near-white popup, palette accents, 4px spacing, soft radii, ≤250ms animations, click/confirm sounds). The popup is a real JOYFUL_SYSTEMS surface, not an afterthought.
-- **Shared types:** the capture payload and API response types live with the API worker and are imported by the extension (copy or workspace reference — decide when `memex-api` exists).
+- [ ] More sites, cheapest first: Are.na, Cosmos, YouTube (watch later / playlist add), Reddit save — pond has working matchers for each (`apps/extension/sources/*` in raphaelsalaja/pond, MIT)
+- [ ] Instagram / Threads save — pond supports them, but they rely on Meta's internal operation names and English labels; brittle
+- [ ] One-time import of existing X bookmarks / Pinterest boards from the sites' data exports
+- [ ] Popup search across links/notes/tasks (mini command palette)
+- [ ] New-tab page option showing the memex dashboard
+- [ ] Turn this page into a task
+- [ ] Firefox: test the `build:firefox` output, AMO listing
+- [ ] Phone capture (iOS Shortcut / Android share target / React Native share extension) → `POST /api/capture` — with the mobile work
 
-## Order of work
+## Known limits / fragility
 
-1. `memex-api` worker: token auth + `POST /api/capture` (writes to Supabase behind the scenes).
-2. Settings UI in memex: generate/revoke personal access token.
-3. Extension MVP: action click + shortcut + popup, calling the worker.
-4. Phase 2 items, prioritized by actual friction encountered.
-
-## Open questions
-
-- Token UX: single long-lived token vs. per-device tokens with names/revocation (lean: per-device, it's cheap to do early and painful to retrofit).
-- Firefox/Safari timing — Safari requires an Xcode wrapper; defer until asked for.
-- Whether Phase 3's new-tab page replaces or embeds the hosted dashboard.
+- Detection depends on X's `CreateBookmark` operation name and Pinterest's `*Resource/create` endpoints. If saves stop arriving, check those regexes first (`extension/sources/*.ts`).
+- X metadata depends on `data-testid` hooks (`tweetText`, `User-Name`, `tweetPhoto`). If they change, saves still arrive, just with less metadata; the scraper fills what it can.
+- Pinterest's `id` fallback in the request body could, in theory, pick up a non-pin id on unusual create calls; the scraper would then fail and the link would have no title.
+- After installing or updating the extension, already-open X/Pinterest tabs need a reload before they're watched.
+- The MAIN-world interceptor is installed even when a site toggle is off; the toggle is checked before anything is sent. Switch to dynamic `scripting.registerContentScripts` if that ever matters.

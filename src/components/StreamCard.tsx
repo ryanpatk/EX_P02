@@ -1,4 +1,5 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { SHOW_TAGS_UI, type ItemType } from '../constants/modules';
 import type { Tag } from '../types/database';
 
@@ -7,9 +8,6 @@ const MAX_VISIBLE_TAGS = 3;
 interface StreamCardProps {
   /** Drives the `memex-card--{type}` modifier. */
   type: ItemType;
-  /** Optional 16:9 preview image (links with scraped previews). */
-  previewUrl?: string | null;
-  onPreviewError?: () => void;
   /** 24px leading slot in the header: favicon, type glyph, or checkbox. */
   leading: ReactNode;
   /** Muted caption beside the leading slot: host, date, due date… */
@@ -29,21 +27,22 @@ interface StreamCardProps {
   isDetailsActive?: boolean;
   /** Just created by the user (optimistic row) — plays the capture pop-in. */
   isNew?: boolean;
+  /** `${type}:${id}` — lets the stream resolve modifier/range clicks. */
+  itemKey?: string;
   /** Extra class names appended to the article. */
   className?: string;
   ariaLabel?: string;
 }
 
 /**
- * The one card every stream item renders through. Anatomy (top → bottom):
- * optional preview → header (leading slot + meta) → title → optional
- * excerpt → tag footer, with hover actions pinned top-right. Links, notes,
- * and tasks differ only in what they put in each slot.
+ * The text card for stream items. Anatomy (top → bottom): header (leading
+ * slot + meta) → title → optional excerpt → tag footer, with hover actions
+ * pinned top-right (a selection check replaces them in selection mode).
+ * Notes and image-less links differ only in what they put in each slot;
+ * image links use LinkPreviewCard, which shares this card's surface.
  */
 const StreamCard = ({
   type,
-  previewUrl,
-  onPreviewError,
   leading,
   meta,
   metaTitle,
@@ -57,10 +56,12 @@ const StreamCard = ({
   isDone = false,
   isDetailsActive = false,
   isNew = false,
+  itemKey,
   className,
   ariaLabel,
 }: StreamCardProps) => {
   const interactive = typeof onActivate === 'function';
+  const visibleTags = SHOW_TAGS_UI ? tags.slice(0, MAX_VISIBLE_TAGS) : [];
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     if (!interactive) return;
@@ -99,15 +100,10 @@ const StreamCard = ({
       tabIndex={interactive ? 0 : undefined}
       aria-pressed={interactive && selectionMode ? isSelected : undefined}
       aria-label={ariaLabel}
+      data-item-key={itemKey}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
-      {previewUrl && (
-        <div className="memex-card-preview">
-          <img src={previewUrl} alt="" loading="lazy" onError={onPreviewError} />
-        </div>
-      )}
-
       <div className="memex-card-header">
         <span className="memex-card-favicon">{leading}</span>
         {meta !== undefined && meta !== null && (
@@ -123,25 +119,33 @@ const StreamCard = ({
 
       {excerpt && <p className="memex-card-excerpt">{excerpt}</p>}
 
-      <div className="memex-card-footer">
-        {SHOW_TAGS_UI && tags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
-          <span
-            key={tag.id}
-            className="bookmark-list-row-tag"
-            style={tag.color ? ({ '--edge': tag.color, color: tag.color } as CSSProperties) : undefined}
-            title={tag.name}
-          >
-            {tag.name}
-          </span>
-        ))}
-        {SHOW_TAGS_UI && tags.length > MAX_VISIBLE_TAGS && (
-          <span className="bookmark-list-row-tag is-more">
-            +{tags.length - MAX_VISIBLE_TAGS}
-          </span>
-        )}
-      </div>
+      {visibleTags.length > 0 && (
+        <div className="memex-card-footer">
+          {visibleTags.map((tag) => (
+            <span
+              key={tag.id}
+              className="bookmark-list-row-tag"
+              style={tag.color ? ({ '--edge': tag.color, color: tag.color } as CSSProperties) : undefined}
+              title={tag.name}
+            >
+              {tag.name}
+            </span>
+          ))}
+          {tags.length > MAX_VISIBLE_TAGS && (
+            <span className="bookmark-list-row-tag is-more">
+              +{tags.length - MAX_VISIBLE_TAGS}
+            </span>
+          )}
+        </div>
+      )}
 
-      {actions && <div className="memex-card-actions">{actions}</div>}
+      {selectionMode ? (
+        <span className={`memex-select-check${isSelected ? ' is-on' : ''}`} aria-hidden="true">
+          {isSelected && <Check />}
+        </span>
+      ) : (
+        actions && <div className="memex-card-actions">{actions}</div>
+      )}
     </article>
   );
 };

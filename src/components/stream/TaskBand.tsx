@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Check, ChevronRight, Plus, X } from 'lucide-react';
 import type { TaskWithTags } from '../../types/database';
 import { itemKey } from '../../utils/streamItems';
+import { dueDateIso } from '../../utils/timeGroups';
 
 interface TaskBandProps {
   openTasks: TaskWithTags[];
@@ -30,47 +31,69 @@ export const TaskRow = ({
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (task: TaskWithTags) => void;
-}) => (
-  <div
-    className={`memex-taskrow${task.is_done ? ' is-done' : ''}${isSelected ? ' is-selected' : ''}${
-      task.id.startsWith('temp-') ? ' is-new' : ''
-    }`}
-    onClick={selectionMode ? () => onToggleSelect?.(task) : undefined}
-  >
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={task.is_done}
-      className="memex-task-check"
-      disabled={selectionMode}
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggleDone(task);
-      }}
-      aria-label={task.is_done ? `Mark “${task.title}” not done` : `Mark “${task.title}” done`}
+}) => {
+  const toggleSelect = () => onToggleSelect?.(task);
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleSelect();
+    }
+  };
+
+  return (
+    <div
+      className={`memex-taskrow${task.is_done ? ' is-done' : ''}${isSelected ? ' is-selected' : ''}${
+        selectionMode ? ' is-selection-mode' : ''
+      }${task.id.startsWith('temp-') ? ' is-new' : ''}`}
+      role={selectionMode ? 'button' : undefined}
+      tabIndex={selectionMode ? 0 : undefined}
+      aria-pressed={selectionMode ? isSelected : undefined}
+      aria-label={selectionMode ? `Select “${task.title}”` : undefined}
+      data-item-key={itemKey('task', task.id)}
+      onClick={selectionMode ? toggleSelect : undefined}
+      onKeyDown={selectionMode ? handleKeyDown : undefined}
     >
-      <Check aria-hidden="true" />
-    </button>
-    <span className="memex-taskrow-title">{task.title}</span>
-    {task.due_date && (
-      <span className="memex-taskrow-due">{dueFormat.format(new Date(task.due_date))}</span>
-    )}
-    {!selectionMode && (
-      <button
-        type="button"
-        className="memex-taskrow-delete"
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete(task.id);
-        }}
-        aria-label={`Delete “${task.title}”`}
-        title="Delete task"
-      >
-        <X aria-hidden="true" />
-      </button>
-    )}
-  </div>
-);
+      {selectionMode ? (
+        <span className={`memex-select-check${isSelected ? ' is-on' : ''}`} aria-hidden="true">
+          {isSelected && <Check />}
+        </span>
+      ) : (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={task.is_done}
+          className="memex-task-check"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleDone(task);
+          }}
+          aria-label={task.is_done ? `Mark “${task.title}” not done` : `Mark “${task.title}” done`}
+        >
+          <Check aria-hidden="true" />
+        </button>
+      )}
+      <span className="memex-taskrow-title">{task.title}</span>
+      {task.due_date && (
+        <span className="memex-taskrow-due">{dueFormat.format(new Date(dueDateIso(task.due_date)))}</span>
+      )}
+      {!selectionMode && (
+        <button
+          type="button"
+          className="memex-icon-button memex-taskrow-delete"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(task.id);
+          }}
+          aria-label={`Delete “${task.title}”`}
+          title="Delete task"
+        >
+          <X aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 /** Open tasks as a checklist above the grid; done tasks fold away beneath. */
 const TaskBand = ({

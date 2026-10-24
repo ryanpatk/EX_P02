@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>memex capture — settings</title>
+  <meta name="manifest.open_in_tab" content="true" />
+  <link rel="stylesheet" href="../popup/style.css" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main>
+    <h1>memex capture</h1>
+    <p class="detail lede">
+      Create an access token in memex under Settings → Access tokens, and paste it here
+      together with your memex-api worker address.
+    </p>
+
+    <form id="settings" novalidate>
+      <div class="field">
+        <label for="apiUrl">API address</label>
+        <input id="apiUrl" name="apiUrl" type="url" inputmode="url" spellcheck="false" autocomplete="off"
+          placeholder="https://memex-api.your-account.workers.dev…" />
+      </div>
+
+      <div class="field">
+        <label for="token">Access token</label>
+        <input id="token" name="token" type="password" spellcheck="false" autocomplete="off" placeholder="mx_…" />
+      </div>
+
+      <div class="field">
+        <label for="appUrl">memex app address</label>
+        <input id="appUrl" name="appUrl" type="url" inputmode="url" spellcheck="false" autocomplete="off"
+          placeholder="https://memex.joyfulsystems.workers.dev…" />
+      </div>
+
+      <fieldset>
+        <legend>Save automatically</legend>
+        <label class="check">
+          <input id="site-x" type="checkbox" />
+          When I bookmark a post on X
+        </label>
+        <label class="check">
+          <input id="site-pinterest" type="checkbox" />
+          When I save a pin on Pinterest
+        </label>
+        <p class="detail hint">Reload open X / Pinterest tabs after installing or updating the extension.</p>
+      </fieldset>
+
+      <label class="check">
+        <input id="sound" type="checkbox" />
+        Play a confirmation sound on save
+      </label>
+
+      <div class="row actions">
+        <button id="save" class="btn btn-primary" type="submit">Save settings</button>
+        <button id="test" class="btn" type="button">Test connection</button>
+      </div>
+      <p id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <section id="queue-section" hidden>
+      <h2>Waiting to sync</h2>
+      <ul id="queue" class="items"></ul>
+      <div class="row">
+        <button id="flush" class="btn" type="button">Retry now</button>
+      </div>
+    </section>
+
+    <section id="failed-section" hidden>
+      <h2>Couldn’t save</h2>
+      <ul id="failed" class="items"></ul>
+      <div class="row">
+        <button id="clear-failed" class="btn" type="button">Clear</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

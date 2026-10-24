@@ -7,7 +7,7 @@
     // Supabase project URL (the anon-visible one; the service key is a secret).
     "SUPABASE_URL": "https://zwgotlojioprtjvrxltc.supabase.co",
     // Optional: memex-scraper worker; enriches captures with page metadata.
-    "SCRAPER_URL": ""
+    "SCRAPER_URL": "https://memex-scraper.joyfulsystems.workers.dev"
   }
   // Secrets (set once, stored encrypted by Cloudflare):
   //   npx wrangler secret put SUPABASE_SERVICE_KEY

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { NoteWithTags } from '../types/database';
 import { markdownExcerpt, noteDisplayTitle } from '../utils/markdown';
-import { mergeTags } from '../utils/streamItems';
+import { itemKey, mergeTags } from '../utils/streamItems';
 import { noteAsUrl } from '../utils/urlInput';
+import { relativeTime } from '../utils/timeGroups';
 import StreamCard from './StreamCard';
 import { NoteGlyph } from './StreamGlyphs';
 import { Link, X } from 'lucide-react';
@@ -19,7 +20,7 @@ interface NoteGridCardProps {
   onToggleSelect?: (noteId: string) => void;
 }
 
-/** Note as a stream card: note glyph, title, excerpt, tags. */
+/** Note as a stream card: note glyph + last edited, title, excerpt, tags. */
 const NoteGridCard = ({
   note,
   onOpen,
@@ -48,8 +49,11 @@ const NoteGridCard = ({
   return (
     <StreamCard
       type="note"
+      itemKey={itemKey('note', note.id)}
       isNew={note.id.startsWith('temp-')}
       leading={<NoteGlyph />}
+      meta={relativeTime(note.updated_at)}
+      metaTitle={new Date(note.updated_at).toLocaleString()}
       title={title}
       excerpt={excerpt || undefined}
       tags={tags}
@@ -62,7 +66,7 @@ const NoteGridCard = ({
             {showConvert && (
               <button
                 type="button"
-                className="bookmark-list-row-action"
+                className="memex-icon-button"
                 onClick={(event) => {
                   event.stopPropagation();
                   onConvertToLink?.(note, convertibleUrl);
@@ -76,7 +80,7 @@ const NoteGridCard = ({
             {onDelete && (
               <button
                 type="button"
-                className="bookmark-list-row-action"
+                className="memex-icon-button"
                 onClick={(event) => {
                   event.stopPropagation();
                   onDelete(note.id);

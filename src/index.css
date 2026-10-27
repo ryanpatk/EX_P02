@@ -78,10 +78,11 @@
   --font-display: var(--font-brand);
   --font-content: var(--font-editorial);
   --font-mono: var(--font-data);
-  /* The wordmark is Inter pushed past the UI weights: heavy italic, tight
-     tracking, in the swatch ink — the one place type carries the brand. */
-  --brand-wordmark-weight: 760;
-  --brand-wordmark-tracking: -0.05em;
+  /* The wordmark is its own face: Nunito Black, a rounded humanist sans
+     (self-hosted via @fontsource/nunito). Treatment lives in components.css
+     → “Wordmark”; the classes below only size and place it. */
+  --font-wordmark: 'Nunito', 'Varela Round', system-ui, sans-serif;
+  --wordmark-size: 30px;
   --font-code:
     ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
@@ -488,12 +489,7 @@ body:has(.bookmark-dashboard)::before {
   border-radius: var(--bookmark-brand-bubble-radius);
   padding: var(--space-xs) var(--space-s);
   background: var(--bookmark-brand-bubble-bg);
-  color: var(--color-1-ink);
-  font-family: var(--font-brand);
-  font-size: var(--size-l);
-  font-style: italic;
-  font-weight: var(--brand-wordmark-weight);
-  letter-spacing: var(--brand-wordmark-tracking);
+  font-size: var(--wordmark-size);
   line-height: 1;
   text-decoration: none;
   box-sizing: border-box;
@@ -2105,20 +2101,7 @@ textarea.input-field {
 }
 
 .bookmark-toolbar-brand {
-  border: 0;
-  --edge-w: 0px;
-  background: transparent;
-  padding: 0;
-  color: var(--color-1-ink);
-  font-family: var(--font-brand);
-  font-size: var(--size-l);
-  font-style: italic;
-  font-weight: var(--brand-wordmark-weight);
-  letter-spacing: var(--brand-wordmark-tracking);
-  line-height: var(--line-l);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
+  font-size: var(--wordmark-size);
 }
 
 .bookmark-selection-fab svg,

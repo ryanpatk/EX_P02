@@ -218,9 +218,10 @@
   border: 0;
   --edge: var(--border-default-color);
   border-radius: var(--radius-s);
-  background: var(--neutral-1);
+  /* A pressable object: the raised control material (components.css) */
+  background: var(--neutral-1) var(--control-raised-image);
   color: var(--neutral-10);
-  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--shadow-s);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--control-raised-bevel), var(--shadow-s);
   font-family: var(--font-ui);
   font-weight: var(--weight-ui-medium);
   font-size: var(--size-s);
@@ -230,16 +231,25 @@
   transition:
     background-color var(--transition-fast),
     --edge var(--transition-fast),
-    transform var(--transition-fast);
+    box-shadow var(--transition-swell),
+    transform var(--transition-swell);
 }
 
 .memex-launch-chip:hover {
   --edge: var(--neutral-7-transparent);
-  background: var(--neutral-2);
+  background-color: var(--neutral-2);
+  box-shadow: 0 0 0 var(--border-s) var(--edge), var(--control-raised-bevel), var(--shadow-m);
+}
+
+@media (hover: hover) {
+  .memex-launch-chip:hover {
+    transform: scale(var(--hover-swell));
+  }
 }
 
 .memex-launch-chip:active {
-  transform: translateY(var(--motion-press-distance));
+  transform: translateY(var(--motion-press-distance)) scale(var(--press-settle));
+  transition-duration: 80ms;
 }
 
 .memex-launch-chip:focus-visible {
@@ -602,6 +612,8 @@
   padding: var(--space-xxs);
   border-radius: var(--radius-s);
   background: var(--neutral-3);
+  /* A recessed track; the chosen option stands up out of it */
+  box-shadow: var(--surface-recessed-shadow);
 }
 
 .memex-segmented button {
@@ -627,9 +639,9 @@
 }
 
 .memex-segmented button.is-active {
-  background: var(--neutral-1);
+  background: var(--neutral-1) var(--control-raised-image);
   color: var(--neutral-10);
-  box-shadow: var(--shadow-s);
+  box-shadow: var(--control-raised-bevel), var(--shadow-s);
 }
 
 .memex-segmented button:focus-visible {
@@ -647,6 +659,8 @@
   padding: var(--space-xxs);
   border-radius: var(--radius-s);
   background: var(--neutral-3);
+  /* A recessed track; the chosen option stands up out of it */
+  box-shadow: var(--surface-recessed-shadow);
 }
 
 .memex-view-toggle button {
@@ -675,9 +689,9 @@
 }
 
 .memex-view-toggle button.is-active {
-  background: var(--neutral-1);
+  background: var(--neutral-1) var(--control-raised-image);
   color: var(--neutral-10);
-  box-shadow: var(--shadow-s);
+  box-shadow: var(--control-raised-bevel), var(--shadow-s);
 }
 
 .memex-view-toggle button:focus-visible {

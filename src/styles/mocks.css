@@ -208,6 +208,10 @@
   background: var(--bookmark-experiment-bg);
 }
 
+.mk-canvas.is-unfaded::after {
+  display: none;
+}
+
 .mk-canvas::after {
   content: '';
   position: absolute;
@@ -634,13 +638,9 @@
 }
 
 .mk-brand {
-  padding: 0 var(--space-xs) var(--space-xs);
-  color: var(--color-1-ink);
-  font-family: var(--font-brand);
-  font-style: italic;
-  font-size: var(--size-l);
-  line-height: var(--line-l);
-  font-weight: var(--weight-brand-medium);
+  align-self: flex-start;
+  margin: var(--space-xxs) var(--space-xs) var(--space-s);
+  font-size: var(--wordmark-size);
 }
 
 .mk-side-item {

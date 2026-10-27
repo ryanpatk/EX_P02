@@ -19,7 +19,7 @@ import SpaceDetailsModal from '../components/SpaceDetailsModal';
 import StreamFilterBar from '../components/StreamFilterBar';
 import { EmptyState, FeedbackToast, FrostedStack } from '../components/ui';
 import {
-  HOME_PATH,
+  LIBRARY_PATH,
   ITEM_TYPES,
   ItemType,
   LINK_PARAM,
@@ -114,8 +114,8 @@ const parseList = (value: string | null) =>
   value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
 
 /**
- * The one surface of memex: a mixed stream of notes, links, and tasks —
- * everything on Home, or one space's contents at /spaces/:spaceId — with
+ * The Library: a mixed stream of notes, links, and tasks — everything at
+ * /library, or one space's contents at /spaces/:spaceId — with
  * element-type and tag chips above the grid, omnibar capture, and the
  * context's super favorites in the header.
  */
@@ -288,7 +288,7 @@ const StreamPage = () => {
   // A deleted or foreign space id falls back to Home once spaces have loaded
   useEffect(() => {
     if (spaceId && profiles && !space) {
-      navigate(HOME_PATH, { replace: true });
+      navigate(LIBRARY_PATH, { replace: true });
     }
   }, [navigate, profiles, space, spaceId]);
 
@@ -1382,7 +1382,7 @@ const StreamPage = () => {
     selectedTagIds.length > 0 ||
     includeUntagged;
 
-  const contextName = space?.name ?? 'Home';
+  const contextName = space?.name ?? 'Library';
   const typeLabel =
     selectedTypes.length === 1
       ? ITEM_TYPES.find((t) => t.key === selectedTypes[0])?.plural.toLowerCase() ?? 'items'
@@ -1398,7 +1398,7 @@ const StreamPage = () => {
       ? 'Other types may match — check the search results above, or press ⌘↵ to save what you typed.'
       : 'Try another type, or clear the filters.'
     : spaceId
-      ? 'Capture something above, or select items on Home and add them here.'
+      ? 'Capture something above, or select items in the Library and add them here.'
       : 'Paste a URL or type a thought above to capture it.';
 
   const placeholder = space

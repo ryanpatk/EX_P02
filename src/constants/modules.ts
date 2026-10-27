@@ -1,7 +1,8 @@
 /**
- * Navigation model: one mixed stream, scoped either to everything (Home) or
- * to a single space. The old per-primitive module routes (/links, /notes,
- * /tasks) redirect into Home with the matching type filter preselected.
+ * Navigation model (ROADMAP.md Phase 1, decision 12B): the Journal is home
+ * at `/`; the Library (`/library`) is the mixed stream of everything, and
+ * `/spaces/:id` scopes it to one space. The old routes (/home, /links,
+ * /notes, /tasks) redirect into the Library, carrying their query along.
  */
 
 export type ItemType = 'note' | 'link' | 'task';
@@ -22,13 +23,16 @@ export const ITEM_TYPES: ItemTypeDef[] = [
 export const isItemType = (value: string): value is ItemType =>
   ITEM_TYPES.some((type) => type.key === value);
 
-export const HOME_PATH = '/home';
+export const JOURNAL_PATH = '/';
+export const LIBRARY_PATH = '/library';
+/** The Library's old address; the extension still deep-links `/home?link=<id>`. */
+export const LEGACY_HOME_PATH = '/home';
 export const SPACES_PATH = '/spaces';
 
 export const spacePath = (spaceId: string) => `${SPACES_PATH}/${spaceId}`;
 
-/** Where "/" and the auth pages land a signed-in user by default. */
-export const DEFAULT_MODULE_PATH = HOME_PATH;
+/** Where the auth pages land a signed-in user. */
+export const DEFAULT_MODULE_PATH = JOURNAL_PATH;
 
 /** Query param carrying the type filter (comma-separated ItemType keys). */
 export const TYPE_PARAM = 'type';
@@ -42,6 +46,8 @@ export const NOTE_PARAM = 'note';
 export const LINK_PARAM = 'link';
 /** URL param for the stream layout: absent/`grid` = masonry, `list` = reading list. */
 export const VIEW_PARAM = 'view';
+/** Journal: the Inbox tray is open (`?inbox=1`). */
+export const INBOX_PARAM = 'inbox';
 
 /**
  * Tag UI is parked while the core stream is refined: hides the tag chip row

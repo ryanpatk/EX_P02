@@ -186,12 +186,12 @@ Each phase ships something usable. Tracks marked **parallel** don't block the ma
 
 ### Phase 1 — Journal-first web, on today's stack
 Validate the product direction before rebuilding the plumbing.
-- [ ] Round 5 `/mocks` with real data: Journal home (chat order, §8 #1), space board, Library table
-- [ ] Feed derived from existing tables: jots (`self_messages`) interleaved with links/notes/tasks by `created_at`; auto-saves grouped (“3 pins saved on Pinterest”) using `links.source`
-- [ ] Journal becomes `/`; current stream becomes `/library`; `/home` redirects
-- [ ] Composer syntax: `@space`, `#tag`, URL → link, `[] ` → task, ⌘↵ → note (reuse `CommandBar` logic)
-- [ ] Filing affordances on entries: space chips, “File to…”, drag to sidebar space
-- [ ] Back-office rail: Filed today, Inbox (unfiled + rule-based suggestions), Open tasks
+- [x] Round 5 `/mocks` with real data: Journal home (chat order, §8 #1), space board, Library table ✓ 2026-10-24 — picks in §8 #11–16
+- [x] Feed derived from existing tables: jots (`self_messages`) interleaved with links/notes/tasks by `created_at`; auto-saves grouped (“3 pins saved on Pinterest”) using `links.source` ✓ 2026-10-25 (`src/utils/journalFeed.ts`, 11D entries in `components/journal/`)
+- [x] Journal becomes `/`; current stream becomes `/library`; `/home` redirects ✓ 2026-10-25 (query carried, so the extension's `/home?link=` deep links still land)
+- [x] Composer syntax: `@space`, URL → link, `[] ` → task, ⌘↵ → note ✓ 2026-10-25 (`src/utils/composer.ts`, `@` picker). `#tag` waits until tags come back (`SHOW_TAGS_UI` is off)
+- [ ] Filing affordances on entries: space chips ✓, one-press suggestions ✓, “File to…” ✓ (2026-10-25); drag to sidebar space still to do
+- [x] ~~Back-office rail~~ → decision 12B: Inbox in the sidebar and a header button, both only while suggestions wait; the tray opens beside the feed (`/?inbox=1`); Tasks in the sidebar (Library filtered to tasks for now) ✓ 2026-10-25
 - [ ] Space page becomes a board (pinned sites · tasks · notes · saves) with a scoped Journal column
 - [ ] Library: Table view and saved views (Unfiled, From X, From YouTube)
 - [ ] Mobile web gets the same Journal-first layout (bridge until Phase 6)
@@ -277,3 +277,9 @@ The primitives (note, link, task), spaces as cross-cutting contexts, one tag voc
 | 8 | Images | Hotlink CDN URLs · download into the vault | **Download** (walk-away needs it) (2026-10-24) |
 | 9 | Capture scope | Which lists per site, for the extension and re-sync | **X bookmarks, Pinterest saves, YouTube likes.** No X likes, no Watch later (2026-10-24) |
 | 10 | MCP auth order | Token (Claude Code) first, OAuth (claude.ai) second · both at once | **Token first, OAuth second** (2026-10-24) |
+| 11 | Journal entry style (round 5 mocks) | 11A rich · 11B quiet · 11C mixed · 11D tuned | **11D tuned**: picture galleries and bubbles for visual saves, compact rows for text-only things (2026-10-24) |
+| 12 | Desktop layout | 12A right rail · 12B sidebar as tab bar · 12C no sidebar | **12B**: the sidebar is the desktop tab bar (Journal, Library, Inbox, Tasks, spaces); the Inbox tray appears only when something is waiting (2026-10-24) |
+| 13 | Filing | 13A “File to…” menu · 13B inline suggestions · 13C triage | **13B** with five rules (2026-10-24): unfiled is a finished state (no empty chip, no warning); suggest only when likely right, always with its reason; the Inbox counts waiting suggestions, not every unfiled thing; “File to…” on every entry, and each use teaches the guesser; filing one save from a burst lights up its neighbours. Signals: same-site votes, saved within ~20 min of a filed save, similar title words; later Pinterest board → space mapping, X folders, embeddings. Measured on real data: about 2 in 3 filed links would have got a correct guess (website-only: 1 in 5). Tune with usage |
+| 14 | Space page | 14A board columns · 14B scoped Journal + board column | **14B** (2026-10-24) |
+| 15 | Library views | 15A tabs over the content · 15B nested in the sidebar | **15A**; the Table ships as a toggle in either view (2026-10-24) |
+| 16 | Phone layout | 16A tab bar · others | **16A tab bar**: Journal, Library, Spaces, Inbox; composer above the tab bar (2026-10-24) |

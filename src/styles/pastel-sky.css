@@ -119,11 +119,22 @@
   --border-shadow-s: 0 0 0 var(--border-s) var(--border-default-color);
   --border-shadow-m: 0 0 0 var(--border-m) var(--border-default-color);
   --border-shadow-l: 0 0 0 var(--border-l) var(--border-default-color);
-  /* Elevation */
+  /* Elevation. memex retune (Joyful Utility): layered ambient + direct
+     shadows tinted toward the canvas hue, a step deeper than the theme's
+     originals (gui/themes/pastel-sky.md) so surfaces read as objects. */
   --shadow-none: none;
-  --shadow-s: 0px 0.25px 0.75px 0px #1d21270d, 0px 1px 3px 0px #1d212713;
-  --shadow-m: 0px 1px 4px 0px #1d21270b, 0px 4px 16px 0px #1d212710;
-  --shadow-l: 0px 3px 9px 0px #1d21270f, 0px 12px 36px 0px #1d212716;
+  --shadow-ink: oklch(from var(--color-1) 0.28 calc(c * 0.35) h);
+  --shadow-s:
+    0 1px 1px color-mix(in oklab, var(--shadow-ink) 7%, transparent),
+    0 2px 5px -1px color-mix(in oklab, var(--shadow-ink) 9%, transparent);
+  --shadow-m:
+    0 1px 2px color-mix(in oklab, var(--shadow-ink) 7%, transparent),
+    0 4px 10px -2px color-mix(in oklab, var(--shadow-ink) 10%, transparent),
+    0 12px 24px -8px color-mix(in oklab, var(--shadow-ink) 12%, transparent);
+  --shadow-l:
+    0 2px 4px color-mix(in oklab, var(--shadow-ink) 7%, transparent),
+    0 10px 24px -6px color-mix(in oklab, var(--shadow-ink) 14%, transparent),
+    0 28px 56px -16px color-mix(in oklab, var(--shadow-ink) 18%, transparent);
   /* Surfaces */
   --surface-raised-image: linear-gradient(180deg, #ffffff1f 0%, #ffffff00 48%, #1d21270d 100%);
   --surface-raised-shadow: inset 0px 1px 0px 0px #ffffffb3, inset 0px -1px 0px 0px #1d212729;
@@ -189,6 +200,34 @@
   --control-raised-bevel:
     inset 0px 1px 0px 0px #ffffffb3, inset 0px -1px 0px 0px #1d212729,
     inset 0px 0px 0px 1px #ffffff2d;
+
+  /* Joyful Utility depth (memex addition). Things you press are objects;
+     things you read are paper.
+     - Paper (cards, panels): a lit top edge plus the tinted elevation.
+     - Objects (buttons, chips, checks): the raised material; they swell a
+       little under the pointer and settle when pressed.
+     - Gloss, the Wii-era split highlight, is kept for what is primary or
+       "on": the primary button, a checked task, a selected item. */
+  --surface-lit: inset 0 1px 0 0 rgb(255 255 255 / 0.85);
+  --control-gloss-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.3) 0%,
+    rgb(255 255 255 / 0.14) 46%,
+    rgb(255 255 255 / 0) 54%,
+    rgb(0 0 0 / 0.06) 100%
+  );
+  --control-glow:
+    0 1px 2px color-mix(in oklab, var(--color-1) 30%, transparent),
+    0 4px 12px -4px color-mix(in oklab, var(--color-1) 55%, transparent);
+  --control-glow-hover:
+    0 1px 2px color-mix(in oklab, var(--color-1) 30%, transparent),
+    0 7px 18px -5px color-mix(in oklab, var(--color-1) 60%, transparent);
+  --hover-swell: 1.03; /* text buttons, chips */
+  --hover-swell-icon: 1.08; /* small square controls */
+  --hover-lift: -2px; /* cards: lift, never scale (text and images stay crisp) */
+  --press-settle: 0.97;
+  /* Hover answers fast and lands with the theme spring's small overshoot */
+  --transition-swell: 220ms var(--motion-easing);
 }
 
 [data-theme='dark'] {
@@ -232,10 +271,19 @@
   --border-shadow-s: inset 0 0 0 var(--border-s) var(--border-default-color);
   --border-shadow-m: inset 0 0 0 var(--border-m) var(--border-default-color);
   --border-shadow-l: inset 0 0 0 var(--border-l) var(--border-default-color);
-  /* Elevation */
-  --shadow-s: 0px 0.25px 0.75px 0px #13171d0d, 0px 1px 3px 0px #13171d13;
-  --shadow-m: 0px 1px 4px 0px #13171d0b, 0px 4px 16px 0px #13171d10;
-  --shadow-l: 0px 3px 9px 0px #13171d0f, 0px 12px 36px 0px #13171d16;
+  /* Elevation (memex retune; a dark canvas needs near-black, stronger drops) */
+  --shadow-ink: oklch(from var(--color-1) 0.1 calc(c * 0.2) h);
+  --shadow-s:
+    0 1px 1px color-mix(in oklab, var(--shadow-ink) 30%, transparent),
+    0 2px 5px -1px color-mix(in oklab, var(--shadow-ink) 30%, transparent);
+  --shadow-m:
+    0 1px 2px color-mix(in oklab, var(--shadow-ink) 30%, transparent),
+    0 4px 10px -2px color-mix(in oklab, var(--shadow-ink) 35%, transparent),
+    0 12px 24px -8px color-mix(in oklab, var(--shadow-ink) 40%, transparent);
+  --shadow-l:
+    0 2px 4px color-mix(in oklab, var(--shadow-ink) 30%, transparent),
+    0 10px 24px -6px color-mix(in oklab, var(--shadow-ink) 45%, transparent),
+    0 28px 56px -16px color-mix(in oklab, var(--shadow-ink) 55%, transparent);
   /* Surfaces */
   --surface-raised-image: linear-gradient(180deg, #f9fafb1a 0%, #f9fafb00 48%, #13171d1f 100%);
   --surface-raised-shadow: inset 0px 1px 0px 0px #f9fafb3d, inset 0px -1px 0px 0px #13171d3d;
@@ -251,4 +299,19 @@
   --control-raised-bevel:
     inset 0px 1px 0px 0px #f9fafb3d, inset 0px -1px 0px 0px #13171d3d,
     inset 0px 0px 0px 1px #f9fafb0f;
+
+  --surface-lit: inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+  --control-gloss-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.22) 0%,
+    rgb(255 255 255 / 0.1) 46%,
+    rgb(255 255 255 / 0) 54%,
+    rgb(0 0 0 / 0.08) 100%
+  );
+  --control-glow:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 4px 12px -4px color-mix(in oklab, var(--color-1) 35%, transparent);
+  --control-glow-hover:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 7px 18px -5px color-mix(in oklab, var(--color-1) 45%, transparent);
 }

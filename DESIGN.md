@@ -18,11 +18,14 @@ colors:
 typography:
   family: 'Two Weekend Go (+ system-ui stack)'
   brand:
-    fontSize: 'clamp(21px, 2.2vw, 24px)'
-    fontWeight: 760 (--brand-wordmark-weight)
-    fontStyle: italic
-    letterSpacing: '-0.05em' (--brand-wordmark-tracking)
-    color: 'var(--color-1-ink) — the swatch ink'
+    component: 'src/components/ui/Wordmark.tsx (styles: components.css → Wordmark)'
+    fontFamily: 'Nunito, Varela Round, system-ui (--font-wordmark; @fontsource/nunito 900)'
+    fontSize: '30px (--wordmark-size), set by the placing class'
+    fontWeight: 900
+    letterSpacing: '-0.05em'
+    lineHeight: 0.95
+    color: '#2f55d6 — Joyful Systems Blue, darkened for text; fixed, not the swatch ink'
+    treatment: 'white 1px keyline + 0 10px 24px blue drop; duplicate layer with a white→clear gradient clipped to the glyphs (split gloss on the upper half); gloss kept subtle: 0.35/0.25 on the light canvas, 0.5/0.35 in dark mode'
   ui:
     fontSize: '13px (var(--bookmark-fs-ui))'
     fontWeight: '500 default chips/rows; 600 labels'
@@ -191,7 +194,7 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 
 | Level      | Size          | Weight     | Use                       |
 | ---------- | ------------- | ---------- | ------------------------- |
-| Brand      | 24px (16px <380px) | 760 italic, −0.05em, swatch ink | `memex` wordmark (sidebar, phone header, auth) |
+| Brand      | 30px | Nunito 900, −0.05em, #2f55d6 + keyline, drop, split gloss | `memex` wordmark via `Wordmark` (sidebar, phone header, auth, styleguide, mocks) |
 | UI         | 13px          | 500        | Chips, list rows, omnibar |
 | Caption    | 12px          | 600        | Counts, footer, kickers   |
 | Heading sm | 14px          | 600–700    | Modal titles, row titles  |
@@ -199,6 +202,13 @@ Three rules, all derived at runtime from the chosen canvas swatch in `src/utils/
 **Fixed UI scale** on dashboard—no fluid heading clamps in rails or list.
 
 ## Elevation & Material
+
+> **2026-10-24 — Joyful Utility depth** (current; wins over older bullets below). The reference is GameCube/Wii/DS-era system software, kept in proportion for a working tool. One rule: **things you press are objects; things you read are paper.**
+> - **Paper** (cards, the stack, task band, list rows, panels, popovers) gets soft depth only: a lit top edge (`--surface-lit`) and layered ambient + direct shadows tinted toward the canvas hue (`--shadow-s/m/l`, retuned in `pastel-sky.css`). Cards lift 2px on hover (`--hover-lift`). They never scale and never get gloss, so text and images stay crisp.
+> - **Objects** (buttons, filter chips, pinned-site chips, icon buttons, task checks) use the raised control material: gradient plus bevel. Under the pointer they swell a little (`--hover-swell` 1.03; `--hover-swell-icon` 1.08 for small square controls) on the theme spring (`--transition-swell`, 220ms). On press they settle (`--press-settle` 0.97, 80ms). Ghost icon buttons are flat at rest and become a small raised button on hover. "Open" states and toggle tracks are pressed in (recessed); the chosen segment and active filter chips stand up out of them.
+> - **Gloss** (the Wii-era split highlight, `--control-gloss-image`) marks what is **primary or on**: the primary button (which also gets `--control-glow`, a drop in its own colour), a checked task, and a selected item's check. Nothing else is glossy.
+> - **Still** (no swell, no lift): sidebar rows, list rows and menu items. Rows you read down don't move; they tint, and only nudge 1px on press.
+> - Swell and lift are mouse-only (`hover: hover`). Reduced motion zeroes all four motion tokens; the depth and gloss changes still answer the pointer.
 
 - **Frosted omnilist:** `backdrop-filter: blur(20px) saturate(180%)` with bubble background; falls back to opaque glass when `prefers-reduced-transparency`.
 - **List inside stack:** Transparent rows, 1px bottom dividers (`--bookmark-list-row-divider`), no per-row card boxes.
@@ -292,7 +302,7 @@ Shared UI primitives live in `src/components/ui/` and render the existing token 
 | `MarkdownText`     | rendered markdown reading view (GFM)                | `NoteEditor`, future Spaces module |
 | `MarkdownTextarea` | markdown-aware textarea (lists, Tab, ⌘B/I/K)        | `NoteEditor`                       |
 
-**Stream cards:** every grid item shares one surface (components.css → “Stream cards”): neutral-1 fill, hairline `--edge` ring, `--shadow-s`; hover deepens the edge and lifts to `--shadow-m`; selection is a `--border-l` color-1 ring plus the shared `.memex-select-check` (text cards also take the selection tint). `StreamCard` is the text anatomy — header (leading slot + meta) / title / excerpt / tag footer, hover actions top-right — filled by `NoteGridCard` and `LinkGridCard` (links without an image). `LinkPreviewCard` is the image-first link anatomy on the same surface. The task band and list rows (`StreamRow`) use the same selection check.
+**Stream cards:** every grid item shares one surface (components.css → “Stream cards”): neutral-1 fill, lit top edge (`--surface-lit`), hairline `--edge` ring, `--shadow-s`; hover deepens the edge, lifts 2px and deepens to `--shadow-m`; selection is a `--border-l` color-1 ring plus the shared `.memex-select-check` (text cards also take the selection tint). `StreamCard` is the text anatomy — header (leading slot + meta) / title / excerpt / tag footer, hover actions top-right — filled by `NoteGridCard` and `LinkGridCard` (links without an image). `LinkPreviewCard` is the image-first link anatomy on the same surface. The task band and list rows (`StreamRow`) use the same selection check.
 
 **Reference page:** `/styleguide` (auth-protected, intentionally unlinked from app navigation) renders the full catalog — tokens, type, chips, stream cards, task band, list rows, empty state, toast, modal — under live canvas theming and dark mode. When adding or changing a primitive, update the styleguide page in the same change.
 

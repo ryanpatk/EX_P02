@@ -1,15 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { HOME_PATH, ItemType, TYPE_PARAM } from '../constants/modules';
+import { LIBRARY_PATH, ItemType, TYPE_PARAM } from '../constants/modules';
 
 interface LegacyModuleRedirectProps {
-  /** Type filter to preselect on Home (omit to land on the unfiltered stream). */
+  /** Type filter to preselect in the Library (omit to land on the unfiltered stream). */
   type?: ItemType;
 }
 
 /**
- * The old per-primitive module routes (/links, /notes, /tasks) now land on
- * Home with that type preselected. Existing query params (e.g. a
- * `?note=<id>` deep link) are carried along.
+ * Old routes (/home, /links, /notes, /tasks) land in the Library, with the
+ * type preselected for the per-primitive ones. Existing query params (a
+ * `?note=<id>` or `?link=<id>` deep link) are carried along.
  */
 const LegacyModuleRedirect = ({ type }: LegacyModuleRedirectProps) => {
   const location = useLocation();
@@ -18,7 +18,7 @@ const LegacyModuleRedirect = ({ type }: LegacyModuleRedirectProps) => {
     params.set(TYPE_PARAM, type);
   }
   const search = params.toString();
-  return <Navigate to={`${HOME_PATH}${search ? `?${search}` : ''}`} replace />;
+  return <Navigate to={`${LIBRARY_PATH}${search ? `?${search}` : ''}`} replace />;
 };
 
 export default LegacyModuleRedirect;

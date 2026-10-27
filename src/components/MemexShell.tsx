@@ -1,17 +1,12 @@
-import { useEffect } from 'react';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Outlet, useParams } from 'react-router-dom';
 import MemexSidebar from './MemexSidebar';
 import { useProfiles } from '../hooks/useProfiles';
-import { rememberModulePath } from '../utils/lastModule';
 
-const MemexShell = () => {
-  const location = useLocation();
+/** The signed-in frame: sidebar + the current page (an Outlet, or the Journal at `/`). */
+const MemexShell = ({ children }: { children?: ReactNode }) => {
   const { spaceId } = useParams<{ spaceId?: string }>();
   const { data: profiles } = useProfiles();
-
-  useEffect(() => {
-    rememberModulePath(location.pathname);
-  }, [location.pathname]);
 
   useEffect(() => {
     const space = spaceId ? profiles?.find((p) => p.id === spaceId) : undefined;
@@ -22,7 +17,7 @@ const MemexShell = () => {
     <div className="memex-shell">
       <MemexSidebar />
       <div className="memex-shell-main">
-        <Outlet />
+        {children ?? <Outlet />}
       </div>
     </div>
   );

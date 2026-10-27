@@ -14,6 +14,8 @@ This document is abstract on purpose. It defines the system's values, tokens, an
 
 **The Honda/Nintendo standard.** Both brands make products that are approachable, humble in form, and obsessively engineered underneath. JOYFUL_SYSTEMS aims for the same posture: friendly surfaces, serious mechanics. Nothing flashy; everything considered. A JOYFUL_SYSTEMS product should feel like it will still work perfectly in ten years.
 
+The Nintendo reference is a specific era: **GameCube, Wii and DS** (roughly 2001–2011). Their system software had content-first menus (the Wii's live channel tiles), dimensional, pressable surfaces (glossy rounded buttons, soft depth, a little shine), and sound and motion that answer every input. The Switch's system software is excellent ergonomically, but it adopted the flat design of the mid-to-late 2010s. JOYFUL_SYSTEMS keeps the earlier era's tactility and avoids flat outlines, hairline-only surfaces and the flat-icon look.
+
 **Utilitarian core.** Every interaction pattern is chosen for efficiency first. Playfulness lives in color, sound, and micro-feedback — never in the structure of a workflow.
 
 ---

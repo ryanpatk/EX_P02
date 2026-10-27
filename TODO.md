@@ -52,6 +52,8 @@ These unlock everything built this session. Roughly 10 minutes total, in order:
 
 ## 🔨 Next build tasks (ask Claude, no credentials needed)
 
+- [x] **Phase 1, slice 1** ✓ 2026-10-25 — Journal home at `/` (11D entries, composer syntax, filing chips + one-press suggestions + “File to…”, Inbox per 12B), Library at `/library`, `/home` redirects, Joyful Utility depth pass. Try it: jot, paste a link, `[] ` a task, `@Space` to file, accept a suggestion
+- [ ] **Phase 1, next** — 14B space board (scoped Journal + board column; retires the Journal panel in space pages), 15A Library view tabs (All · Unfiled · From X · From YouTube · Table), 16A phone tab bar (Journal · Library · Spaces · Inbox), drag an entry onto a sidebar space, a real Tasks view
 - [ ] **Journal polish**: edit a jot in place, move a jot between scopes, jots in the command palette, markdown-lite in jots
 - [x] **JOYFUL pass** ✓ 2026-09-08: color model (hue-keyed neutrals, paper-first canvas, tint pairs), Geist Mono for data, press travel, canvas grain, capture pop-in — listen/look test in both themes; next candidates: a hue per space, haptics on mobile
 - [ ] **Stream refinements** (layout refactor landed 2026-09-07): ~~visual pass on note/task cards vs. the link card~~ ✓ 2026-10-16 (one card surface, shared selection check, note cards show last-edited, keyboard-selectable task rows); ~~space rename/delete from the sidebar~~ ✓ 2026-09-08; empty-space onboarding copy; keyboard nav across cards

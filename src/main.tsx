@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { bind } from 'cuelume';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/inter/wght-italic.css';
+import '@fontsource/nunito/latin-900.css';
 import './index.css';
 import './styles/components.css';
 import './styles/stream.css';

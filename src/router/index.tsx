@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import HomePage from "../pages/HomePage.tsx";
+import RootRoute from "./RootRoute.tsx";
 import SignInPage from "../pages/auth/SignInPage.tsx";
 import SignUpPage from "../pages/auth/SignUpPage.tsx";
 import ProtectedPage from "../pages/ProtectedPage.tsx";
@@ -12,7 +12,7 @@ import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import LegacyModuleRedirect from "./LegacyModuleRedirect.tsx";
 import MemexShell from "../components/MemexShell.tsx";
 import Providers from "../Providers.tsx";
-import { HOME_PATH } from "../constants/modules.ts";
+import { JOURNAL_PATH, LEGACY_HOME_PATH, LIBRARY_PATH } from "../constants/modules.ts";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -20,10 +20,10 @@ const router = createBrowserRouter([
     path: "/",
     element: <Providers />,
     children: [
-      // Public routes
+      // `/`: the Journal when signed in (home), the landing page otherwise
       {
         path: "/",
-        element: <HomePage />,
+        element: <RootRoute />,
       },
       {
         path: "/auth/sign-in",
@@ -38,12 +38,12 @@ const router = createBrowserRouter([
         path: "/",
         element: <AuthProtectedRoute />,
         children: [
-          // memex shell: sidebar (Home + spaces) around the mixed stream
+          // memex shell: sidebar (Journal, Library, spaces) around the page
           {
             element: <MemexShell />,
             children: [
               {
-                path: HOME_PATH,
+                path: LIBRARY_PATH,
                 element: <StreamPage />,
               },
               {
@@ -52,7 +52,11 @@ const router = createBrowserRouter([
               },
             ],
           },
-          // Former per-primitive module routes → Home with a type filter
+          // Former routes → the Library (with a type filter for the per-primitive ones)
+          {
+            path: LEGACY_HOME_PATH,
+            element: <LegacyModuleRedirect />,
+          },
           {
             path: "/links",
             element: <LegacyModuleRedirect type="link" />,
@@ -83,7 +87,7 @@ const router = createBrowserRouter([
           // Legacy dashboard URL (OAuth redirects still target it)
           {
             path: "/dashboard",
-            element: <Navigate to={HOME_PATH} replace />,
+            element: <Navigate to={JOURNAL_PATH} replace />,
           },
           {
             path: "/project/:projectId",

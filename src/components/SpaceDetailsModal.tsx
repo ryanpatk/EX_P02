@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HOME_PATH, ItemType } from '../constants/modules';
+import { LIBRARY_PATH, ItemType } from '../constants/modules';
 import { useDeleteProfile, useUpdateProfile } from '../hooks/useProfiles';
 import { useSelfMessages } from '../hooks/useSelfMessages';
 import type { Profile } from '../types/database';
-import { forgetSpacePath } from '../utils/lastModule';
 import { cue } from '../utils/sound';
 
 interface SpaceDetailsModalProps {
@@ -67,16 +66,15 @@ const SpaceDetailsModal = ({
 
   const handleDelete = async () => {
     const ok = window.confirm(
-      `Delete “${space.name}”?\n\nIts notes, links, and tasks stay in Home. The space’s Notes to Self feed is deleted with it. This cannot be undone.`,
+      `Delete “${space.name}”?\n\nIts notes, links, and tasks stay in your Library. Jots written in the space are deleted with it. This cannot be undone.`,
     );
     if (!ok) return;
     try {
       await deleteProfile.mutateAsync(space.id);
-      forgetSpacePath(space.id);
       cue('dismiss');
       onFeedback(`Deleted “${space.name}”.`);
       onClose();
-      navigate(HOME_PATH, { replace: true });
+      navigate(LIBRARY_PATH, { replace: true });
     } catch (error) {
       cue('error');
       console.error('Failed to delete space:', error);
@@ -165,8 +163,8 @@ const SpaceDetailsModal = ({
         <section className="bookmark-detail-section bookmark-detail-section--danger">
           <h3 className="bookmark-detail-label">Delete</h3>
           <p className="bookmark-detail-hint">
-            Removes the space and its Notes to Self feed. Notes, links, and tasks in it stay in
-            Home.
+            Removes the space and the jots written in it. Notes, links, and tasks in it stay in
+            your Library.
           </p>
           <button
             type="button"

@@ -9,6 +9,7 @@ import { cue } from '../utils/sound';
 import { getHostname } from '../utils/linkDisplay';
 import type { LinkWithTag } from '../types/database';
 import supabase from '../supabase';
+import Wordmark from './ui/Wordmark';
 
 interface AppHeaderProps {
   user: User | null;
@@ -118,9 +119,7 @@ const AppHeader = ({
             aria-expanded={isMenuOpen}
             aria-label="Open settings"
           >
-            <span className="bookmark-toolbar-brand" translate="no">
-              memex
-            </span>
+            <Wordmark className="bookmark-toolbar-brand" />
           </button>
         )}
 
@@ -164,9 +163,7 @@ const AppHeader = ({
               aria-label="Settings"
             >
               <div className="memex-settings-drawer-header">
-                <span className="bookmark-toolbar-brand" translate="no">
-                  memex
-                </span>
+                <Wordmark className="bookmark-toolbar-brand" />
                 <button
                   type="button"
                   className="memex-settings-drawer-close"

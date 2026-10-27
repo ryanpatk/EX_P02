@@ -1,10 +1,8 @@
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import supabase from '../supabase';
 import { useSession } from '../context/SessionContext';
 import AppLogo from '../components/AppLogo';
 import DarkModeToggle from '../components/DarkModeToggle';
-import { getLastModulePath } from '../utils/lastModule';
 
 const GitHubIcon = () => (
   <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -18,13 +16,6 @@ const GitHubIcon = () => (
 
 const HomePage = () => {
   const { session } = useSession();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (session) {
-      navigate(getLastModulePath());
-    }
-  }, [session, navigate]);
 
   return (
     <div className="app-surface page-shell">

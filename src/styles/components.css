@@ -12,6 +12,60 @@
  */
 
 /* ------------------------------------------------------------------ */
+/* Wordmark — Nunito Black, Joyful Systems blue, white keyline,        */
+/* soft blue drop, split-gloss highlight (components/ui/Wordmark.tsx)  */
+/* ------------------------------------------------------------------ */
+
+.memex-wordmark {
+  --wordmark-ink: #2f55d6; /* Joyful Systems Blue, darkened for text */
+  --wordmark-keyline: #fff;
+  --wordmark-drop: rgb(45 111 184 / 0.25);
+  /* Gloss strength. The reference uses 1 → 0.75; memex keeps the split subtle
+     so the upper half reads as a lighter blue, not a white cap. */
+  --wordmark-gloss-top: 0.35;
+  --wordmark-gloss-mid: 0.25;
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-wordmark);
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  color: var(--wordmark-ink);
+  text-shadow:
+    0 1px 0 var(--wordmark-keyline),
+    0 -1px 0 var(--wordmark-keyline),
+    1px 0 0 var(--wordmark-keyline),
+    -1px 0 0 var(--wordmark-keyline),
+    0 10px 24px var(--wordmark-drop);
+  white-space: nowrap;
+}
+
+/* The same text again, filled with a white→clear gradient clipped to the
+   glyphs: the gloss on the upper half of each letter */
+.memex-wordmark-gloss {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    rgb(255 255 255 / var(--wordmark-gloss-top)) 0%,
+    rgb(255 255 255 / var(--wordmark-gloss-mid)) 46%,
+    rgb(255 255 255 / 0) 52%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  pointer-events: none;
+}
+
+/* A dark canvas carries a slightly brighter gloss */
+[data-theme='dark'] .memex-wordmark {
+  --wordmark-drop: rgb(0 0 0 / 0.45);
+  --wordmark-gloss-top: 0.5;
+  --wordmark-gloss-mid: 0.35;
+}
+
+/* ------------------------------------------------------------------ */
 /* Button — primary / secondary / outline / ghost / danger             */
 /* ------------------------------------------------------------------ */
 
@@ -39,7 +93,8 @@
     background-color var(--transition-fast),
     --edge var(--transition-fast),
     color var(--transition-fast),
-    transform var(--transition-fast);
+    box-shadow var(--transition-swell),
+    transform var(--transition-swell);
 }
 
 /* Secondary (default for neutral actions) */
@@ -65,9 +120,14 @@
 .theme-toggle:hover {
   --edge: var(--neutral-7-transparent);
   background-color: var(--neutral-2);
+  box-shadow:
+    0 0 0 var(--border-s) var(--edge),
+    var(--control-raised-bevel),
+    var(--shadow-m);
 }
 
-/* Primary — color-1 is the user's canvas swatch */
+/* Primary — color-1 is the user's canvas swatch. The one glossy control:
+   split highlight on the upper half and a glow in its own colour */
 .btn-primary,
 .bookmark-toolbar-cta.is-primary,
 .bookmark-toolbar-cta.is-accent,
@@ -75,12 +135,12 @@
 .bookmark-profile-create-button.is-primary,
 .bookmark-detail-save-url {
   --edge: var(--neutral-6-transparent);
-  background: var(--color-1) var(--control-raised-image);
+  background: var(--color-1) var(--control-gloss-image);
   color: var(--cte-accent-text);
   box-shadow:
     inset 0 0 0 var(--border-s) var(--edge),
     var(--control-raised-bevel),
-    var(--shadow-s);
+    var(--control-glow);
 }
 
 .btn-primary:hover:not(:disabled),
@@ -89,6 +149,10 @@
 .bookmark-profile-create-button.is-primary:hover:not(:disabled),
 .bookmark-detail-save-url:hover:not(:disabled) {
   --edge: var(--neutral-7-transparent);
+  box-shadow:
+    inset 0 0 0 var(--border-s) var(--edge),
+    var(--control-raised-bevel),
+    var(--control-glow-hover);
 }
 
 /* Danger */
@@ -146,14 +210,21 @@
     background-color var(--transition-fast),
     --edge var(--transition-fast),
     color var(--transition-fast),
-    transform var(--transition-fast);
+    box-shadow var(--transition-swell),
+    transform var(--transition-swell);
 }
 
+/* Flat at rest; under the pointer it becomes a small raised button */
 .app-modal-close:hover,
 .memex-settings-drawer-close:hover,
 .memex-sidebar-new:hover,
 .memex-icon-button:hover {
-  background: var(--neutral-3-transparent);
+  --edge: var(--neutral-6-transparent);
+  background: var(--neutral-1) var(--control-raised-image);
+  box-shadow:
+    0 0 0 var(--border-s) var(--edge),
+    var(--control-raised-bevel),
+    var(--shadow-s);
 }
 
 /* The app's icon button: 32px square with a 16px glyph; .is-compact (28px)
@@ -177,11 +248,14 @@
   height: 16px;
 }
 
-/* Toggle-style pressed state for icon buttons that open something */
+/* Toggle-style pressed state for icon buttons that open something:
+   pressed in, not raised */
 .memex-icon-button.is-open,
 .memex-icon-button[aria-expanded='true'] {
-  background: var(--neutral-3);
+  --edge: transparent;
+  background: var(--neutral-3) var(--surface-recessed-image);
   color: var(--neutral-10);
+  box-shadow: var(--surface-recessed-shadow);
 }
 
 /* Touch: 44px hit area without changing the visual size */
@@ -237,7 +311,8 @@
     background-color var(--transition-fast),
     --edge var(--transition-fast),
     color var(--transition-fast),
-    transform var(--transition-fast);
+    box-shadow var(--transition-swell),
+    transform var(--transition-swell);
 }
 
 .bookmark-tag-chip:hover:not(:disabled),
@@ -249,9 +324,14 @@
 .bookmark-profile-chip.is-active,
 .bookmark-tag-chip.is-active:hover:not(:disabled),
 .bookmark-profile-chip.is-active:hover:not(:disabled) {
-  background: var(--neutral-3);
-  color: var(--neutral-10);
+  /* On = a raised tile standing up from the row */
   --edge: var(--neutral-6-transparent);
+  background: var(--neutral-1) var(--control-raised-image);
+  color: var(--neutral-10);
+  box-shadow:
+    0 0 0 var(--border-s) var(--edge),
+    var(--control-raised-bevel),
+    var(--shadow-s);
 }
 
 .bookmark-tag-chip-count,
@@ -512,7 +592,8 @@
   transition:
     background-color var(--transition-fast),
     --edge var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-swell);
 }
 
 .memex-task-check svg {
@@ -528,7 +609,7 @@
 .memex-task-check[aria-checked='true'],
 .memex-task-check[aria-pressed='true'] {
   --edge: var(--color-1-transparent);
-  background: var(--color-1) var(--surface-raised-image);
+  background: var(--color-1) var(--control-gloss-image);
   color: var(--cte-accent-text);
 }
 
@@ -747,9 +828,10 @@
 /* ------------------------------------------------------------------ */
 
 /* One surface for every grid item: the text card (.memex-card, StreamCard)
-   and the image-first link card (.memex-pv, LinkPreviewCard). Neutral-1,
-   hairline edge, small elevation; hover deepens the edge and lifts to M;
-   selection is a color-1 ring plus the selection check. */
+   and the image-first link card (.memex-pv, LinkPreviewCard). Paper, not a
+   control: neutral-1, lit top edge, hairline edge, small elevation; hover
+   deepens the edge and lifts 2px to M (no scale, no gloss); selection is a
+   color-1 ring plus the selection check. */
 :is(.memex-card, .memex-pv) {
   position: relative;
   box-sizing: border-box;
@@ -759,20 +841,23 @@
   background: var(--neutral-1);
   color: var(--neutral-10);
   box-shadow:
+    var(--surface-lit),
     0 0 0 var(--border-s) var(--edge),
     var(--shadow-s);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition:
-    box-shadow var(--transition-fast),
+    box-shadow var(--transition-swell),
     --edge var(--transition-fast),
-    background-color var(--transition-fast);
+    background-color var(--transition-fast),
+    transform var(--transition-swell);
 }
 
 :is(.memex-card, .memex-pv):hover {
   --edge: var(--neutral-7-transparent);
   box-shadow:
+    var(--surface-lit),
     0 0 0 var(--border-s) var(--edge),
     var(--shadow-m);
 }
@@ -948,7 +1033,7 @@
 }
 
 .memex-select-check.is-on {
-  background: var(--color-1);
+  background: var(--color-1) var(--control-gloss-image);
   box-shadow: none;
 }
 
@@ -1053,9 +1138,39 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Interaction: press, focus, reduced motion                           */
+/* Interaction: swell, press, focus, reduced motion                    */
 /* ------------------------------------------------------------------ */
 
+/* Hover: controls swell a little (Wii-era “this is pressable”), cards lift.
+   Rows you read down — sidebar, list rows, menus — stay still. */
+@media (hover: hover) {
+  :is(
+      .btn-primary,
+      .btn-secondary,
+      .btn-danger,
+      .bookmark-toolbar-cta,
+      .bookmark-profile-create-button,
+      .bookmark-detail-save-url,
+      .bookmark-detail-delete,
+      .theme-toggle,
+      .bookmark-tag-chip,
+      .bookmark-profile-chip
+    ):hover:not(:disabled) {
+    transform: scale(var(--hover-swell));
+  }
+
+  :is(.app-modal-close, .memex-settings-drawer-close, .memex-sidebar-new, .memex-icon-button, .memex-task-check):hover:not(
+      :disabled
+    ) {
+    transform: scale(var(--hover-swell-icon));
+  }
+
+  :is(.memex-card:not(.is-static), .memex-pv):hover {
+    transform: translateY(var(--hover-lift));
+  }
+}
+
+/* Press: objects settle into the surface; rows only nudge */
 :is(
     .btn-primary,
     .btn-secondary,
@@ -1064,17 +1179,20 @@
     .bookmark-profile-create-button,
     .bookmark-detail-save-url,
     .bookmark-detail-delete,
-    .bookmark-account-menu-action,
     .theme-toggle,
     .bookmark-tag-chip,
     .bookmark-profile-chip,
-    .memex-sidebar-item,
     .memex-task-check,
     .app-modal-close,
     .memex-settings-drawer-close,
     .memex-sidebar-new,
     .memex-icon-button
   ):active:not(:disabled) {
+  transform: translateY(var(--motion-press-distance)) scale(var(--press-settle));
+  transition-duration: 80ms;
+}
+
+:is(.bookmark-account-menu-action, .memex-sidebar-item):active:not(:disabled) {
   transform: translateY(var(--motion-press-distance));
 }
 
@@ -1115,6 +1233,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* No swell, lift or settle; depth and gloss still answer the pointer */
+  :root {
+    --hover-swell: 1;
+    --hover-swell-icon: 1;
+    --hover-lift: 0px;
+    --press-settle: 1;
+  }
+
   .bookmark-bulk-feedback.is-entering {
     opacity: 1;
     transform: none;

@@ -4,7 +4,7 @@ import { useSession } from '../../context/SessionContext';
 import supabase from '../../supabase';
 import AppLogo from '../../components/AppLogo';
 import DarkModeToggle from '../../components/DarkModeToggle';
-import { getLastModulePath } from '../../utils/lastModule';
+import { DEFAULT_MODULE_PATH } from '../../constants/modules';
 
 const GitHubIcon = () => (
   <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -25,7 +25,7 @@ const SignInPage = () => {
     password: '',
   });
 
-  if (session) return <Navigate to={getLastModulePath()} />;
+  if (session) return <Navigate to={DEFAULT_MODULE_PATH} replace />;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormValues({ ...formValues, [e.target.name]: e.target.value });

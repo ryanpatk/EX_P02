@@ -18,6 +18,7 @@ import {
 import type { FeedbackToastPhase } from '../components/ui';
 import type { LinkWithTag, NoteWithTags, Tag, TaskWithTags } from '../types/database';
 import { StickyNote } from 'lucide-react';
+import Wordmark from '../components/ui/Wordmark';
 
 const COLOR_TOKENS: { token: string; label: string }[] = [
   { token: '--bookmark-canvas-base', label: 'canvas (swatch)' },
@@ -181,9 +182,7 @@ const StyleguidePage = () => {
       <div className="memex-styleguide-inner">
         <header className="memex-styleguide-header">
           <div className="bookmark-toolbar-brand-shell">
-            <span className="bookmark-toolbar-brand" translate="no">
-              memex
-            </span>
+            <Wordmark className="bookmark-toolbar-brand" />
           </div>
           <p className="memex-styleguide-kicker">styleguide</p>
         </header>
@@ -215,7 +214,10 @@ const StyleguidePage = () => {
 
         <Section title="Typography" note="Inter for every role; Pastel Sky size, line height, and tracking steps.">
           <div className="memex-styleguide-type-specimens">
-            <p className="bookmark-toolbar-brand">memex — brand, L italic 760, swatch ink</p>
+            <p className="memex-styleguide-type-ui">
+              <Wordmark className="bookmark-toolbar-brand" /> — wordmark: Nunito 900, −0.05em, Joyful Systems blue, white
+              keyline, soft blue drop, split gloss
+            </p>
             <p className="memex-styleguide-type-heading">Heading — M, medium</p>
             <p className="memex-styleguide-type-ui">UI text — S, medium (chips, rows, omnibar)</p>
             <p className="memex-styleguide-type-caption">Caption — XS, regular (counts, metadata)</p>
@@ -224,7 +226,7 @@ const StyleguidePage = () => {
 
         <Section
           title="Filter chips"
-          note="Toggle treatment: transparent at rest, neutral-3 when pressed. A dashed accent outline marks bulk-assign targets."
+          note="Toggle treatment: transparent at rest; on, a chip stands up as a raised tile. Chips swell a little under the pointer. A dashed accent outline marks bulk-assign targets."
         >
           <div className="memex-styleguide-demo-row">
             <FilterChip
@@ -254,7 +256,7 @@ const StyleguidePage = () => {
 
         <Section
           title="Action chips"
-          note="Button treatment. Primary fills use color-1, driven by the canvas swatch."
+          note="Button treatment: raised material that swells on hover and settles on press. Primary is the one glossy control, color-1 (from the canvas swatch) with a glow in its own colour."
         >
           <div className="memex-styleguide-demo-row">
             <ActionChip variant="primary">Select</ActionChip>
@@ -300,7 +302,7 @@ const StyleguidePage = () => {
 
         <Section
           title="Stream cards"
-          note="Every grid item shares one surface: neutral-1, hairline edge ring, small elevation; hover lifts to M; selection adds a color-1 ring, the selection tint, and a check. Links with a preview image are image-first (style set in Settings → Link cards); everything else renders through StreamCard."
+          note="Every grid item shares one surface (paper, not a control): neutral-1, lit top edge, hairline edge ring, hue-tinted elevation; hover lifts 2px to M, no scale; selection adds a color-1 ring, the selection tint, and a check. Links with a preview image are image-first (style set in Settings → Link cards); everything else renders through StreamCard."
         >
           <div className="memex-styleguide-cards">
             <LinkPreviewCard link={DEMO_PREVIEW_LINK} onActivate={noop} onImageError={noop} />

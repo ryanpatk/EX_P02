@@ -1,0 +1,903 @@
+/*
+ * The Journal (pages/JournalPage.tsx, components/journal/*): memex's home.
+ * Decisions 11D (entry sizes follow how visual a thing is), 12B (the Inbox
+ * tray only when something waits) and 13B (filing chips). Depth follows
+ * Joyful Utility: entries are paper, chips and buttons are objects.
+ * Pastel Sky tokens only; shared controls keep their components.css look.
+ */
+
+.jr-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.jr-head {
+  flex: none;
+}
+
+.jr-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--space-s);
+  padding: 0 var(--layout-gutter, var(--space-m)) var(--space-m);
+}
+
+/* The feed's surface: the same stack as the Library */
+.jr-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--neutral-2);
+  box-shadow:
+    var(--surface-lit),
+    0 0 0 var(--border-s) var(--border-default-color),
+    var(--shadow-m);
+}
+
+.jr-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* Bottom-anchored like a chat: short feeds sit on the composer */
+.jr-feed {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-s);
+  min-height: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+  padding: var(--space-m) var(--space-m) var(--space-s);
+}
+
+.jr-earlier {
+  align-self: center;
+  margin-bottom: var(--space-xs);
+  padding: var(--space-xxs) var(--space-s);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-1-ink);
+  font: inherit;
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  cursor: pointer;
+}
+
+.jr-earlier:hover {
+  background: var(--option-badge-background);
+}
+
+.jr-earlier:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.jr-empty {
+  align-self: center;
+  max-width: 360px;
+  margin-block: auto var(--space-l);
+  color: var(--neutral-7);
+  text-align: center;
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  text-wrap: balance;
+}
+
+.jr-empty p {
+  margin: 0;
+}
+
+.jr-empty-title {
+  margin-bottom: var(--space-xxs) !important;
+  color: var(--neutral-10);
+  font-weight: var(--weight-ui-heavy);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+}
+
+/* Day separators: a raised label between days */
+.jr-day {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-xs) 0 0;
+  padding-block: var(--space-xxs);
+  scroll-margin-top: var(--space-s);
+}
+
+.jr-day span {
+  padding: 0 var(--space-s);
+  border-radius: var(--radius-full);
+  background: var(--neutral-1) var(--control-raised-image);
+  box-shadow: 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-s);
+  color: var(--neutral-8);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-xs);
+  line-height: var(--line-l);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared bits                                                         */
+/* ------------------------------------------------------------------ */
+
+.jr-push {
+  margin-left: auto;
+}
+
+.jr-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jr-glyph {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.jr-time {
+  flex: none;
+  color: var(--neutral-6);
+  font-family: var(--font-data);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.jr-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+  color: var(--neutral-7);
+  font-family: var(--font-ui);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.jr-count {
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.jr-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--hue, var(--color-1));
+}
+
+.jr-fav {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--neutral-3);
+  color: var(--neutral-7);
+  font-family: var(--font-data);
+  font-weight: var(--weight-data-heavy);
+  font-size: 8px;
+  line-height: 1;
+}
+
+.jr-fav img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.jr-tile {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  background: var(--neutral-3);
+}
+
+.jr-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jr-tile--text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding: var(--space-xs);
+  background: var(--neutral-2);
+  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-4);
+  color: var(--neutral-8);
+  font-size: var(--size-xxs);
+  line-height: var(--line-xxs);
+  letter-spacing: var(--letter-spacing-xxs);
+}
+
+.jr-tile--text > span:last-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ */
+/* Entries                                                             */
+/* ------------------------------------------------------------------ */
+
+.jr-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xxs);
+  min-width: 0;
+}
+
+.jr-entry-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xxs);
+  max-width: 100%;
+}
+
+.jr-entry--link .jr-entry-row,
+.jr-entry--note .jr-entry-row {
+  width: 100%;
+  max-width: 460px;
+}
+
+/* Hover actions: beside the entry, shown on hover or keyboard focus */
+.jr-actions {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.jr-entry:is(:hover, :focus-within) .jr-actions,
+.jr-actions:has([aria-expanded='true']) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .jr-actions {
+    opacity: 1;
+  }
+}
+
+.jr-menu-root {
+  position: relative;
+}
+
+.jr-menu {
+  left: 0;
+  right: auto;
+  top: auto;
+  bottom: calc(100% + var(--space-xxs));
+  max-height: 320px;
+  overflow-y: auto;
+  transform-origin: bottom left;
+}
+
+.jr-menu > button.is-in {
+  color: var(--neutral-7);
+  cursor: default;
+}
+
+.jr-menu > button svg.jr-push {
+  width: 14px;
+  height: 14px;
+}
+
+.jr-menu-empty {
+  margin: 0;
+  padding: var(--space-xxs) var(--space-xs);
+  color: var(--neutral-7);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+}
+
+/* Jot: a bubble in a whisper of your canvas colour */
+.jr-bubble {
+  margin: 0;
+  max-width: 520px;
+  padding: var(--space-xs) var(--space-s);
+  border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-xs);
+  background: color-mix(in oklab, var(--color-1) 13%, var(--neutral-1));
+  box-shadow: var(--surface-lit), 0 0 0 var(--border-s) color-mix(in oklab, var(--color-1) 18%, transparent);
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.jr-bubble .jr-time {
+  float: right;
+  margin: 5px 0 0 var(--space-s);
+}
+
+/* Task: a line with the shared task check */
+.jr-taskline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 260px;
+  max-width: 520px;
+  padding: var(--space-xxs) var(--space-s) var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-s);
+  background: var(--neutral-1);
+  box-shadow: var(--surface-lit), 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-s);
+}
+
+.jr-taskline-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--neutral-10);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+  overflow-wrap: anywhere;
+}
+
+.jr-taskline.is-done .jr-taskline-title {
+  color: var(--neutral-7);
+  text-decoration: line-through;
+  text-decoration-color: var(--neutral-5);
+}
+
+/* Paper cards: picture unfurls, galleries, compact links and notes */
+:is(.jr-unfurl, .jr-gallery, .jr-hcard, .jr-notecard) {
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--neutral-1);
+  box-shadow: var(--surface-lit), 0 0 0 var(--border-s) var(--border-default-color), var(--shadow-s);
+  color: var(--neutral-10);
+  text-decoration: none;
+  transition:
+    box-shadow var(--transition-swell),
+    transform var(--transition-swell);
+}
+
+:is(a.jr-unfurl, a.jr-hcard, button.jr-notecard):hover {
+  box-shadow: var(--surface-lit), 0 0 0 var(--border-s) var(--neutral-7-transparent), var(--shadow-m);
+}
+
+@media (hover: hover) {
+  :is(a.jr-unfurl, a.jr-hcard, button.jr-notecard):hover {
+    transform: translateY(var(--hover-lift));
+  }
+}
+
+:is(a.jr-unfurl, a.jr-hcard, button.jr-notecard, .jr-gallery-item):focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+.jr-unfurl {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.jr-unfurl-image {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 0;
+}
+
+.jr-unfurl-image.jr-tile--text {
+  min-height: 120px;
+}
+
+.jr-unfurl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-s) var(--space-s);
+}
+
+.jr-unfurl-title,
+.jr-hcard-title,
+.jr-notecard-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+}
+
+.jr-gallery {
+  width: 360px;
+  max-width: 100%;
+  padding: var(--space-xs);
+}
+
+.jr-run-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: 0 var(--space-xxs) var(--space-xs);
+  color: var(--neutral-8);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.jr-run-head strong {
+  color: var(--neutral-10);
+  font-weight: var(--weight-ui-medium);
+}
+
+.jr-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xxs);
+}
+
+.jr-gallery-item {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: var(--radius-s);
+}
+
+.jr-gallery-item .jr-tile {
+  width: 100%;
+  height: 100%;
+  transition: filter var(--transition-fast);
+}
+
+.jr-gallery-item:hover .jr-tile {
+  filter: brightness(1.05) saturate(1.05);
+}
+
+.jr-more {
+  margin-top: var(--space-xs);
+  padding: 0 var(--space-xxs);
+  border: 0;
+  background: transparent;
+  color: var(--color-1-ink);
+  font: inherit;
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  cursor: pointer;
+}
+
+.jr-more:focus-visible {
+  outline: var(--focus-ring-outline);
+  outline-offset: 2px;
+}
+
+/* 11D compact: plain links and notes take one short card */
+.jr-hcard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xxs) var(--space-s) var(--space-xxs) var(--space-xxs);
+}
+
+.jr-hcard-thumb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.jr-hcard-thumb--fav {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-s);
+  background: var(--neutral-2);
+  box-shadow: inset 0 0 0 var(--border-s) var(--neutral-4);
+}
+
+.jr-hcard-thumb--fav .jr-fav {
+  width: 24px;
+  height: 24px;
+  font-size: var(--size-xxs);
+}
+
+.jr-hcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.jr-notecard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-s);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jr-notecard-body {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+/* ------------------------------------------------------------------ */
+/* Filing chips (decision 13)                                          */
+/* ------------------------------------------------------------------ */
+
+.jr-filing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  min-width: 0;
+  padding-left: var(--space-xxs);
+}
+
+.jr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  max-width: 200px;
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--hue) 16%, var(--neutral-1));
+  color: var(--neutral-9);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui-medium);
+  font-size: var(--size-xs);
+  line-height: 24px;
+  letter-spacing: var(--letter-spacing-xs);
+  white-space: nowrap;
+}
+
+/* A suggestion: dashed, in the space's hue, one press files it */
+.jr-chip.is-suggested {
+  position: relative;
+  padding-right: var(--space-xxs);
+  background: transparent;
+  outline: var(--border-l) dashed color-mix(in oklab, var(--hue) 65%, transparent);
+  outline-offset: calc(-1 * var(--border-l));
+  color: var(--neutral-8);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-swell);
+}
+
+.jr-chip.is-suggested:hover {
+  background: color-mix(in oklab, var(--hue) 16%, var(--neutral-1));
+  color: var(--neutral-10);
+}
+
+@media (hover: hover) {
+  .jr-chip.is-suggested:hover {
+    transform: scale(var(--hover-swell));
+  }
+}
+
+.jr-chip.is-suggested:active {
+  transform: translateY(var(--motion-press-distance)) scale(var(--press-settle));
+  transition-duration: 80ms;
+}
+
+.jr-chip.is-suggested:focus-visible {
+  outline-style: solid;
+  outline-color: color-mix(in srgb, var(--color-1) 55%, transparent);
+}
+
+/* Touch: a 44px target around the 24px chip */
+@media (pointer: coarse) {
+  .jr-chip.is-suggested::after {
+    content: '';
+    position: absolute;
+    inset: -10px -4px;
+  }
+}
+
+.jr-chip-accept {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--hue) 24%, var(--neutral-1)) var(--control-gloss-image);
+  color: var(--neutral-10);
+}
+
+.jr-chip-accept svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Composer                                                            */
+/* ------------------------------------------------------------------ */
+
+.jr-composer {
+  position: relative;
+  flex: none;
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+  padding: var(--space-xs) var(--space-m) var(--space-s);
+}
+
+.jr-composer-field {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-s);
+  border-radius: var(--radius-m);
+  background: var(--neutral-1) var(--surface-recessed-image);
+  box-shadow:
+    0 0 0 var(--border-s) var(--neutral-4),
+    var(--surface-recessed-shadow);
+  transition: box-shadow var(--transition-fast);
+}
+
+.jr-composer-field:focus-within {
+  box-shadow:
+    0 0 0 var(--border-s) var(--color-1-transparent),
+    var(--surface-recessed-shadow),
+    0 0 0 3px color-mix(in oklab, var(--color-1) 22%, transparent);
+}
+
+.jr-composer-input {
+  flex: 1;
+  min-width: 0;
+  max-height: 40vh;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+  resize: none;
+  outline: none;
+}
+
+.jr-composer-input::placeholder {
+  color: var(--neutral-6);
+}
+
+.jr-send {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+
+.jr-send svg {
+  width: 16px;
+  height: 16px;
+}
+
+.jr-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-s);
+  margin: var(--space-xxs) 0 0;
+  padding-left: var(--space-xxs);
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.jr-hint-spaces {
+  color: var(--color-1-ink);
+  font-weight: var(--weight-ui-medium);
+}
+
+.jr-picker {
+  top: auto;
+  bottom: calc(100% - var(--space-xxs));
+  left: var(--space-m);
+  right: auto;
+  transform-origin: bottom left;
+}
+
+.jr-picker > button.is-active {
+  background: var(--neutral-3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Inbox tray (12B: only while something waits)                        */
+/* ------------------------------------------------------------------ */
+
+.jr-inbox-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.jr-inbox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: none;
+  width: 320px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-s);
+  border-radius: var(--radius-m);
+  background: var(--neutral-1);
+  box-shadow:
+    var(--surface-lit),
+    0 0 0 var(--border-s) var(--border-default-color),
+    var(--shadow-m);
+  animation: memex-pop-in var(--motion-duration) var(--motion-easing);
+  transform-origin: top right;
+}
+
+.jr-inbox-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.jr-inbox-head h2 {
+  margin: 0;
+  color: var(--neutral-10);
+  font-weight: var(--weight-ui-heavy);
+  font-size: var(--size-m);
+  line-height: var(--line-m);
+  letter-spacing: var(--letter-spacing-m);
+}
+
+.jr-inbox-lede {
+  margin: 0;
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+  text-wrap: pretty;
+}
+
+.jr-inbox-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jr-inbox-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: var(--space-xs) 0;
+  box-shadow: inset 0 calc(-1 * var(--border-s)) 0 var(--neutral-4);
+}
+
+.jr-inbox-row:last-child {
+  box-shadow: none;
+}
+
+.jr-inbox-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--neutral-10);
+  font-family: var(--font-editorial);
+  font-weight: var(--weight-editorial-medium);
+  font-size: var(--size-s);
+  line-height: var(--line-s);
+  letter-spacing: var(--letter-spacing-s);
+}
+
+.jr-inbox-sub,
+.jr-inbox-reason {
+  color: var(--neutral-7);
+  font-size: var(--size-xs);
+  line-height: var(--line-xs);
+  letter-spacing: var(--letter-spacing-xs);
+}
+
+.jr-inbox-sub {
+  font-family: var(--font-data);
+}
+
+.jr-inbox-row .jr-chip {
+  justify-self: start;
+  margin-top: var(--space-xxs);
+}
+
+/* ------------------------------------------------------------------ */
+/* Phones: the feed fills the screen above the tab bar                 */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 899px) {
+  .jr-body {
+    padding: 0 var(--space-xs) calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jr-feed {
+    padding-inline: var(--space-s);
+  }
+
+  .jr-composer {
+    padding-inline: var(--space-xs);
+  }
+
+  .jr-hint {
+    display: none;
+  }
+
+  /* The Inbox takes the whole column while open */
+  .jr-page.has-inbox .jr-main {
+    display: none;
+  }
+
+  .jr-inbox {
+    flex: 1;
+    width: auto;
+  }
+
+  .jr-taskline {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jr-inbox {
+    animation: none;
+  }
+}

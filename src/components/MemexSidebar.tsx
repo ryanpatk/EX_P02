@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Check, CircleUser, Plus, Settings } from 'lucide-react';
-import { HOME_PATH, spacePath } from '../constants/modules';
+import { INBOX_PARAM, JOURNAL_PATH, LIBRARY_PATH, TYPE_PARAM, spacePath } from '../constants/modules';
+import { useJournal } from '../hooks/useJournal';
 import { useFeedbackToast } from '../hooks/useFeedbackToast';
 import { useAddToSpace } from '../hooks/useAddToSpace';
 import { useProfileLinkMembership } from '../hooks/useProfileLinks';
@@ -18,14 +19,15 @@ import SettingsMenu from './SettingsMenu';
 import { userDisplayName } from '../utils/userDisplay';
 import { parseItemKey } from '../utils/streamItems';
 import NewSpaceModal from './NewSpaceModal';
-import { HomeIcon, PlusIcon } from './icons';
+import { InboxIcon, JournalIcon, LibraryIcon, PlusIcon, TasksIcon } from './icons';
+import Wordmark from './ui/Wordmark';
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'memex-sidebar-item is-active' : 'memex-sidebar-item';
 
 /**
- * App navigation: Home (everything) on top, then the segmented list of
- * spaces. While a stream selection is active, spaces turn into bulk-assign
+ * App navigation (decision 12B): Journal, Library, Inbox (only while a filing
+ * suggestion is waiting), Tasks, then the segmented list of spaces. While a stream selection is active, spaces turn into bulk-assign
  * targets — clicking one adds the selected items to that space instead of
  * navigating. The header reads "Add N to…"; hovering a space tints the row in
  * its own hue and grows the dot into a "+" disc. After adding, the disc shows
@@ -98,6 +100,10 @@ const MemexSidebar = () => {
   }, [location.pathname]);
 
   const spaces = useMemo(() => profiles ?? [], [profiles]);
+  const { inbox } = useJournal();
+  const searchParams = new URLSearchParams(location.search);
+  const onTasks = location.pathname === LIBRARY_PATH && searchParams.get(TYPE_PARAM) === 'task';
+  const onInbox = location.pathname === JOURNAL_PATH && searchParams.get(INBOX_PARAM) === '1';
 
   const spaceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -144,19 +150,48 @@ const MemexSidebar = () => {
     <nav className="memex-sidebar" aria-label="Navigation">
       <div className="memex-sidebar-brand">
         <div className="bookmark-toolbar-brand-shell">
-          <span className="bookmark-toolbar-brand" translate="no">
-            memex
-          </span>
+          <Wordmark className="bookmark-toolbar-brand" />
         </div>
       </div>
 
       <div className="memex-sidebar-scroll" ref={scrollRef}>
         <div className="memex-sidebar-nav">
-          <NavLink to={HOME_PATH} end className={itemClass}>
+          <NavLink
+            to={JOURNAL_PATH}
+            end
+            className={() => itemClass({ isActive: location.pathname === JOURNAL_PATH && !onInbox })}
+          >
             <span className="memex-sidebar-item-icon">
-              <HomeIcon />
+              <JournalIcon />
             </span>
-            <span className="memex-sidebar-item-label">Home</span>
+            <span className="memex-sidebar-item-label">Journal</span>
+          </NavLink>
+          <NavLink
+            to={LIBRARY_PATH}
+            end
+            className={() => itemClass({ isActive: location.pathname === LIBRARY_PATH && !onTasks })}
+          >
+            <span className="memex-sidebar-item-icon">
+              <LibraryIcon />
+            </span>
+            <span className="memex-sidebar-item-label">Library</span>
+          </NavLink>
+          {inbox.length > 0 && (
+            <NavLink to={`${JOURNAL_PATH}?${INBOX_PARAM}=1`} className={() => itemClass({ isActive: onInbox })}>
+              <span className="memex-sidebar-item-icon">
+                <InboxIcon />
+              </span>
+              <span className="memex-sidebar-item-label">Inbox</span>
+              <span className="memex-sidebar-item-count" aria-label={`${inbox.length} waiting`}>
+                {inbox.length}
+              </span>
+            </NavLink>
+          )}
+          <NavLink to={`${LIBRARY_PATH}?${TYPE_PARAM}=task`} className={() => itemClass({ isActive: onTasks })}>
+            <span className="memex-sidebar-item-icon">
+              <TasksIcon />
+            </span>
+            <span className="memex-sidebar-item-label">Tasks</span>
           </NavLink>
         </div>
 

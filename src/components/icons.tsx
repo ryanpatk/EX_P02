@@ -2,6 +2,10 @@ import type { LucideIcon, LucideProps } from 'lucide-react';
 import {
   Ellipsis,
   House,
+  Inbox,
+  LibraryBig,
+  ListTodo,
+  NotebookPen,
   MessageSquare,
   Moon,
   Plus,
@@ -31,6 +35,10 @@ const adapt = (Icon: LucideIcon) => {
 };
 
 export const HomeIcon = adapt(House);
+export const JournalIcon = adapt(NotebookPen);
+export const LibraryIcon = adapt(LibraryBig);
+export const InboxIcon = adapt(Inbox);
+export const TasksIcon = adapt(ListTodo);
 export const ChatIcon = adapt(MessageSquare);
 export const PlusIcon = adapt(Plus);
 export const SendIcon = adapt(Send);

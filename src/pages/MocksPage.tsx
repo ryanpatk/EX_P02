@@ -34,6 +34,9 @@ import { useSelfMessages } from '../hooks/useSelfMessages';
 import { getHostname, getLinkTitle } from '../utils/linkDisplay';
 import { stripMarkdown } from '../utils/markdown';
 import type { LinkWithTag, NoteWithTags, SelfMessage, TaskWithTags } from '../types/database';
+import { Artboard, Fav, Section, Thumb } from '../components/mocks/primitives';
+import JournalFirstMocks from '../components/mocks/JournalFirstMocks';
+import Wordmark from '../components/ui/Wordmark';
 import '../styles/mocks.css';
 
 /*
@@ -81,92 +84,6 @@ const excerpt = (body: string, max = 280) => {
   const text = stripMarkdown(body ?? '').replace(/\s+/g, ' ').trim();
   return text.length > max ? `${text.slice(0, max)}…` : text;
 };
-
-/* ------------------------------------------------------------------ */
-/* Primitives                                                          */
-/* ------------------------------------------------------------------ */
-
-const Fav = ({ link, size = 'm' }: { link: LinkWithTag; size?: 's' | 'm' | 'l' }) => {
-  const [failed, setFailed] = useState(false);
-  const host = getHostname(link.url);
-  return (
-    <span className={`mk-fav mk-fav--${size}`}>
-      {link.favicon_url && !failed ? (
-        <img src={link.favicon_url} alt="" onError={() => setFailed(true)} />
-      ) : (
-        <span aria-hidden="true">{host.slice(0, 2).toUpperCase()}</span>
-      )}
-    </span>
-  );
-};
-
-const Thumb = ({ src, className }: { src?: string; className?: string }) => {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return null;
-  return (
-    <div className={`mk-thumb ${className ?? ''}`}>
-      <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
-    </div>
-  );
-};
-
-interface ArtboardProps {
-  id: string;
-  title: string;
-  summary: string;
-  pros: string[];
-  cons: string[];
-  children: ReactNode;
-  height?: number;
-  chosen?: boolean;
-}
-
-const CHOSEN = new Set(['1A', '1C', '2C', '3C', '4A', '5A', '6A', '7C', '9A', '10B']);
-
-const Artboard = ({ id, title, summary, pros, cons, children, height }: ArtboardProps) => (
-  <article className={`mk-artboard ${CHOSEN.has(id) ? 'is-chosen' : ''}`} id={`mock-${id}`}>
-    <header className="mk-artboard-head">
-      <span className="mk-artboard-id">
-        {id}
-        {CHOSEN.has(id) && <span className="mk-chosen">Chosen</span>}
-      </span>
-      <div className="mk-artboard-copy">
-        <h3 className="mk-artboard-title">{title}</h3>
-        <p className="mk-artboard-summary">{summary}</p>
-      </div>
-      <dl className="mk-tradeoffs">
-        <div>
-          <dt>Good for</dt>
-          {pros.map((p) => (
-            <dd key={p}>{p}</dd>
-          ))}
-        </div>
-        <div>
-          <dt>Costs</dt>
-          {cons.map((c) => (
-            <dd key={c}>{c}</dd>
-          ))}
-        </div>
-      </dl>
-    </header>
-    <div className="mk-canvas" style={height ? { height } : undefined}>
-      {children}
-    </div>
-  </article>
-);
-
-const Section = ({ n, title, question, children }: { n: number; title: string; question: string; children: ReactNode }) => (
-  <section className="mk-section" id={`decision-${n}`}>
-    <header className="mk-section-head">
-      <span className="mk-section-n">{n}</span>
-      <div>
-        <h2 className="mk-section-title">{title}</h2>
-        <p className="mk-section-question">{question}</p>
-      </div>
-    </header>
-    <div className="mk-section-boards">{children}</div>
-  </section>
-);
 
 /* ------------------------------------------------------------------ */
 /* Cards used across stream mocks                                      */
@@ -570,7 +487,7 @@ const SidebarMini = ({
   identity?: boolean;
 }) => (
   <aside className="mk-side">
-    <span className="mk-brand">memex</span>
+    <Wordmark className="mk-brand" />
     <div className="mk-side-item is-active">
       <House aria-hidden="true" className="mk-glyph" />
       Home
@@ -650,6 +567,15 @@ const MocksPage = () => {
     return <div className="mk-page mk-loading">Loading your items…</div>;
   }
 
+  // Default view: only the decisions still open. Past rounds (1–10) live behind ?history=1.
+  if (new URLSearchParams(window.location.search).get('history') !== '1') {
+    return (
+      <div className="mk-page">
+        <JournalFirstMocks />
+      </div>
+    );
+  }
+
   // A representative mix: recent links plus a few notes, newest first
   const recentNotes = [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);
   const firstItems: Item[] = [
@@ -661,10 +587,13 @@ const MocksPage = () => {
     <div className="mk-page">
       <header className="mk-page-head">
         <p className="mk-page-kicker">memex · design mocks</p>
-        <h1 className="mk-page-title">Choose a direction</h1>
+        <h1 className="mk-page-title">Past rounds</h1>
         <p className="mk-page-lede">
-          Round 4: the journal as one continuous list with each day's activity folded in (10).
-          Reply with a 10x ID, a mix, or ask for another pass. Earlier picks are marked below.
+          <a href="/mocks">← Back to the open decisions</a>
+        </p>
+        <p className="mk-page-lede">
+          Rounds 1–4 (2026-10-15/16), kept for reference. Picks are marked; most of this stream surface becomes the
+          Library in the journal-first app.
         </p>
         <div className="mk-decided" aria-label="Decided so far">
           {[
@@ -886,7 +815,7 @@ const MocksPage = () => {
         >
           <div className="mk-shell">
             <aside className="mk-side">
-              <span className="mk-brand">memex</span>
+              <Wordmark className="mk-brand" />
               <div className="mk-side-item">
                 <House aria-hidden="true" className="mk-glyph" />
                 Home
@@ -1042,7 +971,7 @@ const MocksPage = () => {
         >
           <div className="mk-shell">
             <aside className="mk-side">
-              <span className="mk-brand">memex</span>
+              <Wordmark className="mk-brand" />
               <div className="mk-side-item is-active">
                 <House aria-hidden="true" className="mk-glyph" />
                 Home

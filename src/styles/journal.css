@@ -676,7 +676,8 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-s);
+  /* One line reads 44px tall: 4px + a 36px row (field line, send disc) + 4px */
+  padding: 4px 4px 4px var(--space-s);
   border-radius: var(--radius-m);
   background: var(--neutral-1) var(--surface-recessed-image);
   box-shadow:
@@ -696,7 +697,7 @@
   flex: 1;
   min-width: 0;
   max-height: 40vh;
-  padding: 4px 0;
+  padding: 6px 0;
   border: 0;
   background: transparent;
   color: var(--neutral-10);
@@ -716,8 +717,10 @@
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  /* .btn-primary's 44px touch minimum would stretch the disc into an oval */
+  min-height: 0;
   padding: 0;
   border-radius: var(--radius-full);
 }
@@ -725,6 +728,20 @@
 .jr-send svg {
   width: 16px;
   height: 16px;
+}
+
+/* Touch: grow the hit area to 44px into the field's padding, not the disc */
+@media (pointer: coarse) {
+  .jr-send {
+    position: relative;
+  }
+
+  .jr-send::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+  }
 }
 
 .jr-hint {

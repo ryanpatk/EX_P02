@@ -47,7 +47,7 @@ interface ArtboardProps {
 }
 
 /** Options already picked in earlier rounds; their artboards get a “Chosen” badge. */
-const CHOSEN = new Set(['1A', '1C', '2C', '3C', '4A', '5A', '6A', '7C', '9A', '10B', '16A']);
+const CHOSEN = new Set(['1A', '1C', '2C', '3C', '4A', '5A', '6A', '7C', '9A', '10B', '11D', '12B', '13B', '14B', '15A', '16A']);
 
 export const Artboard = ({ id, title, summary, pros, cons, children, height, fade = true, recommended }: ArtboardProps) => (
   <article

@@ -283,3 +283,4 @@ The primitives (note, link, task), spaces as cross-cutting contexts, one tag voc
 | 14 | Space page | 14A board columns · 14B scoped Journal + board column | **14B** (2026-10-24) |
 | 15 | Library views | 15A tabs over the content · 15B nested in the sidebar | **15A**; the Table ships as a toggle in either view (2026-10-24) |
 | 16 | Phone layout | 16A tab bar · others | **16A tab bar**: Journal, Library, Spaces, Inbox; composer above the tab bar (2026-10-24) |
+| 17 | Desktop Journal layout | 17A as shipped · 17B notebook page + grouped jots · 17C + time gutter · 17D + today column | Open (mocks round 6, `/mocks`, 2026-10-28); recommended **17B** |

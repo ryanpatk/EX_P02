@@ -36,6 +36,7 @@ import { stripMarkdown } from '../utils/markdown';
 import type { LinkWithTag, NoteWithTags, SelfMessage, TaskWithTags } from '../types/database';
 import { Artboard, Fav, Section, Thumb } from '../components/mocks/primitives';
 import JournalFirstMocks from '../components/mocks/JournalFirstMocks';
+import JournalDeskMocks from '../components/mocks/JournalDeskMocks';
 import Wordmark from '../components/ui/Wordmark';
 import '../styles/mocks.css';
 
@@ -571,6 +572,7 @@ const MocksPage = () => {
   if (new URLSearchParams(window.location.search).get('history') !== '1') {
     return (
       <div className="mk-page">
+        <JournalDeskMocks />
         <JournalFirstMocks />
       </div>
     );

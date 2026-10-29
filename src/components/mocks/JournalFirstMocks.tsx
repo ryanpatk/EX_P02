@@ -1036,10 +1036,9 @@ const LENS = [
 const OpenHead = () => (
   <header className="mk-page-head">
     <p className="mk-page-kicker">memex · design mocks · round 5</p>
-    <h1 className="mk-page-title">Five open decisions</h1>
+    <h1 className="mk-page-title">Journal-first decisions</h1>
     <p className="mk-page-lede">
-      Each decision shows its recommendation first, over your real data; the alternatives are folded underneath if you
-      want to compare. Reply “all recommended”, or override any one by ID.
+      Decided 2026-10-25: 11D, 12B, 13B, 14B, 15A, 16A (ROADMAP.md §8). Kept for reference while Phase 1 builds them.
     </p>
     <div className="mj-lens">
       <p className="mj-lens-title">The Nintendo lens</p>
